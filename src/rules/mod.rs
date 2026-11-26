@@ -8,6 +8,7 @@ pub mod function_progression;
 pub mod function_seventh_style;
 pub mod function_six_four;
 pub mod function_vocabulary;
+pub mod key_cadence;
 pub mod key_context;
 pub mod key_modulation;
 pub mod key_profile;
@@ -25,6 +26,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_profile::RULES,
         key_context::RULES,
         key_modulation::RULES,
+        key_cadence::RULES,
         function_vocabulary::RULES,
         function_progression::RULES,
         function_seventh_style::RULES,
