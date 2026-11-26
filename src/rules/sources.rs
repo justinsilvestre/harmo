@@ -11,6 +11,7 @@ pub struct Source {
 pub const TEMPERLEY_2001: &str = "temperley2001";
 pub const TEMPERLEY_2007: &str = "temperley2007";
 pub const KOSTKA_PAYNE_ALMEN_2023: &str = "kostka2023";
+pub const SCHULTZ_ET_AL_2018: &str = "schultz2018";
 
 pub const SOURCES: &[Source] = &[
     Source {
@@ -24,5 +25,9 @@ pub const SOURCES: &[Source] = &[
     Source {
         id: KOSTKA_PAYNE_ALMEN_2023,
         reference: "Kostka, Stefan, Dorothy Payne, and Byron Almén. 2023. Tonal Harmony, with an Introduction to Post-Tonal Music. 9th ed. New York: McGraw-Hill.",
+    },
+    Source {
+        id: SCHULTZ_ET_AL_2018,
+        reference: "Condit-Schultz, Nathaniel, Yaolong Ju, and Ichiro Fujinaga. 2018. \"A Flexible Approach to Automated Harmonic Analysis: Multiple Annotations of Chorales by Bach and Prætorius.\" In Proceedings of the 19th International Society for Music Information Retrieval Conference, 66–73. Paris.",
     },
 ];
