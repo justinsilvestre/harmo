@@ -1,7 +1,7 @@
 //! Rules about how chords function in succession.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Category;
+use crate::engine::model::{Category, Reading};
 use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule, TransitionContext};
 use crate::pitch::pitch_class;
 use crate::theory::chord::Quality;
@@ -33,11 +33,19 @@ pub const RULES: &[Rule] = &[
     Rule {
         id: "function.dominant_resolution",
         layer: Layer::Function,
-        summary: "Prefer readings in which V or V7 is followed by I (or i) of the same key.",
-        citations: &[Citation {
-            source: KOSTKA_PAYNE_ALMEN_2023,
-            locator: "pp. 95–98 (harmonic progression; the I and V chords)",
-        }],
+        summary: "Prefer readings in which a dominant-function chord (V, V7, or the leading-tone triad \
+                  or seventh chord) is followed by I (or i) of the same key.",
+        citations: &[
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "pp. 95–98 (harmonic progression; the I and V chords)",
+            },
+            Citation { source: KOSTKA_PAYNE_ALMEN_2023, locator: "p. 102 (vii° substitutes for V)" },
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "pp. 240, 242 (viiø7 and vii°7 have a dominant function and resolve to tonic)",
+            },
+        ],
         default_weight: 1.0,
         hook: Hook::Transition(dominant_resolution),
     },
@@ -86,11 +94,18 @@ fn dominant_resolution(context: &TransitionContext) -> f32 {
         return 0.0;
     };
     let reading = previous.reading;
-    let is_dominant = reading.tonicized.is_none()
-        && reading.chord.root == reading.key.tonic + 1
-        && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
     let resolves = context.next.key == reading.key && context.next.chord.root == reading.key.tonic;
-    if is_dominant && resolves { 1.0 } else { 0.0 }
+    if reading.tonicized.is_none() && has_dominant_function(reading) && resolves { 1.0 } else { 0.0 }
+}
+
+/// Reports whether a chord is V, V7, or a leading-tone triad or seventh chord of its key.
+fn has_dominant_function(reading: Reading) -> bool {
+    let root = reading.chord.root - reading.key.tonic;
+    match reading.chord.quality {
+        Quality::Major | Quality::DominantSeventh => root == 1,
+        Quality::Diminished | Quality::DiminishedSeventh | Quality::HalfDiminishedSeventh => root == 5,
+        _ => false,
+    }
 }
 
 fn six_four(context: &CloseContext) -> f32 {
@@ -113,4 +128,29 @@ fn augmented_sixth_bass(context: &TransitionContext) -> f32 {
     };
     let bass = context.slice.bass().map(|n| pitch_class(n.tpc));
     if bass == Some(pitch_class(lowered_sixth)) { 0.0 } else { -1.0 }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pitch::tpc_from_name;
+    use crate::theory::chord::Chord;
+    use crate::theory::key::Key;
+
+    fn reading(key: &str, root: &str, quality: Quality, category: Category) -> Reading {
+        let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
+        Reading { key: Key::parse(key, "major").unwrap(), chord, tonicized: None, category }
+    }
+
+    #[test]
+    fn leading_tone_seventh_has_dominant_function() {
+        let vii7 = reading("C", "B", Quality::HalfDiminishedSeventh, Category::Diatonic);
+        assert!(has_dominant_function(vii7));
+    }
+
+    #[test]
+    fn subdominant_has_no_dominant_function() {
+        let iv = reading("C", "F", Quality::Major, Category::Diatonic);
+        assert!(!has_dominant_function(iv));
+    }
 }
