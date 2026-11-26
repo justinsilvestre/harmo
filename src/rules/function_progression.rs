@@ -3,7 +3,7 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::{Category, Reading};
 use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule, TransitionContext};
-use crate::pitch::pitch_class;
+use crate::pitch::{Tpc, pitch_class};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[
@@ -11,11 +11,15 @@ pub const RULES: &[Rule] = &[
         id: "function.diatonic_preference",
         layer: Layer::Function,
         summary: "Prefer diatonic readings. Altered chords (applied chords, mixture, the Neapolitan and \
-                  augmented sixths) are read only when the notes call for them.",
-        citations: &[Citation {
-            source: KOSTKA_PAYNE_ALMEN_2023,
-            locator: "p. 255 (chromaticism and altered chords)",
-        }],
+                  augmented sixths) are read only when the notes call for them. Mixture chords whose only \
+                  borrowed tone is the lowered sixth degree, the most common kind, cost half as much.",
+        citations: &[
+            Citation { source: KOSTKA_PAYNE_ALMEN_2023, locator: "p. 255 (chromaticism and altered chords)" },
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "p. 361 (ii°, iiø7, iv and vii°7 are the most frequent borrowed chords in major)",
+            },
+        ],
         default_weight: 1.0,
         hook: Hook::Transition(diatonic_preference),
     },
@@ -75,7 +79,19 @@ pub const RULES: &[Rule] = &[
 ];
 
 fn diatonic_preference(context: &TransitionContext) -> f32 {
-    if context.next.category == Category::Diatonic { 0.0 } else { -1.0 }
+    let next = context.next;
+    match next.category {
+        Category::Diatonic => 0.0,
+        Category::Mixture if borrows_only_lowered_sixth(next) => -0.5,
+        _ => -1.0,
+    }
+}
+
+/// Reports whether the only chord tone foreign to the key is the lowered sixth degree,
+/// as in ii°, iiø7, iv and vii°7 borrowed into major.
+fn borrows_only_lowered_sixth(reading: &Reading) -> bool {
+    let is_altered = |&tpc: &Tpc| reading.key.degree_of(tpc).alteration != 0;
+    reading.chord.members().filter(is_altered).all(|tpc| reading.key.degree_of(tpc).number == 6)
 }
 
 fn applied_resolution(context: &TransitionContext) -> f32 {
@@ -152,5 +168,17 @@ mod tests {
     fn subdominant_has_no_dominant_function() {
         let iv = reading("C", "F", Quality::Major, Category::Diatonic);
         assert!(!has_dominant_function(iv));
+    }
+
+    #[test]
+    fn borrowed_diminished_seventh_borrows_only_the_lowered_sixth() {
+        let vii7 = reading("C", "B", Quality::DiminishedSeventh, Category::Mixture);
+        assert!(borrows_only_lowered_sixth(&vii7));
+    }
+
+    #[test]
+    fn borrowed_submediant_also_borrows_the_lowered_third() {
+        let flat_vi = reading("C", "Ab", Quality::Major, Category::Mixture);
+        assert!(!borrows_only_lowered_sixth(&flat_vi));
     }
 }
