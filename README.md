@@ -1,0 +1,70 @@
+# harmo
+
+Rules-based harmonic analysis of MusicXML scores that offers **several competing readings** instead of a single answer. Every reading comes with a trace of the rules behind it, each citing its source. The analysis also records how a reading's rank changed while the piece unfolded.
+
+## How it works
+
+The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment.
+
+The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at six points:
+
+| hook | what it does | example |
+|---|---|---|
+| `ProposeChords` | proposes chords for a segment opening on a slice | `chord.propose_templates` |
+| `Interpret` | lists how a chord can function in a key (a hard constraint: no entry, no reading) | `function.vocabulary` |
+| `Slice` | scores one slice against a reading | `chord.compatibility`, `key.profile` |
+| `Transition` | scores opening a new segment after the previous one | `key.modulation`, `function.applied_resolution` |
+| `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `function.six_four` |
+| `Admit` | rejects transitions outright | (none yet) |
+
+Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a summary and citations. Because they are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
+
+### Layout
+
+- `src/engine/` is the core: the search (`search.rs`), the rule interface (`rule.rs`, `ruleset.rs`), path reconstruction, traces and rank histories.
+- `src/rules/` is the rule catalog. Files are prefixed by layer (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
+- `src/theory/` holds keys, chord templates and Roman numeral labels.
+- `src/score/` holds the MusicXML reader, meter and slicing.
+- `src/output/` builds the analysis document: readings, alternatives, `Determined`/`Interpretive` status, traces and rank histories.
+- `src/bench/` loads the corpus, computes metrics, runs weight sweeps and writes reports.
+- `tools/prepare_corpus.py` is the only Python. It runs once, offline, to download the corpora and convert the RomanText analyses to JSON with music21.
+
+The code avoids trait objects and macros: rules are plain structs holding function pointers, and hypotheses live in an index-linked arena. This keeps a TypeScript port straightforward.
+
+## Usage
+
+```sh
+uv run tools/prepare_corpus.py            # once: fetch corpora into data/ (about 5 minutes)
+cargo build --release
+
+./target/release/harmo analyze score.mxl          # readings, with "?" marking interpretive spans
+./target/release/harmo analyze score.mxl --json   # full document: traces, alternatives, rank histories
+./target/release/harmo inspect k282-3             # ground truth beside the engine's reading
+./target/release/harmo bench --set test --set agreement --label my-change
+./target/release/harmo sweep sweeps/key-area.json
+```
+
+`bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
+
+## Benchmarks
+
+**Sets**
+- `test` and `dev` are the AugmentedNet test and validation splits, limited to pieces that When in Rome provides as MusicXML: WiR, ABC (Beethoven quartets), MPS (Mozart sonatas) and WTC.
+- HaydnSun, TAVERN and BPS are missing, because their scores exist only as Humdrum or MuseScore files.
+- `agreement` has the 147 pieces with two or more expert analyses: 100 Bach chorales and the Mozart sonatas.
+
+**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match.
+
+**Expert agreement**
+- **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
+- **Where they disagree,** the measure is how often both readings are among those the engine offers. Offered readings are the distinct readings held by the leading hypotheses two quarter notes after the moment, a listener who has heard a little further.
+
+Tune on `dev`, and report on `test`.
+
+**Current results, test split (RN %):** WiR 49.8 (AugmentedNet 56.4), ABC 32.2 (44.5), MPS 43.0, WTC 39.7 (46.2). A full test run takes about 0.3 s on 18 cores, and a sweep setting on `dev` takes about 0.25 s.
+
+## Development
+
+- `cargo test` runs the unit tests and an end-to-end test on `tests/fixtures/cadence.musicxml`.
+- To check formatting, lints and tests on every commit, run `git config core.hooksPath .githooks`.
+- CI (`.github/workflows/ci.yml`) runs the same checks, plus ruff on `tools/`.

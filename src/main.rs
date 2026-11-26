@@ -1,0 +1,173 @@
+//! Command-line entry point: `harmo analyze | bench | sweep | rules`.
+
+use harmo::bench::manifest::Manifest;
+use harmo::bench::report::{self, RunRecord};
+use harmo::bench::runner::{EvalConfig, evaluate, load_pieces};
+use harmo::bench::sweep::{SweepSpec, run_sweep};
+use harmo::cli_args::Args;
+use harmo::engine::ruleset::{RuleSet, Weights};
+use harmo::engine::search::Config;
+use harmo::rules::default_rules;
+use std::path::{Path, PathBuf};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
+
+const USAGE: &str = "usage:
+  harmo analyze <score.mxl|musicxml> [--weights FILE] [--json]
+  harmo bench [--set NAME]... [--weights FILE] [--label TEXT] [--compare RUN.json] [--limit N]
+  harmo sweep <sweep.json> [--limit N]
+  harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
+  harmo rules
+common options: --data DIR (default: data) --beam N --candidates N --offer-count N --offer-margin X --offer-lag QUARTERS
+set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split)";
+
+fn main() {
+    let args = Args::parse(std::env::args().skip(1));
+    let result = match args.command() {
+        Some("analyze") => harmo::cli_analyze::run(&args),
+        Some("bench") => bench(&args),
+        Some("sweep") => sweep(&args),
+        Some("inspect") => {
+            load_weights(args.value("weights")).and_then(|w| harmo::cli_inspect::run(&args, &w))
+        }
+        Some("rules") => {
+            harmo::cli_analyze::print_rules();
+            Ok(())
+        }
+        _ => Err(USAGE.to_string()),
+    };
+    if let Err(message) = result {
+        eprintln!("{message}");
+        std::process::exit(1);
+    }
+}
+
+fn bench(args: &Args) -> Result<(), String> {
+    let sets = expand_sets(&args.values("set"), &["test"]);
+    let weights = load_weights(args.value("weights"))?;
+    let rules = RuleSet::new(default_rules(), &weights)?;
+    let config = eval_config(args)?;
+    let pieces = load(args, &sets)?;
+    let started = Instant::now();
+    let results = evaluate(&pieces, &rules, &config);
+    let seconds = started.elapsed().as_secs_f64();
+    let sets_summary = report::summarize(&results, &sets);
+    let previous_path =
+        args.value("compare").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("runs/latest.json"));
+    let previous = report::load(&previous_path).ok();
+    report::print_accuracy(&sets_summary, previous.as_ref());
+    report::print_agreement(&sets_summary);
+    let slices: usize = results.iter().map(|r| r.slices).sum();
+    println!("\nanalyzed {} pieces ({slices} slices) in {seconds:.2}s", results.len());
+    let record = RunRecord {
+        label: args.value("label").unwrap_or("run").to_string(),
+        timestamp: now(),
+        seconds,
+        settings: settings_of(&config),
+        weights: rules.rules.iter().zip(&rules.weights).map(|(r, w)| (r.id.to_string(), *w)).collect(),
+        sets: sets_summary,
+        pieces: report::piece_records(&results),
+    };
+    let path = PathBuf::from(format!("runs/{}-{}.json", record.timestamp, record.label));
+    report::save(&record, &path)?;
+    report::save(&record, Path::new("runs/latest.json"))?;
+    println!("saved {}", path.display());
+    Ok(())
+}
+
+fn sweep(args: &Args) -> Result<(), String> {
+    let spec_path = args.positional(0).ok_or(USAGE)?;
+    let text = std::fs::read_to_string(spec_path).map_err(|e| format!("{spec_path}: {e}"))?;
+    let mut spec: SweepSpec = serde_json::from_str(&text).map_err(|e| format!("{spec_path}: {e}"))?;
+    spec.sets = expand_sets(&spec.sets, &[]);
+    let config = eval_config(args)?;
+    let pieces = load(args, &spec.sets)?;
+    let started = Instant::now();
+    let mut progress = |done: usize, total: usize, result: &harmo::bench::sweep::SweepResult| {
+        let elapsed = started.elapsed().as_secs_f64();
+        println!("[{done}/{total} {elapsed:.1}s] objective {:.4}  {:?}", result.objective, result.weights);
+    };
+    let results = run_sweep(&spec, &default_rules(), &pieces, &config, &mut progress)?;
+    println!("\nbest settings:");
+    for result in results.iter().take(10) {
+        println!("{:.4}  {:?}", result.objective, result.weights);
+    }
+    let path = PathBuf::from(format!("runs/sweep-{}.json", now()));
+    let text = serde_json::to_string_pretty(&results).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all("runs").map_err(|e| e.to_string())?;
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    println!("saved {}", path.display());
+    Ok(())
+}
+
+fn load(args: &Args, sets: &[String]) -> Result<Vec<harmo::bench::runner::BenchPiece>, String> {
+    let manifest = Manifest::load(Path::new(args.value("data").unwrap_or("data")))?;
+    let mut selected = manifest.select(sets);
+    if let Some(limit) = args.number("limit")? {
+        selected.truncate(limit as usize);
+    }
+    let started = Instant::now();
+    let (pieces, errors) = load_pieces(&manifest, &selected);
+    for (id, error) in &errors {
+        eprintln!("could not load {id}: {error}");
+    }
+    println!(
+        "loaded {} pieces in {:.2}s ({} failed)",
+        pieces.len(),
+        started.elapsed().as_secs_f64(),
+        errors.len()
+    );
+    Ok(pieces)
+}
+
+/// Expands the aliases "test" and "dev" into the AugmentedNet split and its subsets.
+fn expand_sets(names: &[String], default: &[&str]) -> Vec<String> {
+    let names: Vec<String> =
+        if names.is_empty() { default.iter().map(|s| s.to_string()).collect() } else { names.to_vec() };
+    let subsets = ["", "-wir", "-abc_dcml", "-mps", "-wirwtc"];
+    let expand = |name: &String| match name.as_str() {
+        "test" => subsets.iter().map(|s| format!("anet-test{s}")).collect(),
+        "dev" => subsets.iter().map(|s| format!("anet-validation{s}")).collect(),
+        _ => vec![name.clone()],
+    };
+    names.iter().flat_map(expand).collect()
+}
+
+fn eval_config(args: &Args) -> Result<EvalConfig, String> {
+    let defaults = EvalConfig::default();
+    let number = |name: &str, default: f64| args.number(name).map(|n| n.unwrap_or(default));
+    Ok(EvalConfig {
+        engine: Config {
+            beam_width: number("beam", defaults.engine.beam_width as f64)? as usize,
+            candidate_limit: number("candidates", defaults.engine.candidate_limit as f64)? as usize,
+            record_snapshots: false,
+        },
+        offer_count: number("offer-count", defaults.offer_count as f64)? as usize,
+        offer_margin: number("offer-margin", defaults.offer_margin as f64)? as f32,
+        offer_lag: number("offer-lag", defaults.offer_lag)?,
+    })
+}
+
+fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
+    [
+        ("beam", config.engine.beam_width as f64),
+        ("candidates", config.engine.candidate_limit as f64),
+        ("offer_count", config.offer_count as f64),
+        ("offer_margin", config.offer_margin as f64),
+        ("offer_lag", config.offer_lag),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v))
+    .collect()
+}
+
+pub fn load_weights(path: Option<&str>) -> Result<Weights, String> {
+    let Some(path) = path else {
+        return Ok(Weights::new());
+    };
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+    serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))
+}
+
+fn now() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
+}

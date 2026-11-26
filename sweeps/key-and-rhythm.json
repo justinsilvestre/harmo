@@ -1,0 +1,11 @@
+{
+  "sets": ["dev"],
+  "objective_set": "anet-validation",
+  "objective_feature": "rn",
+  "base": {},
+  "grid": {
+    "key.modulation": [1, 2, 4, 8, 16],
+    "key.profile": [0.5, 1, 2, 4],
+    "chord.strong_beat": [0.5, 1, 2, 4]
+  }
+}

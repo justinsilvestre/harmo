@@ -1,0 +1,9 @@
+{
+  "sets": ["dev"],
+  "objective_set": "anet-validation",
+  "objective_feature": "rn",
+  "grid": {
+    "key.area_duration": [0, 0.25, 0.5, 1, 2],
+    "key.modulation": [0.25, 0.5, 1, 2]
+  }
+}
