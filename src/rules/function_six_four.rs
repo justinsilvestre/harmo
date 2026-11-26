@@ -64,6 +64,7 @@ mod tests {
             tpc: tpc_from_name(name).unwrap(),
             midi,
             attacked: true,
+            onset_level: 0,
         };
         Slice {
             start: 0.0,
