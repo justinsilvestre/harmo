@@ -17,7 +17,8 @@ const USAGE: &str = "usage:
   harmo sweep <sweep.json> [--limit N]
   harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
   harmo rules
-common options: --data DIR (default: data) --beam N --candidates N --offer-count N --offer-margin X --offer-lag QUARTERS
+common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
+  --offer-count N --offer-margin X --offer-lag QUARTERS
 set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split),
   tune (every piece outside the test split), each with its per-corpus subsets";
 
@@ -154,6 +155,7 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
         engine: Config {
             beam_width: number("beam", defaults.engine.beam_width as f64)? as usize,
             candidate_limit: number("candidates", defaults.engine.candidate_limit as f64)? as usize,
+            distinct_depth: number("distinct-depth", defaults.engine.distinct_depth as f64)? as usize,
             record_snapshots: false,
         },
         offer_count: number("offer-count", defaults.offer_count as f64)? as usize,
@@ -166,6 +168,7 @@ fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
     [
         ("beam", config.engine.beam_width as f64),
         ("candidates", config.engine.candidate_limit as f64),
+        ("distinct_depth", config.engine.distinct_depth as f64),
         ("offer_count", config.offer_count as f64),
         ("offer_margin", config.offer_margin as f64),
         ("offer_lag", config.offer_lag),

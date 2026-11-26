@@ -3,13 +3,15 @@
 //!
 //! The beam at each slice is the set of interpretations a listener might hold at that moment.
 //! Hypotheses that open the same reading at the same slice are merged, keeping the best history.
+//! Hypotheses that differ only in where their recent segments begin compete for one place in the beam,
+//! so that the beam holds more distinct interpretations.
 
 use super::model::{NONE, Node, Reading, Segment};
 use super::rule::{CloseContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::key::all_keys;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -17,13 +19,17 @@ pub struct Config {
     pub beam_width: usize,
     /// Number of new readings, ranked by their fit to the opening slice, considered per slice.
     pub candidate_limit: usize,
+    /// Number of recent segments whose readings identify a hypothesis when the beam is pruned.
+    /// Of the hypotheses that give their last `distinct_depth` segments the same readings, differing
+    /// only in where those segments begin, only the best is kept. Zero keeps them all.
+    pub distinct_depth: usize,
     /// Keeps the beam of every slice, for tracing how readings rise and fall in the ranking.
     pub record_snapshots: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { beam_width: 48, candidate_limit: 96, record_snapshots: false }
+        Config { beam_width: 48, candidate_limit: 96, distinct_depth: 3, record_snapshots: false }
     }
 }
 
@@ -42,7 +48,8 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut snapshots = Vec::new();
     for index in 0..slices.len() {
         let pending = step(slices, index, &arena, &beam, rules, config);
-        beam = commit(&mut arena, prune(pending, config.beam_width));
+        let kept = prune(pending, &arena, config);
+        beam = commit(&mut arena, kept);
         if config.record_snapshots {
             snapshots.push(beam.clone());
         }
@@ -171,11 +178,38 @@ fn close_score(slices: &[Slice], node: &Node, next_slice: Option<&Slice>, rules:
     rules.score_close(&CloseContext { segment: &node.segment, slices: span, next_slice })
 }
 
-/// Keeps the best hypotheses. The sort is stable, so ties are broken by insertion order.
-fn prune(mut pending: Vec<Node>, width: usize) -> Vec<Node> {
+/// Keeps the best hypotheses, skipping any whose recent readings repeat those of a better one
+/// (see `Config::distinct_depth`). The sort is stable, so ties are broken by insertion order.
+fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> Vec<Node> {
     pending.sort_by(|a, b| b.score.total_cmp(&a.score));
-    pending.truncate(width);
-    pending
+    if config.distinct_depth == 0 {
+        pending.truncate(config.beam_width);
+        return pending;
+    }
+    let mut seen: HashSet<Vec<Reading>> = HashSet::new();
+    let mut kept = Vec::with_capacity(config.beam_width);
+    for node in pending {
+        if kept.len() == config.beam_width {
+            break;
+        }
+        if seen.insert(recent_readings(&node.segment, arena, config.distinct_depth)) {
+            kept.push(node);
+        }
+    }
+    kept
+}
+
+/// Returns the readings of a segment and of up to `depth - 1` segments before it, most recent first.
+fn recent_readings(segment: &Segment, arena: &[Node], depth: usize) -> Vec<Reading> {
+    let mut readings = Vec::with_capacity(depth);
+    let mut current = segment;
+    loop {
+        readings.push(current.reading);
+        if readings.len() == depth || current.previous == NONE {
+            return readings;
+        }
+        current = &arena[current.previous as usize].segment;
+    }
 }
 
 fn commit(arena: &mut Vec<Node>, nodes: Vec<Node>) -> Vec<u32> {
@@ -189,4 +223,67 @@ fn rank_final(slices: &[Slice], arena: &[Node], beam: &[u32], rules: &RuleSet) -
     let mut ranking: Vec<(u32, f32)> = beam.iter().map(|&b| finish(b)).collect();
     ranking.sort_by(|a, b| b.1.total_cmp(&a.1));
     ranking
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::model::Category;
+    use crate::pitch::tpc_from_name;
+    use crate::theory::chord::{Chord, Quality};
+    use crate::theory::key::{Key, Mode};
+
+    fn reading(root: &str) -> Reading {
+        let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
+        let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
+        Reading { key, chord, tonicized: None, category: Category::Diatonic }
+    }
+
+    fn node(root: &str, start: u32, previous: u32, score: f32) -> Node {
+        let segment =
+            Segment { reading: reading(root), start, previous, duration: 1.0, members_heard: 0, bass: None };
+        Node { parent: previous, slice: 2, segment, score }
+    }
+
+    /// Two opening segments with the given roots: one ending on slice 0, the other on slice 1.
+    fn arena(first_root: &str, second_root: &str) -> Vec<Node> {
+        vec![node(first_root, 0, NONE, 0.0), node(second_root, 0, NONE, 0.0)]
+    }
+
+    /// Two hypotheses that move to G after the first and the second arena segment respectively.
+    fn pending() -> Vec<Node> {
+        vec![node("G", 1, 0, -2.0), node("G", 2, 1, -1.0)]
+    }
+
+    fn kept_starts(arena: &[Node], config: &Config) -> Vec<u32> {
+        prune(pending(), arena, config).iter().map(|n| n.segment.start).collect()
+    }
+
+    #[test]
+    fn prune_keeps_only_the_best_of_hypotheses_with_the_same_recent_readings() {
+        assert_eq!(kept_starts(&arena("C", "C"), &Config::default()), [2]);
+    }
+
+    #[test]
+    fn prune_keeps_hypotheses_whose_earlier_readings_differ() {
+        assert_eq!(kept_starts(&arena("C", "F"), &Config::default()), [2, 1]);
+    }
+
+    #[test]
+    fn prune_keeps_every_boundary_variant_when_distinct_depth_is_zero() {
+        let config = Config { distinct_depth: 0, ..Config::default() };
+        assert_eq!(kept_starts(&arena("C", "C"), &config), [2, 1]);
+    }
+
+    #[test]
+    fn prune_looks_back_no_further_than_distinct_depth() {
+        let config = Config { distinct_depth: 1, ..Config::default() };
+        assert_eq!(kept_starts(&arena("C", "F"), &config), [2]);
+    }
+
+    #[test]
+    fn prune_keeps_at_most_beam_width_hypotheses() {
+        let config = Config { beam_width: 1, ..Config::default() };
+        assert_eq!(kept_starts(&arena("C", "F"), &config), [2]);
+    }
 }
