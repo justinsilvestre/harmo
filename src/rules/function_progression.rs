@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::{Category, Reading};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
 use crate::pitch::{Tpc, pitch_class};
 use crate::theory::chord::Quality;
 
@@ -38,7 +38,8 @@ pub const RULES: &[Rule] = &[
         id: "function.dominant_resolution",
         layer: Layer::Function,
         summary: "Prefer readings in which a dominant-function chord (V, V7, or the leading-tone triad \
-                  or seventh chord) is followed by I (or i) of the same key.",
+                  or seventh chord) is followed by I (or i) of the same key. A tonic six-four does not \
+                  count, since the cadential I64 delays V rather than resolving it.",
         citations: &[
             Citation {
                 source: KOSTKA_PAYNE_ALMEN_2023,
@@ -49,21 +50,13 @@ pub const RULES: &[Rule] = &[
                 source: KOSTKA_PAYNE_ALMEN_2023,
                 locator: "pp. 240, 242 (viiø7 and vii°7 have a dominant function and resolve to tonic)",
             },
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "p. 135 (the cadential I64 does not represent a tonic function)",
+            },
         ],
         default_weight: 0.75,
         hook: Hook::Transition(dominant_resolution),
-    },
-    Rule {
-        id: "function.six_four",
-        layer: Layer::Function,
-        summary: "Avoid second-inversion triads unless the bass is held or repeated into the next chord, \
-                  as in cadential and pedal six-four chords.",
-        citations: &[Citation {
-            source: KOSTKA_PAYNE_ALMEN_2023,
-            locator: "pp. 133–141 (triads in second inversion)",
-        }],
-        default_weight: 1.0,
-        hook: Hook::Close(six_four),
     },
     Rule {
         id: "function.augmented_sixth_bass",
@@ -110,8 +103,11 @@ fn dominant_resolution(context: &TransitionContext) -> f32 {
         return 0.0;
     };
     let reading = previous.reading;
-    let resolves = context.next.key == reading.key && context.next.chord.root == reading.key.tonic;
-    if reading.tonicized.is_none() && has_dominant_function(reading) && resolves { 1.0 } else { 0.0 }
+    let next = context.next;
+    let resolves = next.key == reading.key && next.chord.root == reading.key.tonic;
+    let is_tonic_six_four = context.slice.bass().is_some_and(|n| next.chord.member_index(n.tpc) == Some(2));
+    let rewarded = reading.tonicized.is_none() && has_dominant_function(reading) && resolves;
+    if rewarded && !is_tonic_six_four { 1.0 } else { 0.0 }
 }
 
 /// Reports whether a chord is V, V7, or a leading-tone triad or seventh chord of its key.
@@ -122,17 +118,6 @@ fn has_dominant_function(reading: Reading) -> bool {
         Quality::Diminished | Quality::DiminishedSeventh | Quality::HalfDiminishedSeventh => root == 5,
         _ => false,
     }
-}
-
-fn six_four(context: &CloseContext) -> f32 {
-    let segment = context.segment;
-    let chord = segment.reading.chord;
-    let is_triad =
-        matches!(chord.quality, Quality::Major | Quality::Minor | Quality::Diminished | Quality::Augmented);
-    let is_six_four = is_triad && chord.member_index(segment.bass_tpc()) == Some(2);
-    let next_bass = context.next_slice.and_then(|s| s.bass()).map(|n| pitch_class(n.tpc));
-    let bass_continues = next_bass == Some(pitch_class(segment.bass_tpc()));
-    if is_six_four && !bass_continues { -1.0 } else { 0.0 }
 }
 
 fn augmented_sixth_bass(context: &TransitionContext) -> f32 {
