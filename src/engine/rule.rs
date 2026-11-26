@@ -77,6 +77,10 @@ pub struct SliceContext<'a> {
     pub slice: &'a Slice,
     /// The slice after this one in the score, if any.
     pub next_slice: Option<&'a Slice>,
+    /// Every slice of the score, for rules that weigh the musical context around this slice.
+    pub slices: &'a [Slice],
+    /// The index of this slice in `slices`.
+    pub index: usize,
     pub reading: &'a Reading,
     /// True when the slice opens the segment.
     pub is_opening: bool,

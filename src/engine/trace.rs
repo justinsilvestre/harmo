@@ -40,6 +40,8 @@ pub fn trace_segment(
         let context = |i: usize| SliceContext {
             slice: &slices[i],
             next_slice: slices.get(i + 1),
+            slices,
+            index: i,
             reading: &segment.reading,
             is_opening: i == first,
         };

@@ -60,11 +60,10 @@ fn step(
     config: &Config,
 ) -> Vec<Node> {
     let slice = &slices[index];
-    let next_slice = slices.get(index + 1);
-    let mut pending = continuations(slice, next_slice, index, arena, beam, rules);
+    let mut pending = continuations(slices, index, arena, beam, rules);
     let closes: Vec<f32> =
         beam.iter().map(|&b| close_score(slices, &arena[b as usize], Some(slice), rules)).collect();
-    for (reading, opening_score) in openings(slice, next_slice, rules, config.candidate_limit) {
+    for (reading, opening_score) in openings(slices, index, rules, config.candidate_limit) {
         let best = best_predecessor(&reading, slice, arena, beam, &closes, rules);
         if let Some((parent, previous_score)) = best {
             let segment = open_segment(reading, index, parent, slice);
@@ -79,19 +78,13 @@ fn step(
     pending
 }
 
-fn continuations(
-    slice: &Slice,
-    next_slice: Option<&Slice>,
-    index: usize,
-    arena: &[Node],
-    beam: &[u32],
-    rules: &RuleSet,
-) -> Vec<Node> {
+fn continuations(slices: &[Slice], index: usize, arena: &[Node], beam: &[u32], rules: &RuleSet) -> Vec<Node> {
+    let (slice, next_slice) = (&slices[index], slices.get(index + 1));
     let mut cache: HashMap<Reading, f32> = HashMap::new();
     let mut extend_node = |b: u32| {
         let node = &arena[b as usize];
         let reading = node.segment.reading;
-        let context = SliceContext { slice, next_slice, reading: &reading, is_opening: false };
+        let context = SliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
         let fit = *cache.entry(reading).or_insert_with(|| rules.score_slice(&context));
         Node { parent: b, slice: index as u32, segment: extend(node.segment, slice), score: node.score + fit }
     };
@@ -99,7 +92,8 @@ fn continuations(
 }
 
 /// Proposes new readings for a segment opening on this slice, best-fitting first.
-fn openings(slice: &Slice, next_slice: Option<&Slice>, rules: &RuleSet, limit: usize) -> Vec<(Reading, f32)> {
+fn openings(slices: &[Slice], index: usize, rules: &RuleSet, limit: usize) -> Vec<(Reading, f32)> {
+    let (slice, next_slice) = (&slices[index], slices.get(index + 1));
     let mut chords: Vec<_> = rules.proposers.iter().flat_map(|propose| propose(slice)).collect();
     chords.sort();
     chords.dedup();
@@ -119,8 +113,9 @@ fn openings(slice: &Slice, next_slice: Option<&Slice>, rules: &RuleSet, limit: u
     }
     readings.sort();
     readings.dedup();
-    let score =
-        |reading: &Reading| rules.score_slice(&SliceContext { slice, next_slice, reading, is_opening: true });
+    let score = |reading: &Reading| {
+        rules.score_slice(&SliceContext { slice, next_slice, slices, index, reading, is_opening: true })
+    };
     let mut scored: Vec<(Reading, f32)> = readings.into_iter().map(|r| (r, score(&r))).collect();
     scored.sort_by(|a, b| b.1.total_cmp(&a.1));
     scored.truncate(limit);

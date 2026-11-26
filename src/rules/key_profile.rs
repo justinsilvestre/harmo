@@ -38,9 +38,14 @@ fn centered_logs(profile: &[f32; 12]) -> [f32; 12] {
     logs.map(|value| value - mean)
 }
 
+/// Returns the log key profile of a mode, centered on its mean, by semitones above the tonic.
+pub fn profile_logs(mode: Mode) -> &'static [f32; 12] {
+    &CENTERED_LOGS[if mode == Mode::Major { 0 } else { 1 }]
+}
+
 fn profile_fit(context: &SliceContext) -> f32 {
     let key = context.reading.key;
-    let profile = &CENTERED_LOGS[if key.mode == Mode::Major { 0 } else { 1 }];
+    let profile = profile_logs(key.mode);
     let mut seen = [false; 12];
     let (mut total, mut count) = (0.0, 0);
     for note in &context.slice.notes {
