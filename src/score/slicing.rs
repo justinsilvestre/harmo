@@ -1,7 +1,7 @@
 //! Cuts a score into "salami slices": maximal spans during which no note starts or stops.
 
 use super::meter::metric_level;
-use super::model::{Measure, Offset, Score};
+use super::model::{Measure, Note, Offset, Score};
 use crate::pitch::Tpc;
 use serde::Serialize;
 
@@ -13,6 +13,8 @@ pub struct SliceNote {
     pub midi: i32,
     /// True when the note starts at the beginning of the slice.
     pub attacked: bool,
+    /// The metric level at the note's onset, which may precede the slice.
+    pub onset_level: u8,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -39,6 +41,7 @@ pub fn slice_score(score: &Score) -> Vec<Slice> {
     let mut next = 0;
     let mut active: Vec<usize> = Vec::new();
     let mut slices = Vec::with_capacity(times.len());
+    let notes = annotate_notes(score);
     for window in times.windows(2) {
         let (start, end) = (window[0], window[1]);
         while next < order.len() && score.notes[order[next]].onset < end - EPSILON {
@@ -46,7 +49,7 @@ pub fn slice_score(score: &Score) -> Vec<Slice> {
             next += 1;
         }
         active.retain(|&i| score.notes[i].onset + score.notes[i].duration > start + EPSILON);
-        slices.push(make_slice(score, &active, start, end));
+        slices.push(make_slice(score, &notes, &active, window));
     }
     slices
 }
@@ -60,20 +63,32 @@ fn breakpoints(score: &Score) -> Vec<Offset> {
     times
 }
 
-fn make_slice(score: &Score, active: &[usize], start: Offset, end: Offset) -> Slice {
+/// Returns each note as it sounds in the slice it starts, with `attacked` false for tied notes.
+fn annotate_notes(score: &Score) -> Vec<SliceNote> {
+    let annotate = |n: &Note| SliceNote {
+        tpc: n.tpc,
+        midi: n.midi,
+        attacked: !n.tied_from_previous,
+        onset_level: level_at(&score.measures, n.onset),
+    };
+    score.notes.iter().map(annotate).collect()
+}
+
+fn make_slice(score: &Score, annotated: &[SliceNote], active: &[usize], window: &[Offset]) -> Slice {
+    let (start, end) = (window[0], window[1]);
+    let starts_here = |i: usize| (score.notes[i].onset - start).abs() < EPSILON;
     let mut notes: Vec<SliceNote> = active
         .iter()
-        .map(|&i| &score.notes[i])
-        .map(|n| SliceNote {
-            tpc: n.tpc,
-            midi: n.midi,
-            attacked: (n.onset - start).abs() < EPSILON && !n.tied_from_previous,
-        })
+        .map(|&i| SliceNote { attacked: annotated[i].attacked && starts_here(i), ..annotated[i] })
         .collect();
     notes.sort_by_key(|n| n.midi);
     let measure = measure_at(&score.measures, start);
-    let level = score.measures.get(measure).map_or(0, |m| metric_level(m, start - m.start));
-    Slice { start, duration: end - start, notes, measure, metric_level: level }
+    Slice { start, duration: end - start, notes, measure, metric_level: level_at(&score.measures, start) }
+}
+
+fn level_at(measures: &[Measure], time: Offset) -> u8 {
+    let measure = measure_at(measures, time);
+    measures.get(measure).map_or(0, |m| metric_level(m, time - m.start))
 }
 
 /// Returns the index of the measure containing a time.
@@ -84,7 +99,7 @@ pub fn measure_at(measures: &[Measure], time: Offset) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::score::model::{Measure, Note};
+    use crate::score::model::Measure;
 
     fn note(onset: f64, duration: f64, midi: i32) -> Note {
         Note { onset, duration, tpc: 0, midi, part: 0, tied_from_previous: false }
@@ -105,6 +120,12 @@ mod tests {
     fn held_notes_are_not_reattacked() {
         let slices = slice_score(&score(vec![note(0.0, 4.0, 60), note(2.0, 2.0, 64)]));
         assert!(!slices[1].notes[0].attacked);
+    }
+
+    #[test]
+    fn held_notes_keep_their_onset_level() {
+        let slices = slice_score(&score(vec![note(1.0, 3.0, 60), note(2.0, 2.0, 64)]));
+        assert_eq!(slices[1].notes[0].onset_level, 2);
     }
 
     #[test]
