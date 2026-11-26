@@ -50,7 +50,7 @@ pub const RULES: &[Rule] = &[
                 locator: "pp. 240, 242 (viiø7 and vii°7 have a dominant function and resolve to tonic)",
             },
         ],
-        default_weight: 1.0,
+        default_weight: 0.75,
         hook: Hook::Transition(dominant_resolution),
     },
     Rule {
