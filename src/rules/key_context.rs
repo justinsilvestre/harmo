@@ -101,6 +101,7 @@ mod tests {
                 tpc: tpc_from_name(name).unwrap(),
                 midi: 60 + i as i32,
                 attacked: true,
+                onset_level: 0,
             })
             .collect();
         Slice { start, duration: 4.0, notes, measure: start as usize / 4, metric_level: 0 }

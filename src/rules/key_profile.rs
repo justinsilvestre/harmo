@@ -88,7 +88,12 @@ mod tests {
 
     /// Scores a D7 chord in C major, read either as V7/V or with no tonicization.
     fn secondary_dominant_fit(tonicized: Option<Key>) -> f32 {
-        let notes = ["D", "F#", "A", "C"].map(|name| SliceNote { tpc: tpc(name), midi: 60, attacked: true });
+        let notes = ["D", "F#", "A", "C"].map(|name| SliceNote {
+            tpc: tpc(name),
+            midi: 60,
+            attacked: true,
+            onset_level: 0,
+        });
         let slice = Slice { start: 0.0, duration: 1.0, notes: notes.to_vec(), measure: 0, metric_level: 0 };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
         let reading =
