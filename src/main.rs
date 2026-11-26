@@ -18,10 +18,21 @@ const USAGE: &str = "usage:
   harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
   harmo rules
 common options: --data DIR (default: data) --beam N --candidates N --offer-count N --offer-margin X --offer-lag QUARTERS
-set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split)";
+set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split),
+  tune (every piece outside the test split), each with its per-corpus subsets";
+
+/// The AugmentedNet modules, which the test and dev aliases report one by one.
+const ANET_MODULES: &[&str] = &["wir", "abc_dcml", "mps", "wirwtc", "haydnsun", "tavern", "bps"];
+/// The When in Rome categories whose pieces belong to no AugmentedNet module.
+const OTHER_CATEGORIES: &[&str] =
+    &["early_choral", "keyboard_other", "openscore-liedercorpus", "textbooks", "variations_and_grounds"];
 
 fn main() {
     let args = Args::parse(std::env::args().skip(1));
+    if args.wants_help() {
+        println!("{USAGE}");
+        return;
+    }
     let result = match args.command() {
         Some("analyze") => harmo::cli_analyze::run(&args),
         Some("bench") => bench(&args),
@@ -119,14 +130,18 @@ fn load(args: &Args, sets: &[String]) -> Result<Vec<harmo::bench::runner::BenchP
     Ok(pieces)
 }
 
-/// Expands the aliases "test" and "dev" into the AugmentedNet split and its subsets.
+/// Expands the aliases "test", "dev" and "tune" into a set and its per-corpus subsets.
 fn expand_sets(names: &[String], default: &[&str]) -> Vec<String> {
     let names: Vec<String> =
         if names.is_empty() { default.iter().map(|s| s.to_string()).collect() } else { names.to_vec() };
-    let subsets = ["", "-wir", "-abc_dcml", "-mps", "-wirwtc"];
+    let with_subsets = |set: &str, subsets: &[&[&str]]| {
+        let subsets = subsets.iter().flat_map(|group| group.iter()).map(|s| format!("{set}-{s}"));
+        std::iter::once(set.to_string()).chain(subsets).collect::<Vec<_>>()
+    };
     let expand = |name: &String| match name.as_str() {
-        "test" => subsets.iter().map(|s| format!("anet-test{s}")).collect(),
-        "dev" => subsets.iter().map(|s| format!("anet-validation{s}")).collect(),
+        "test" => with_subsets("anet-test", &[ANET_MODULES]),
+        "dev" => with_subsets("anet-validation", &[ANET_MODULES]),
+        "tune" => with_subsets("tune", &[ANET_MODULES, OTHER_CATEGORIES]),
         _ => vec![name.clone()],
     };
     names.iter().flat_map(expand).collect()

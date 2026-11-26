@@ -1,7 +1,8 @@
 //! Loads ground-truth harmonies and places them on the score's timeline.
 
-use crate::pitch::tpc_from_name;
-use crate::score::model::{Measure, Offset};
+use super::groundtruth_measures::{AnalysisMeasure, locate_measures};
+use crate::pitch::{pitch_class, tpc_from_name};
+use crate::score::model::{Measure, Note, Offset, Score};
 use crate::theory::chord::{Chord, classify};
 use crate::theory::key::Key;
 use crate::theory::label::Label;
@@ -23,6 +24,9 @@ struct Harmony {
     root: String,
     bass: String,
     pitches: Vec<String>,
+    /// Why the harmony is left out of the benchmark, when the label is known to be wrong.
+    #[serde(default)]
+    excluded: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -31,44 +35,36 @@ struct KeyName {
     mode: String,
 }
 
-/// A ground-truth harmony starting at a time; `None` marks a label that could not be decoded.
+/// A ground-truth harmony starting at a time; `None` marks a label that could not be decoded or was excluded.
 pub type TimedLabel = (Offset, Option<Label>);
 
 /// Loads a ground-truth file and returns its labels in time order.
 /// Harmonies in measures that the score lacks are dropped.
-pub fn load_labels(path: &Path, measures: &[Measure]) -> Result<Vec<TimedLabel>, String> {
+pub fn load_labels(path: &Path, score: &Score) -> Result<Vec<TimedLabel>, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let file: File = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
-    let locate = measure_locator(measures, &file.harmonies);
-    let mut labels: Vec<TimedLabel> = file
-        .harmonies
-        .iter()
-        .filter_map(|h| locate(h.measure, &h.measure_suffix).map(|m| (time_in(m, h.offset), decode(h))))
-        .collect();
+    let references: Vec<AnalysisMeasure> =
+        file.harmonies.iter().map(|h| (h.measure, h.measure_suffix.as_str())).collect();
+    let fit = |index: usize, bar: &Measure| chord_tone_share(&file.harmonies[index], &score.notes, bar);
+    let (bars, located) = locate_measures(&score.measures, &references, fit);
+    let place = |(harmony, bar): (&Harmony, Option<usize>)| {
+        bar.map(|i| (time_in(&bars[i], harmony.offset), decode(harmony)))
+    };
+    let mut labels: Vec<TimedLabel> = file.harmonies.iter().zip(located).filter_map(place).collect();
     labels.sort_by(|a, b| a.0.total_cmp(&b.0));
     Ok(labels)
 }
 
-/// Matches RomanText measure numbers to score measures. When the analysis has a pickup
-/// measure 0 but the score numbers its pickup 1, analysis numbers are shifted up by one.
-fn measure_locator<'a>(
-    measures: &'a [Measure],
-    harmonies: &[Harmony],
-) -> impl Fn(i64, &str) -> Option<&'a Measure> {
-    let parsed: Vec<(i64, String)> = measures.iter().map(|m| split_number(&m.number)).collect();
-    let score_has_zero = parsed.iter().any(|(n, _)| *n == 0);
-    let shift = if !score_has_zero && harmonies.iter().any(|h| h.measure == 0) { 1 } else { 0 };
-    move |number, suffix| {
-        let target = number + shift;
-        let exact = parsed.iter().position(|(n, s)| *n == target && s == suffix);
-        let any = || parsed.iter().position(|(n, _)| *n == target);
-        exact.or_else(any).map(|i| &measures[i])
-    }
-}
-
-fn split_number(number: &str) -> (i64, String) {
-    let digits: String = number.chars().take_while(char::is_ascii_digit).collect();
-    (digits.parse().unwrap_or(-1), number[digits.len()..].to_string())
+/// Returns the share of the bar's sounding duration that belongs to the harmony's pitch classes.
+fn chord_tone_share(harmony: &Harmony, notes: &[Note], bar: &Measure) -> f64 {
+    let classes: Vec<u8> = harmony.pitches.iter().filter_map(|p| tpc_from_name(p)).map(pitch_class).collect();
+    let end = bar.start + bar.duration;
+    let in_bar = notes.iter().filter(|n| n.onset >= bar.start - 1e-6 && n.onset < end - 1e-6);
+    let (matching, total) = in_bar.fold((0.0, 0.0), |(matching, total), note| {
+        let is_chord_tone = classes.contains(&pitch_class(note.tpc));
+        (matching + if is_chord_tone { note.duration } else { 0.0 }, total + note.duration)
+    });
+    if total > 0.0 { matching / total } else { 0.0 }
 }
 
 /// Places an offset within a measure on the timeline. RomanText counts a pickup measure's beats as if
@@ -80,6 +76,9 @@ fn time_in(measure: &Measure, offset: f64) -> Offset {
 }
 
 fn decode(harmony: &Harmony) -> Option<Label> {
+    if harmony.excluded.is_some() {
+        return None;
+    }
     let key = Key::parse(&harmony.key.tonic, &harmony.key.mode)?;
     let tonicized = match &harmony.tonicized_key {
         Some(name) => Some(Key::parse(&name.tonic, &name.mode)?),

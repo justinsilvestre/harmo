@@ -20,7 +20,7 @@ pub fn run(args: &Args, weights: &Weights) -> Result<(), String> {
     let analyst = args.value("analyst").unwrap_or("main");
     let truth_path = entry.analyses.get(analyst).ok_or("no such analyst for this piece")?;
     let score = read_score(&manifest.root.join(&entry.score))?;
-    let truth = load_labels(&manifest.root.join(truth_path), &score.measures)?;
+    let truth = load_labels(&manifest.root.join(truth_path), &score)?;
     let slices = slice_score(&score);
     let rules = RuleSet::new(default_rules(), weights)?;
     let analysis = analyze(&slices, &rules, &Config::default());

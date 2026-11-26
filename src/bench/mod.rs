@@ -2,6 +2,7 @@
 
 pub mod frames;
 pub mod groundtruth;
+pub mod groundtruth_measures;
 pub mod manifest;
 pub mod metrics;
 pub mod report;
