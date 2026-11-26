@@ -68,6 +68,20 @@ Tune on `tune`, and report on `test`.
 
 **Current results, test split (RN %):** WiR 54.2 (AugmentedNet 56.4), ABC 39.3 (44.5), MPS 53.3, WTC 48.9 (46.2), HaydnSun 40.0 (48.6), TAVERN 51.0 (42.6), BPS 53.5 (45.4). On 18 cores, a full test run takes about 0.7 s and a `tune` run about 7 s.
 
+## Improving the engine
+
+Each round of work follows the same loop.
+
+1. **Survey the errors.** Break the wrong frames on `tune` down by kind (key, root, quality, inversion, labels the engine cannot produce) and by corpus, and rank the kinds by frames lost.
+   - Report frames where the analysts in `agreement-tune` disagree separately. There, the top reading is right if it matches either analyst, and the goal is to offer both readings.
+   - Classify these disagreements (for example, cadential six-four as I64 or V, or tonicization against modulation), and check whether the second reading is missing from the vocabulary, ranked too low, or pushed out of the beam.
+   - Only `agreement-tune` has two analysts, so elsewhere ambiguity and error cannot be told apart.
+2. **Compare with the experts.** For the largest kinds, read weak passages in the score beside `harmo inspect` and the rule traces from `analyze --json`. Find what the expert hears that the engine does not, and trace it to a rule, a missing rule or a weight.
+3. **Check the ground truth.** A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation rather than in the engine.
+4. **Change one thing at a time.** Each change is a cited rule, a vocabulary entry or a weight. Keep it only if it helps `tune` overall, costs no corpus more than about 1 RN point, and does not lower how often both readings are offered where analysts disagree. Record rejected ideas in the commit message or report.
+5. **Sweep the weights.** Once the rules settle, run a one-at-a-time sweep on `tune`, then combine the best settings. Turn down any gain that comes mostly from one repertoire at the expense of others.
+6. **Report on `test` once,** at the end of the round, and update the results above.
+
 ## Development
 
 - `cargo test` runs the unit tests and an end-to-end test on `tests/fixtures/cadence.musicxml`.
