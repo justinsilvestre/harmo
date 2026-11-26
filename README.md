@@ -27,19 +27,20 @@ Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a 
 - `src/score/` holds the MusicXML reader, meter and slicing.
 - `src/output/` builds the analysis document: readings, alternatives, `Determined`/`Interpretive` status, traces and rank histories.
 - `src/bench/` loads the corpus, computes metrics, runs weight sweeps and writes reports.
-- `tools/prepare_corpus.py` is the only Python. It runs once, offline, to download the corpora and convert the RomanText analyses to JSON with music21.
+- `tools/prepare_corpus.py` is the only Python. It runs once, offline, to download the corpora and convert the RomanText analyses to JSON with music21. `tools/prepare_corpus_anet.py` adds the AugmentedNet corpora that When in Rome has no MusicXML for, converting Humdrum scores to MusicXML.
 
 The code avoids trait objects and macros: rules are plain structs holding function pointers, and hypotheses live in an index-linked arena. This keeps a TypeScript port straightforward.
 
 ## Usage
 
 ```sh
-uv run tools/prepare_corpus.py            # once: fetch corpora into data/ (about 5 minutes)
+uv run tools/prepare_corpus.py            # once: fetch corpora into data/ (about 5 minutes on a fresh checkout)
 cargo build --release
 
 ./target/release/harmo analyze score.mxl          # readings, with "?" marking interpretive spans
 ./target/release/harmo analyze score.mxl --json   # full document: traces, alternatives, rank histories
 ./target/release/harmo inspect k282-3             # ground truth beside the engine's reading
+./target/release/harmo bench --set tune --label my-change
 ./target/release/harmo bench --set test --set agreement --label my-change
 ./target/release/harmo sweep sweeps/key-area.json
 ```
@@ -49,9 +50,13 @@ cargo build --release
 ## Benchmarks
 
 **Sets**
-- `test` and `dev` are the AugmentedNet test and validation splits, limited to pieces that When in Rome provides as MusicXML: WiR, ABC (Beethoven quartets), MPS (Mozart sonatas) and WTC.
-- HaydnSun, TAVERN and BPS are missing, because their scores exist only as Humdrum or MuseScore files.
-- `agreement` has the 147 pieces with two or more expert analyses: 100 Bach chorales and the Mozart sonatas.
+- `test` and `dev` are the AugmentedNet test and validation splits, with one subset per AugmentedNet module:
+  - `wir`, `abc_dcml` (Beethoven quartets), `mps` (Mozart sonatas) and `wirwtc` use the MusicXML scores in When in Rome.
+  - `haydnsun` (Haydn's Op. 20 quartets) uses Humdrum scores converted to MusicXML, and `tavern` (Mozart and Beethoven variations) and `bps` (Beethoven sonata first movements) use MuseScore exports. Their analyses are the When in Rome versions that AugmentedNet pins.
+- `tune` has every piece outside the test split: 975 pieces, against 45 in `dev`. Its subsets are `tune-<module>` for the training and validation pieces of each module, and `tune-<category>` for When in Rome categories outside AugmentedNet, such as `tune-early_choral`, `tune-openscore-liedercorpus` and `tune-textbooks`.
+- `agreement` has the 150 When in Rome pieces with two or more expert analyses: 100 Bach chorales and the Mozart sonatas. `agreement-tune` leaves out its pieces in the test split. TAVERN's two analyses per piece are reported under `tune-tavern` but are not part of `agreement`.
+
+**Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
 
 **Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match.
 
@@ -59,9 +64,9 @@ cargo build --release
 - **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
 - **Where they disagree,** the measure is how often both readings are among those the engine offers. Offered readings are the distinct readings held by the leading hypotheses two quarter notes after the moment, a listener who has heard a little further.
 
-Tune on `dev`, and report on `test`.
+Tune on `tune`, and report on `test`.
 
-**Current results, test split (RN %):** WiR 49.8 (AugmentedNet 56.4), ABC 32.2 (44.5), MPS 43.0, WTC 39.7 (46.2). A full test run takes about 0.3 s on 18 cores, and a sweep setting on `dev` takes about 0.25 s.
+**Current results, test split (RN %):** WiR 50.3 (AugmentedNet 56.4), ABC 34.1 (44.5), MPS 43.4, WTC 40.0 (46.2), HaydnSun 33.3 (48.6), TAVERN 41.6 (42.6), BPS 47.7 (45.4). On 18 cores, a full test run takes about 0.7 s and a `tune` run about 7 s.
 
 ## Development
 

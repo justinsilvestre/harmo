@@ -73,7 +73,7 @@ fn load_piece(manifest: &Manifest, entry: &ManifestPiece) -> Result<BenchPiece, 
     let score = read_score(&manifest.root.join(&entry.score))?;
     let mut analyses = Vec::new();
     for (analyst, path) in &entry.analyses {
-        let labels = load_labels(&manifest.root.join(path), &score.measures)?;
+        let labels = load_labels(&manifest.root.join(path), &score)?;
         analyses.push((analyst.clone(), frame_labels(&labels, score.end())));
     }
     analyses.sort_by_key(|(analyst, _)| analyst != "main");

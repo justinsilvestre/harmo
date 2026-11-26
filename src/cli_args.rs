@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 /// Options that take no value.
-const SWITCHES: &[&str] = &["json"];
+const SWITCHES: &[&str] = &["json", "help"];
 
 pub struct Args {
     positional: Vec<String>,
@@ -41,6 +41,11 @@ impl Args {
 
     pub fn values(&self, name: &str) -> Vec<String> {
         self.options.get(name).cloned().unwrap_or_default()
+    }
+
+    /// Reports whether `--help` or `-h` was given anywhere on the command line.
+    pub fn wants_help(&self) -> bool {
+        self.has("help") || self.positional.iter().any(|p| p == "-h")
     }
 
     pub fn has(&self, name: &str) -> bool {

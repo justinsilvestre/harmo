@@ -9,10 +9,14 @@ use std::path::Path;
 /// AugmentedNet's published accuracies on the subsets of its test set that we can also evaluate.
 /// Source: AugmentedNet README, table "AugmentedNet vs. other models" (Nápoles López, Gotham and
 /// Fujinaga 2021), model "AugN" trained on the full dataset.
+/// The TAVERN figures cover both of its analyses, while the benchmark scores only the first.
 pub const AUGMENTEDNET_REFERENCE: &[(&str, [f64; 6])] = &[
     ("anet-test-wir", [0.818, 0.692, 0.859, 0.903, 0.903, 0.564]),
     ("anet-test-abc_dcml", [0.836, 0.656, 0.780, 0.769, 0.789, 0.445]),
     ("anet-test-wirwtc", [0.772, 0.697, 0.750, 0.744, 0.827, 0.462]),
+    ("anet-test-haydnsun", [0.812, 0.629, 0.802, 0.827, 0.865, 0.486]),
+    ("anet-test-tavern", [0.887, 0.600, 0.774, 0.788, 0.815, 0.426]),
+    ("anet-test-bps", [0.850, 0.734, 0.790, 0.734, 0.844, 0.454]),
 ];
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
