@@ -2,8 +2,8 @@
 
 use super::markdown_table::{percent, table};
 use super::set_names::row_name;
-use crate::bench::metrics::{AgreementSummary, FEATURES, MATCHED_FEATURES};
-use crate::bench::report::SetRecord;
+use crate::bench::metrics::AgreementSummary;
+use crate::bench::report::{SetRecord, agreement_features};
 
 /// Sets listed first, because they are the ones that hold two analyses for every piece.
 const LEADING_SETS: [&str; 2] = ["agreement", "agreement-tune"];
@@ -15,6 +15,7 @@ These sets include pieces with two expert analyses. `agreement` holds the 150 Wh
 Each row is a percentage of frames.
 - **Where the analysts agree,** the target is for the top reading to match them as often as a third expert would. If each expert matched an ideal analysis at rate *p*, two experts would agree at about *p*², and a third would match their consensus at about *p*, so the target is the square root of the analysts' agreement rate.
 - **Where they disagree,** the measure is how often both readings are among those the engine offers. How often the top reading matches either analyst is given beside it.
+- **RN eq** counts two labels that are notational equivalents of each other as the same, for the analysts as for the engine. Its rows for where the analysts agree and disagree therefore cover different frames from the RN column's: analysts whose labels are equivalents count as agreeing.
 ";
 
 pub fn render_agreement(sets: &[SetRecord]) -> String {
@@ -49,7 +50,12 @@ fn agreement_table(summary: &AgreementSummary) -> String {
     let row = |(name, values): &(&str, &[f64])| {
         std::iter::once(name.to_string()).chain(values.iter().map(|v| percent(*v))).collect()
     };
-    let header: Vec<&str> = std::iter::once("").chain(FEATURES[..MATCHED_FEATURES].iter().copied()).collect();
-    let header: Vec<&str> = header.into_iter().map(|h| if h == "rn" { "RN" } else { h }).collect();
+    let capitalized = |h: &'static str| match h {
+        "rn" => "RN",
+        "rn eq" => "RN eq",
+        _ => h,
+    };
+    let header: Vec<&str> =
+        std::iter::once("").chain(agreement_features().into_iter().map(capitalized)).collect();
     table(&header, &rows.iter().map(row).collect::<Vec<_>>())
 }

@@ -9,8 +9,8 @@ pub const RESAMPLES: usize = 1000;
 const SEED: u64 = 1;
 
 /// The frame-weighted features that get an interval, as indices into `FEATURES`:
-/// rn, key, chord, offered, key now and rn now.
-const COLUMNS: [usize; 6] = [5, 0, 6, 8, 9, 10];
+/// rn, key, chord, offered, key now, rn now, rn eq and rn eq now.
+const COLUMNS: [usize; 8] = [5, 0, 6, 8, 9, 10, 11, 12];
 
 /// A piece present in both runs.
 #[derive(Clone, Debug, PartialEq)]
@@ -30,16 +30,19 @@ pub struct Interval {
 
 /// Prints, for each set, the change in each of `COLUMNS` from `previous` with a 95% interval from
 /// resampling the set's pieces, paired by id.
-/// Pieces missing from either run are left out.
+/// Pieces missing from either run are left out, and so are the columns that the previous run lacks.
 pub fn print_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
     let old_rates: HashMap<&str, &[f64]> =
         previous.pieces.iter().map(|p| (p.id.as_str(), p.rates.as_slice())).collect();
-    let header: String = COLUMNS.iter().map(|&c| format!("{:>20}", FEATURES[c])).collect();
+    let is_in_previous = |c: &&usize| previous.pieces.iter().all(|p| p.rates.len() > **c);
+    let columns: Vec<usize> = COLUMNS.iter().filter(is_in_previous).copied().collect();
+    let header: String = columns.iter().map(|&c| format!("{:>20}", FEATURES[c])).collect();
     println!("\n{:<28} {:>6}{header}", "bootstrap 95% vs previous", "pieces");
     for set in sets {
         let members = results.iter().filter(|r| set.name == "all" || r.sets.contains(&set.name));
-        let pieces: Vec<PairedPiece> =
-            members.filter_map(|r| pair(&r.accuracy.rates(), r.accuracy.frames, &old_rates, &r.id)).collect();
+        let pair_piece =
+            |r: &PieceResult| pair(&r.accuracy.rates(), r.accuracy.frames, (&old_rates, &r.id), &columns);
+        let pieces: Vec<PairedPiece> = members.filter_map(pair_piece).collect();
         if pieces.is_empty() {
             continue;
         }
@@ -49,13 +52,18 @@ pub fn print_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &R
     }
 }
 
-fn pair(rates: &[f64], frames: u64, old_rates: &HashMap<&str, &[f64]>, id: &str) -> Option<PairedPiece> {
+fn pair(
+    rates: &[f64],
+    frames: u64,
+    (old_rates, id): (&HashMap<&str, &[f64]>, &str),
+    columns: &[usize],
+) -> Option<PairedPiece> {
     let old = old_rates.get(id)?;
-    if frames == 0 || COLUMNS.iter().any(|&c| old.get(c).is_none()) {
+    if frames == 0 || columns.iter().any(|&c| old.get(c).is_none()) {
         return None;
     }
     let frames = frames as f64;
-    let weighted_changes = COLUMNS.iter().map(|&c| (rates[c] - old[c]) * frames).collect();
+    let weighted_changes = columns.iter().map(|&c| (rates[c] - old[c]) * frames).collect();
     Some(PairedPiece { frames, weighted_changes })
 }
 
@@ -153,6 +161,6 @@ mod tests {
     #[test]
     fn pieces_missing_from_the_previous_run_are_skipped() {
         let old_rates: HashMap<&str, &[f64]> = HashMap::new();
-        assert_eq!(pair(&[0.5; 11], 8, &old_rates, "a"), None);
+        assert_eq!(pair(&[0.5; 13], 8, (&old_rates, "a"), &COLUMNS), None);
     }
 }

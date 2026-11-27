@@ -20,12 +20,16 @@ pub fn print_detail(set: &SetDiagnosis) {
         set.frames,
         percent(set.correct, set.frames)
     );
-    println!("\nerror kinds, ranked by frames lost ({:>5} = % of all frames)", "%");
+    println!(
+        "\nerror kinds, ranked by frames lost ({:>5} = % of all frames, {:>5} = % of the kind that rn eq credits)",
+        "%", "eq"
+    );
     for (name, kind) in &set.kinds {
         println!(
-            "  {name:<58} {:>5.1} {:>8}{}",
+            "  {name:<58} {:>5.1} {:>8} {:>5.1}{}",
             percent(kind.frames, set.frames),
             kind.frames,
+            percent(kind.equivalent, kind.frames),
             common_pairs(kind)
         );
     }

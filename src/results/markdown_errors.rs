@@ -30,7 +30,7 @@ These figures come from `diagnose` on `tune` and `agreement-tune`. Every frame t
 
 ### Frames lost, by group
 
-Each figure is the percentage of the set's frames lost to that group of errors. RN is the share right, so a row adds up to 100.
+Each figure is the percentage of the set's frames lost to that group of errors. RN is the share right, so a row adds up to 100 without the RN eq column, which is the share right under the equivalents measure.
 ";
 
 pub fn render_errors(sets: &[SetDiagnosis], offer_count: usize) -> String {
@@ -56,11 +56,12 @@ fn ordered(sets: &[SetDiagnosis]) -> Vec<&SetDiagnosis> {
 }
 
 fn groups_table(sets: &[&SetDiagnosis]) -> String {
-    let mut header = vec!["set", "frames", "RN"];
+    let mut header = vec!["set", "frames", "RN", "RN eq"];
     header.extend(GROUPS);
     let row = |set: &&SetDiagnosis| {
         let frames = |group: &str| set.groups.iter().find(|(g, _)| g == group).map_or(0, |(_, f)| *f);
-        let mut cells = vec![row_name(&set.name), set.frames.to_string(), share(set.correct, set.frames)];
+        let (rn, rn_eq) = (share(set.correct, set.frames), share(set.equivalent, set.frames));
+        let mut cells = vec![row_name(&set.name), set.frames.to_string(), rn, rn_eq];
         cells.extend(GROUPS.iter().map(|g| share(frames(g), set.frames)));
         cells
     };

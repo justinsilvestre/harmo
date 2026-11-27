@@ -29,14 +29,15 @@ fn set_record(name: &str, agreement: Option<AgreementSummary>) -> SetRecord {
         name: name.into(),
         pieces: 1,
         frames: 8,
-        rates: vec![0.5; 11],
+        rates: vec![0.5; 13],
         mean_offered: Some(3.0),
         agreement,
+        equivalence_credits: Some([("timing".to_string(), 2)].into_iter().collect()),
     }
 }
 
 fn agreement() -> AgreementSummary {
-    let rates = vec![0.9; 7];
+    let rates = vec![0.9; 8];
     AgreementSummary {
         analyst_agreement: rates.clone(),
         target_consensus_rate: rates.clone(),
@@ -58,6 +59,7 @@ fn inversion_errors() -> KindTally {
     KindTally {
         group: "inversion".into(),
         frames: 2,
+        equivalent: 1,
         pairs: [("I6 vs I".to_string(), 2)].into_iter().collect(),
         examples: vec![example],
     }
@@ -70,6 +72,8 @@ fn diagnosis() -> SetDiagnosis {
         pieces: 1,
         frames: 8,
         correct: 6,
+        equivalent: 7,
+        credits: Default::default(),
         groups: vec![("inversion".into(), 2)],
         kinds: vec![("inversion".into(), inversion_errors())],
         bars: 2,
@@ -103,7 +107,17 @@ fn writes_agreement_rows_as_statements() {
 
 #[test]
 fn ranks_error_kinds_with_their_share_and_pairs() {
-    assert!(document().contains("| inversion | 25.0 | 2 | I6 vs I (2) |"));
+    assert!(document().contains("| inversion | 25.0 | 2 | 50.0 | I6 vs I (2) |"));
+}
+
+#[test]
+fn gives_the_share_of_frames_each_equivalence_credits() {
+    assert!(document().contains("| WiR (test) | 50.0 | 50.0 | 0.0 | 0.0 | 0.0 | 0.0 | 25.0 |"));
+}
+
+#[test]
+fn heads_the_agreement_table_with_the_equivalents_column() {
+    assert!(document().contains("| inversion | root | RN | chord | RN eq |"));
 }
 
 #[test]

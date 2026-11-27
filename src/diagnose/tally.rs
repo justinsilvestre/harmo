@@ -21,6 +21,8 @@ pub struct Example {
 pub struct KindTally {
     pub group: String,
     pub frames: u64,
+    /// Those frames that the equivalents measure counts as right.
+    pub equivalent: u64,
     /// Frames by the pair of figures involved, such as "V vs viio".
     pub pairs: BTreeMap<String, u64>,
     /// The longest spans, longest first.
@@ -31,6 +33,7 @@ impl KindTally {
     pub fn merge(&mut self, other: &KindTally) {
         self.group.clone_from(&other.group);
         self.frames += other.frames;
+        self.equivalent += other.equivalent;
         for (pair, frames) in &other.pairs {
             *self.pairs.entry(pair.clone()).or_default() += frames;
         }
@@ -57,6 +60,10 @@ pub fn merge_kinds(into: &mut BTreeMap<String, KindTally>, from: &BTreeMap<Strin
 pub struct ErrorTally {
     pub frames: u64,
     pub correct: u64,
+    /// Frames that the equivalents measure counts as right, exact matches included.
+    pub equivalent: u64,
+    /// Frames that each equivalence credits but the exact measure does not, by its name.
+    pub credits: BTreeMap<String, u64>,
     pub kinds: BTreeMap<String, KindTally>,
     pub bars: u64,
     pub expert_changes: u64,
@@ -67,6 +74,10 @@ impl ErrorTally {
     pub fn merge(&mut self, other: &ErrorTally) {
         self.frames += other.frames;
         self.correct += other.correct;
+        self.equivalent += other.equivalent;
+        for (name, frames) in &other.credits {
+            *self.credits.entry(name.clone()).or_default() += frames;
+        }
         self.bars += other.bars;
         self.expert_changes += other.expert_changes;
         self.engine_changes += other.engine_changes;

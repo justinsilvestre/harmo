@@ -93,6 +93,17 @@ impl Quality {
     pub fn is_seventh(self) -> bool {
         self.template().len() == 4
     }
+
+    /// Returns the triad that a seventh chord adds its seventh to, such as major for a dominant
+    /// seventh, or `None` for a quality that is not a seventh chord.
+    pub fn triad(self) -> Option<Quality> {
+        match self {
+            Quality::DominantSeventh | Quality::MajorSeventh => Some(Quality::Major),
+            Quality::MinorSeventh | Quality::MinorMajorSeventh => Some(Quality::Minor),
+            Quality::DiminishedSeventh | Quality::HalfDiminishedSeventh => Some(Quality::Diminished),
+            _ => None,
+        }
+    }
 }
 
 impl Chord {

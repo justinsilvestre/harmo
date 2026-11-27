@@ -25,6 +25,7 @@ pub fn tally_errors(context: &PieceContext) -> ErrorTally {
         engine_changes: count_changes(engine_frames),
         ..ErrorTally::default()
     };
+    let view = context.piece.expert_view(0, context.timing_tolerance);
     let mut wrong: Vec<(usize, WrongFrame)> = Vec::new();
     for (frame, expert) in main.iter().enumerate() {
         let Some(expert) = expert else {
@@ -32,11 +33,18 @@ pub fn tally_errors(context: &PieceContext) -> ErrorTally {
         };
         tally.frames += 1;
         let engine = context.top[frame];
+        let credit = engine.and_then(|e| view.credit(&e, frame));
+        tally.equivalent += credit.is_some() as u64;
         if engine.is_some_and(|e| is_rn_match(&e, expert)) {
             tally.correct += 1;
-        } else {
-            wrong.push((frame, (classify_frame(context, frame, expert, engine.as_ref()), *expert, engine)));
+            continue;
         }
+        let kind = classify_frame(context, frame, expert, engine.as_ref());
+        if let Some(credit) = credit {
+            *tally.credits.entry(credit.name().to_string()).or_default() += 1;
+            kind_entry(&mut tally, kind).equivalent += 1;
+        }
+        wrong.push((frame, (kind, *expert, engine)));
     }
     for span in group_spans(&wrong) {
         add_span(&mut tally, context, &span);
@@ -61,12 +69,14 @@ fn classify_frame(context: &PieceContext, frame: usize, expert: &Label, engine: 
     }
 }
 
+fn kind_entry(tally: &mut ErrorTally, kind: ErrorKind) -> &mut KindTally {
+    let group = kind.group().to_string();
+    tally.kinds.entry(kind.name()).or_insert_with(|| KindTally { group, ..KindTally::default() })
+}
+
 fn add_span(tally: &mut ErrorTally, context: &PieceContext, span: &Span<WrongFrame>) {
     let (kind, expert, engine) = span.value;
-    let kind_tally = tally
-        .kinds
-        .entry(kind.name())
-        .or_insert_with(|| KindTally { group: kind.group().to_string(), ..KindTally::default() });
+    let kind_tally = kind_entry(tally, kind);
     kind_tally.frames += span.frames as u64;
     if let Some(pair) = pair_name(kind, &expert, engine.as_ref()) {
         *kind_tally.pairs.entry(pair).or_default() += span.frames as u64;

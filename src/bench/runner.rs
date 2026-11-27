@@ -1,9 +1,10 @@
 //! Loads benchmark pieces once and evaluates rule sets on them in parallel.
 
+use super::equivalence::{ExpertEquivalents, ExpertView, FrameSounds};
 use super::frames::{FRAME, frame_labels, frame_slices};
 use super::groundtruth::load_labels;
 use super::manifest::{Manifest, ManifestPiece};
-use super::metrics::{Accuracy, Agreement};
+use super::metrics::{Accuracy, Agreement, EquivalentMatches};
 use crate::engine::history::segment_at;
 use crate::engine::path::segments_of;
 use crate::engine::ruleset::RuleSet;
@@ -23,6 +24,23 @@ pub struct BenchPiece {
     pub slices: Vec<Slice>,
     pub measures: Vec<Measure>,
     pub analyses: Vec<(String, Vec<Option<Label>>)>,
+    /// What sounds at each frame.
+    pub sounds: FrameSounds,
+    /// What each analysis implies about equivalent labels, in the order of `analyses`.
+    pub equivalents: Vec<ExpertEquivalents>,
+}
+
+impl BenchPiece {
+    /// Returns the analysis at `index` with what is needed to judge equivalent labels against it,
+    /// counting a label as early or late by up to `tolerance` quarter notes.
+    pub fn expert_view(&self, index: usize, tolerance: f64) -> ExpertView<'_> {
+        ExpertView {
+            labels: &self.analyses[index].1,
+            equivalents: &self.equivalents[index],
+            sounds: &self.sounds,
+            reach: (tolerance / FRAME).round() as usize,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -35,11 +53,25 @@ pub struct EvalConfig {
     /// Readings are offered as the beam stood this many quarter notes after the moment in question,
     /// modeling a listener who has heard a little further.
     pub offer_lag: f64,
+    /// The equivalents measure counts a label as right when it matches the expert's within this
+    /// many quarter notes.
+    pub timing_tolerance: f64,
 }
+
+/// The default timing tolerance of the equivalents measure, an eighth note.
+/// No source gives a value; it was chosen from measurements on `tune` at a sixteenth, an eighth and
+/// a quarter note, recorded in the README's Benchmarks section.
+pub const TIMING_TOLERANCE: f64 = 0.5;
 
 impl Default for EvalConfig {
     fn default() -> EvalConfig {
-        EvalConfig { engine: Config::default(), offer_count: 4, offer_margin: 4.0, offer_lag: 2.0 }
+        EvalConfig {
+            engine: Config::default(),
+            offer_count: 4,
+            offer_margin: 4.0,
+            offer_lag: 2.0,
+            timing_tolerance: TIMING_TOLERANCE,
+        }
     }
 }
 
@@ -82,12 +114,17 @@ fn load_piece(manifest: &Manifest, entry: &ManifestPiece) -> Result<BenchPiece, 
     if analyses.first().is_none_or(|(analyst, _)| analyst != "main") {
         return Err("no main analysis".into());
     }
+    let slices = slice_score(&score);
+    let sounds = FrameSounds::new(&slices, &frame_slices(&slices, analyses[0].1.len()));
+    let equivalents = analyses.iter().map(|(_, labels)| ExpertEquivalents::new(labels, &sounds)).collect();
     Ok(BenchPiece {
         id: entry.id.clone(),
         sets: entry.sets.clone(),
-        slices: slice_score(&score),
+        slices,
         measures: score.measures,
         analyses,
+        sounds,
+        equivalents,
     })
 }
 
@@ -102,13 +139,17 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let top = top_frames(&analysis, piece);
     let offered = offered_frames(&analysis, piece, top.len(), config);
     let now = now_frames(&analysis, piece, top.len(), config);
+    let main = piece.expert_view(0, config.timing_tolerance);
     let mut accuracy = Accuracy::default();
     for (frame, truth) in piece.analyses[0].1.iter().enumerate() {
         if let Some(truth) = truth {
             accuracy.add_frame(top[frame].as_ref(), &offered[frame], now[frame].as_ref(), truth);
+            let credit = |label: &Option<Label>| label.as_ref().and_then(|l| main.credit(l, frame));
+            accuracy.add_equivalence(credit(&top[frame]), credit(&now[frame]));
         }
     }
-    let agreement = (piece.analyses.len() >= 2).then(|| agreement(piece, &top, &offered));
+    let agreement =
+        (piece.analyses.len() >= 2).then(|| agreement(piece, (&top, &offered), config.timing_tolerance));
     PieceResult {
         id: piece.id.clone(),
         sets: piece.sets.clone(),
@@ -134,15 +175,29 @@ fn hypothesis_frames(analysis: &Analysis, piece: &BenchPiece, node: u32, count: 
     frames
 }
 
-/// Compares the engine with every pair of analysts of the piece.
-fn agreement(piece: &BenchPiece, top: &[Option<Label>], offered: &[Vec<Label>]) -> Agreement {
+/// Compares the engine's top and offered readings with every pair of analysts of the piece.
+fn agreement(
+    piece: &BenchPiece,
+    (top, offered): (&[Option<Label>], &[Vec<Label>]),
+    tolerance: f64,
+) -> Agreement {
     let mut agreement = Agreement::default();
-    for (i, (_, first)) in piece.analyses.iter().enumerate() {
-        for (_, second) in &piece.analyses[i + 1..] {
-            for frame in 0..top.len() {
-                if let (Some(a), Some(b)) = (&first[frame], &second[frame]) {
-                    agreement.add_frame(top[frame].as_ref(), &offered[frame], a, b);
-                }
+    let count = piece.analyses.len();
+    for (i, j) in (0..count).flat_map(|i| (i + 1..count).map(move |j| (i, j))) {
+        let (first, second) = (piece.expert_view(i, tolerance), piece.expert_view(j, tolerance));
+        for frame in 0..top.len() {
+            if let (Some(a), Some(b)) = (&first.labels[frame], &second.labels[frame]) {
+                let is_credited = |view: &ExpertView, label: &Label| view.credit(label, frame).is_some();
+                let offers = |view: &ExpertView| offered[frame].iter().any(|o| is_credited(view, o));
+                let top = top[frame].as_ref();
+                let equivalents = EquivalentMatches {
+                    analysts: is_credited(&first, b) || is_credited(&second, a),
+                    top_first: top.is_some_and(|t| is_credited(&first, t)),
+                    top_second: top.is_some_and(|t| is_credited(&second, t)),
+                    offers_first: offers(&first),
+                    offers_second: offers(&second),
+                };
+                agreement.add_frame(top, &offered[frame], (a, b), equivalents);
             }
         }
     }

@@ -1,5 +1,6 @@
 //! Summarizes evaluation results by benchmark set, prints them, and saves them as run records.
 
+use super::equivalence::EQUIVALENCES;
 use super::metrics::{Accuracy, Agreement, AgreementSummary, FEATURES, MATCHED_FEATURES};
 use super::runner::PieceResult;
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,15 @@ pub struct SetRecord {
     #[serde(default)]
     pub mean_offered: Option<f64>,
     pub agreement: Option<AgreementSummary>,
+    /// Frames that each equivalence credits under the equivalents measure but the exact measure
+    /// does not, by the equivalence's name. Older runs lack it.
+    #[serde(default)]
+    pub equivalence_credits: Option<BTreeMap<String, u64>>,
+}
+
+/// The column names of the expert-agreement figures: the matched features, then "rn eq".
+pub fn agreement_features() -> Vec<&'static str> {
+    FEATURES[..MATCHED_FEATURES].iter().copied().chain(["rn eq"]).collect()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -89,7 +99,12 @@ fn summarize_set(results: &[PieceResult], name: &str) -> SetRecord {
         rates: accuracy.rates(),
         mean_offered: Some(accuracy.mean_offered()),
         agreement: agreement.map(|a| a.summary()),
+        equivalence_credits: Some(credits_by_name(&accuracy)),
     }
+}
+
+fn credits_by_name(accuracy: &Accuracy) -> BTreeMap<String, u64> {
+    EQUIVALENCES.iter().zip(accuracy.credits).map(|(e, frames)| (e.name().to_string(), frames)).collect()
 }
 
 pub fn piece_records(results: &[PieceResult]) -> Vec<PieceRecord> {
@@ -138,7 +153,7 @@ pub fn print_agreement(sets: &[SetRecord]) {
             "\nexpert agreement: {} (mean offered readings per frame: {:.2})",
             set.name, summary.mean_offered
         );
-        println!("{:<40} {}", "", header(&FEATURES[..MATCHED_FEATURES]));
+        println!("{:<40} {}", "", header(&agreement_features()));
         let rows: [(&str, &[f64]); 5] = [
             ("analysts agree", &summary.analyst_agreement),
             ("target: top matches consensus", &summary.target_consensus_rate),
@@ -149,6 +164,21 @@ pub fn print_agreement(sets: &[SetRecord]) {
         for (name, values) in rows {
             println!("{name:<40} {}", percentages(values));
         }
+    }
+}
+
+/// Prints, for each set, the share of frames that each equivalence credits under the equivalents
+/// measure but the exact measure does not.
+pub fn print_equivalence_credits(sets: &[SetRecord]) {
+    let names: Vec<&str> = EQUIVALENCES.iter().map(|e| e.name()).collect();
+    println!("\n{:<28} {}{:>9}", "rn eq credits (% of frames)", header(&names), "total");
+    for set in sets {
+        let Some(credits) = &set.equivalence_credits else {
+            continue;
+        };
+        let shares: Vec<f64> =
+            names.iter().map(|n| *credits.get(*n).unwrap_or(&0) as f64 / set.frames.max(1) as f64).collect();
+        println!("{:<28} {}{}", set.name, percentages(&shares), percentages(&[shares.iter().sum()]));
     }
 }
 
@@ -207,6 +237,13 @@ mod tests {
         let json = r#"{"name": "tune", "pieces": 1, "frames": 8, "rates": [0.5], "agreement": null}"#;
         let record: SetRecord = serde_json::from_str(json).unwrap();
         assert_eq!(record.mean_offered, None);
+    }
+
+    #[test]
+    fn set_records_without_equivalence_credits_still_load() {
+        let json = r#"{"name": "tune", "pieces": 1, "frames": 8, "rates": [0.5], "agreement": null}"#;
+        let record: SetRecord = serde_json::from_str(json).unwrap();
+        assert_eq!(record.equivalence_credits, None);
     }
 
     #[test]

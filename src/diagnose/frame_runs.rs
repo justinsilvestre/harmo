@@ -25,19 +25,6 @@ pub fn run_bounds(frames: &[Option<Label>], frame: usize) -> (usize, usize) {
     (start, end)
 }
 
-/// Splits the frames into runs of equal labels, as (first frame, one past the last frame).
-pub fn label_runs(frames: &[Option<Label>]) -> Vec<(usize, usize)> {
-    let mut runs = Vec::new();
-    let mut start = 0;
-    for frame in 1..=frames.len() {
-        if frame == frames.len() || !is_same(&frames[frame], &frames[start]) {
-            runs.push((start, frame));
-            start = frame;
-        }
-    }
-    runs
-}
-
 /// Returns, for each frame, the length in frames of the run of consecutive frames over which the
 /// expert's and the engine's keys stay the same pair. Frames with a missing label count as their own pair.
 pub fn key_run_lengths(expert: &[Option<Label>], engine: &[Option<Label>]) -> Vec<usize> {
@@ -70,6 +57,7 @@ fn is_same(a: &Option<Label>, b: &Option<Label>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bench::frames::label_runs;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
     use crate::theory::key::Key;

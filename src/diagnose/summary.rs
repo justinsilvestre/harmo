@@ -28,6 +28,10 @@ pub struct SetDiagnosis {
     pub pieces: usize,
     pub frames: u64,
     pub correct: u64,
+    /// Frames that the equivalents measure counts as right, exact matches included.
+    pub equivalent: u64,
+    /// Frames that each equivalence credits but the exact measure does not, by its name.
+    pub credits: BTreeMap<String, u64>,
     pub groups: Vec<(String, u64)>,
     pub kinds: Vec<(String, KindTally)>,
     pub bars: u64,
@@ -81,6 +85,8 @@ fn summarize_set(diagnoses: &[PieceDiagnosis], name: &str) -> SetDiagnosis {
         pieces: members.len(),
         frames: errors.frames,
         correct: errors.correct,
+        equivalent: errors.equivalent,
+        credits: errors.credits.clone(),
         groups: ranked(groups, |frames| *frames),
         kinds: ranked(errors.kinds, |t| t.frames),
         bars: errors.bars,

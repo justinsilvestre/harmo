@@ -3,6 +3,7 @@
 use super::key_dependence::ChordLayerCounts;
 use super::report_text_detail::print_detail;
 use super::summary::SetDiagnosis;
+use crate::bench::equivalence::EQUIVALENCES;
 
 /// Error groups in the order of the overview table, with short column names.
 const GROUPS: [(&str, &str); 9] = [
@@ -28,12 +29,14 @@ pub fn print_report(sets: &[SetDiagnosis]) {
 fn print_overview(sets: &[SetDiagnosis]) {
     println!("\nframes lost, by group (% of frames)");
     let columns: String = GROUPS.iter().map(|(_, short)| format!("{short:>7}")).collect();
-    println!("{:<28} {:>8} {:>6}{columns}", "set", "frames", "rn");
+    println!("{:<28} {:>8} {:>6} {:>6}{columns}", "set", "frames", "rn", "rn eq");
     for set in sets {
         let shares: String =
             GROUPS.iter().map(|(group, _)| format!("{:>7.1}", group_share(set, group))).collect();
-        println!("{:<28} {:>8} {:>6.1}{shares}", set.name, set.frames, percent(set.correct, set.frames));
+        let (rn, rn_eq) = (percent(set.correct, set.frames), percent(set.equivalent, set.frames));
+        println!("{:<28} {:>8} {rn:>6.1} {rn_eq:>6.1}{shares}", set.name, set.frames);
     }
+    print_credits(sets);
     println!("\nlargest kinds by set (% of frames)");
     for set in sets {
         let top: Vec<String> = set
@@ -45,6 +48,20 @@ fn print_overview(sets: &[SetDiagnosis]) {
         println!("{:<28} {}", set.name, top.join(" · "));
     }
     print_key_dependence(sets);
+}
+
+fn print_credits(sets: &[SetDiagnosis]) {
+    println!("\nframes that rn eq credits and rn does not, by equivalence (% of frames)");
+    let columns: String = EQUIVALENCES.iter().map(|e| format!("{:>9}", e.name())).collect();
+    println!("{:<28}{columns}", "set");
+    for set in sets {
+        let credited = |name: &str| set.credits.get(name).copied().unwrap_or(0);
+        let shares: String = EQUIVALENCES
+            .iter()
+            .map(|e| format!("{:>9.1}", percent(credited(e.name()), set.frames)))
+            .collect();
+        println!("{:<28}{shares}", set.name);
+    }
 }
 
 fn print_key_dependence(sets: &[SetDiagnosis]) {

@@ -5,6 +5,7 @@ pub mod markdown;
 mod markdown_accuracy;
 mod markdown_agreement;
 mod markdown_disagreements;
+mod markdown_equivalents;
 mod markdown_errors;
 mod markdown_errors_examples;
 mod markdown_header;
