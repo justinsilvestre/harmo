@@ -7,6 +7,7 @@ pub mod chord_proposal;
 pub mod chord_rhythm;
 pub mod chord_seventh_sonority;
 pub mod function_progression;
+pub mod function_rare_mediant;
 pub mod function_seventh_style;
 pub mod function_six_four;
 pub mod function_vocabulary;
@@ -36,6 +37,7 @@ pub fn default_rules() -> Vec<Rule> {
         function_vocabulary::RULES,
         function_progression::RULES,
         function_seventh_style::RULES,
+        function_rare_mediant::RULES,
         function_six_four::RULES,
     ]
     .concat()
