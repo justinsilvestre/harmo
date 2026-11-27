@@ -1,7 +1,7 @@
 //! Loads ground-truth harmonies and places them on the score's timeline.
 
 use super::groundtruth_measures::{AnalysisMeasure, locate_measures};
-use crate::pitch::{pitch_class, tpc_from_name};
+use crate::pitch::{Tpc, pitch_class, tpc_from_name};
 use crate::score::model::{Measure, Note, Offset, Score};
 use crate::theory::chord::{Chord, classify};
 use crate::theory::key::Key;
@@ -38,9 +38,31 @@ struct KeyName {
 /// A ground-truth harmony starting at a time; `None` marks a label that could not be decoded or was excluded.
 pub type TimedLabel = (Offset, Option<Label>);
 
+/// A ground-truth harmony placed on the score's timeline, with the measure the analysis gives it.
+#[derive(Clone, Debug)]
+pub struct PlacedHarmony {
+    pub time: Offset,
+    /// `None` when the label could not be decoded or was excluded.
+    pub label: Option<Label>,
+    pub is_excluded: bool,
+    /// True when the analysis places the label past the end of its bar in the score,
+    /// which happens when the analysis and the score disagree on the meter.
+    pub is_beyond_bar: bool,
+    pub measure: i64,
+    pub measure_suffix: String,
+    /// The spelled pitches of the chord the label stands for, including added tones.
+    pub pitches: Vec<Tpc>,
+}
+
 /// Loads a ground-truth file and returns its labels in time order.
 /// Harmonies in measures that the score lacks are dropped.
 pub fn load_labels(path: &Path, score: &Score) -> Result<Vec<TimedLabel>, String> {
+    Ok(load_harmonies(path, score)?.into_iter().map(|h| (h.time, h.label)).collect())
+}
+
+/// Loads a ground-truth file and returns its harmonies in time order, dropping those in measures
+/// that the score lacks.
+pub fn load_harmonies(path: &Path, score: &Score) -> Result<Vec<PlacedHarmony>, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let file: File = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
     let references: Vec<AnalysisMeasure> =
@@ -48,11 +70,21 @@ pub fn load_labels(path: &Path, score: &Score) -> Result<Vec<TimedLabel>, String
     let fit = |index: usize, bar: &Measure| chord_tone_share(&file.harmonies[index], &score.notes, bar);
     let (bars, located) = locate_measures(&score.measures, &references, fit);
     let place = |(harmony, bar): (&Harmony, Option<usize>)| {
-        bar.map(|i| (time_in(&bars[i], harmony.offset), decode(harmony)))
+        let bar = &bars[bar?];
+        let time = time_in(bar, harmony.offset);
+        Some(PlacedHarmony {
+            time,
+            label: decode(harmony),
+            is_excluded: harmony.excluded.is_some(),
+            is_beyond_bar: time >= bar.start + bar.duration - 1e-6,
+            measure: harmony.measure,
+            measure_suffix: harmony.measure_suffix.clone(),
+            pitches: harmony.pitches.iter().filter_map(|p| tpc_from_name(p)).collect(),
+        })
     };
-    let mut labels: Vec<TimedLabel> = file.harmonies.iter().zip(located).filter_map(place).collect();
-    labels.sort_by(|a, b| a.0.total_cmp(&b.0));
-    Ok(labels)
+    let mut harmonies: Vec<PlacedHarmony> = file.harmonies.iter().zip(located).filter_map(place).collect();
+    harmonies.sort_by(|a, b| a.time.total_cmp(&b.time));
+    Ok(harmonies)
 }
 
 /// Returns the share of the bar's sounding duration that belongs to the harmony's pitch classes.

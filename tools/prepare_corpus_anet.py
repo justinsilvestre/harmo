@@ -24,6 +24,12 @@ SCORE_MODULES = ["haydnsun", "tavern", "bps"]
 TAVERN_ANALYSTS = {"a": "main", "b": "B"}
 
 
+def use_data_directory(path):
+    global DATA, ANET
+    DATA = path
+    ANET = DATA / "sources" / "AugmentedNet"
+
+
 def discover_anet_pieces():
     """Returns the pieces of the score modules, with their AugmentedNet split labels."""
     modules = {module: load_anet_module(module) for module in SCORE_MODULES}

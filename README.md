@@ -75,6 +75,7 @@ cargo build --release
 ./target/release/harmo analyze score.mxl          # readings, with "?" marking interpretive spans
 ./target/release/harmo analyze score.mxl --json   # full document: traces, alternatives, rank histories
 ./target/release/harmo inspect k282-3             # ground truth beside the engine's reading
+./target/release/harmo labelfit                   # check every analysis's labels against the notes
 ./target/release/harmo bench --set tune --label my-change
 ./target/release/harmo bench --set test --set agreement --label my-change
 ./target/release/harmo diagnose --set tune --set agreement-tune   # wrong frames by kind, ranked
@@ -101,7 +102,7 @@ In the `--json` document, each span's `rank_history` lists the rank (1 = best hy
 - `tune` has every piece outside the test split: 975 pieces, against 45 in `dev`. Its subsets are `tune-<module>` for the training and validation pieces of each module, and `tune-<category>` for When in Rome categories outside AugmentedNet, such as `tune-early_choral`, `tune-openscore-liedercorpus` and `tune-textbooks`.
 - `agreement` has the 150 When in Rome pieces with two or more expert analyses: 100 Bach chorales and the Mozart sonatas. `agreement-tune` leaves out its pieces in the test split. TAVERN's two analyses per piece are reported under `tune-tavern` but are not part of `agreement`.
 
-**Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped. Four test pieces have corrected labels (`KEY_CORRECTIONS` and `MEASURE_SHIFTS`), which adds about 1 point of RN to WiR and 2 to ABC; two of the corrections change labels that AugmentedNet's published figures were scored against.
+**Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped. Five test pieces have corrected labels (`KEY_CORRECTIONS` and `MEASURE_SHIFTS`), which adds about 1 point of RN to WiR and 3 to ABC; the corrections of Op. 74/iii and Dichterliebe 16 also change labels that AugmentedNet's published figures were scored against. Corrections elsewhere, found with `harmo labelfit`, fix analyses that name the wrong key or leave out a change of key, including ten of the BCMH chorale analyses.
 
 **Accuracy** scores the engine against one analysis of each piece, as AugmentedNet does. Labels are compared at every thirty-second note (a frame), and each column gives the share of frames that are right:
 - **Key, degree, quality, inversion, root:** AugmentedNet's five features. Degree includes the secondary degree, such as the "/V" of V7/V.
@@ -157,6 +158,13 @@ For the largest error kinds, read weak passages in the score beside `harmo inspe
 ### 3. Check the ground truth
 
 A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation, not in the engine.
+
+`harmo labelfit` checks the labels against the notes, independently of the engine. A label's **fit** is the share of the notes' sounding time, summed over voices, that belongs to its chord tones. The command reports the fit by set and lists, ranked by frames at stake times the gain in fit:
+- **Moves in time:** runs of labels that fit markedly better a beat or one to eight bars earlier or later, as when an analysis numbers a pickup as m1 or leaves out an ending.
+- **Other keys:** runs of labels whose figures fit markedly better read in another key, as when an analysis names the wrong key or leaves out a change of key.
+- **Meters:** analyses that place labels past the end of their bar, as when the analysis and the score disagree on the meter.
+
+`--piece TEXT` prints the fit of each key span and measure of the matching pieces, with each measure's fit when its labels move by up to two bars, and `--measures FIRST-LAST` prints each label there beside the pitch classes that sound. Many candidates are not errors: a unison passage, a pedal or a repeated phrase can fit better elsewhere by chance, so check each against the score before correcting it. To test a correction, write the ground truth into a copy of `data/` with `uv run tools/prepare_corpus.py --data DIR` and pass `--data DIR` to `labelfit` and `bench`.
 
 ### 4. Make one change at a time
 
