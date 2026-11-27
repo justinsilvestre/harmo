@@ -1,6 +1,6 @@
 //! Summarizes evaluation results by benchmark set, prints them, and saves them as run records.
 
-use super::metrics::{Accuracy, Agreement, AgreementSummary, FEATURES};
+use super::metrics::{Accuracy, Agreement, AgreementSummary, FEATURES, MATCHED_FEATURES};
 use super::runner::PieceResult;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -24,7 +24,8 @@ pub struct SetRecord {
     pub name: String,
     pub pieces: usize,
     pub frames: u64,
-    pub rates: [f64; 6],
+    /// Rates for each of `FEATURES`. Runs saved before a feature was added lack its rate.
+    pub rates: Vec<f64>,
     pub agreement: Option<AgreementSummary>,
 }
 
@@ -32,7 +33,7 @@ pub struct SetRecord {
 pub struct PieceRecord {
     pub id: String,
     pub frames: u64,
-    pub rates: [f64; 6],
+    pub rates: Vec<f64>,
     pub seconds: f64,
 }
 
@@ -86,7 +87,7 @@ pub fn piece_records(results: &[PieceResult]) -> Vec<PieceRecord> {
 
 /// Prints accuracy by set, with differences from a previous run and AugmentedNet's reference where known.
 pub fn print_accuracy(sets: &[SetRecord], previous: Option<&RunRecord>) {
-    println!("\n{:<28} {:>6} {:>8}  {}", "accuracy (%)", "pieces", "frames", header());
+    println!("\n{:<28} {:>6} {:>8}  {}", "accuracy (%)", "pieces", "frames", header(&FEATURES));
     for set in sets {
         println!("{:<28} {:>6} {:>8}  {}", set.name, set.pieces, set.frames, percentages(&set.rates));
         if let Some(old) = previous.and_then(|p| p.sets.iter().find(|s| s.name == set.name)) {
@@ -114,8 +115,8 @@ pub fn print_agreement(sets: &[SetRecord]) {
             "\nexpert agreement: {} (mean offered readings per frame: {:.2})",
             set.name, summary.mean_offered
         );
-        println!("{:<40} {}", "", header());
-        let rows: [(&str, &[f64; 6]); 5] = [
+        println!("{:<40} {}", "", header(&FEATURES[..MATCHED_FEATURES]));
+        let rows: [(&str, &[f64]); 5] = [
             ("analysts agree", &summary.analyst_agreement),
             ("target: top matches consensus", &summary.target_consensus_rate),
             ("top matches consensus", &summary.consensus_rate),
@@ -128,16 +129,21 @@ pub fn print_agreement(sets: &[SetRecord]) {
     }
 }
 
-fn header() -> String {
-    FEATURES.iter().map(|f| format!("{f:>9}")).collect()
+fn header(features: &[&str]) -> String {
+    features.iter().map(|f| format!("{f:>9}")).collect()
 }
 
-fn percentages(values: &[f64; 6]) -> String {
+fn percentages(values: &[f64]) -> String {
     values.iter().map(|v| format!("{:>9.1}", v * 100.0)).collect()
 }
 
-fn differences(values: &[f64; 6], old: &[f64; 6]) -> String {
-    values.iter().zip(old).map(|(v, o)| format!("{:>+9.1}", (v - o) * 100.0)).collect()
+/// Formats each change in percentage points, leaving blank the features the old run lacks.
+fn differences(values: &[f64], old: &[f64]) -> String {
+    let difference = |(i, v): (usize, &f64)| match old.get(i) {
+        Some(o) => format!("{:>+9.1}", (v - o) * 100.0),
+        None => format!("{:>9}", ""),
+    };
+    values.iter().enumerate().map(difference).collect()
 }
 
 pub fn save(record: &RunRecord, path: &Path) -> Result<(), String> {
@@ -151,4 +157,14 @@ pub fn save(record: &RunRecord, path: &Path) -> Result<(), String> {
 pub fn load(path: &Path) -> Result<RunRecord, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn differences_leave_features_missing_from_the_old_run_blank() {
+        assert_eq!(differences(&[0.5, 0.25], &[0.4]), format!("{:>9}{:>9}", "+10.0", ""));
+    }
 }

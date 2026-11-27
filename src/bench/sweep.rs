@@ -1,6 +1,6 @@
 //! Weight sweeps: evaluate many weight settings on pieces that are loaded only once.
 
-use super::metrics::FEATURES;
+use super::metrics::{AUGMENTEDNET_FEATURES, FEATURES};
 use super::report::{SetRecord, summarize};
 use super::runner::{BenchPiece, EvalConfig, evaluate};
 use crate::engine::rule::Rule;
@@ -13,7 +13,8 @@ use std::collections::BTreeMap;
 pub struct SweepSpec {
     /// Benchmark sets to load.
     pub sets: Vec<String>,
-    /// The set and feature ("key", ..., "rn", or "mean") used to rank settings.
+    /// The set and feature (one of `FEATURES`, or "mean" for the mean of AugmentedNet's six) used to
+    /// rank settings.
     pub objective_set: String,
     pub objective_feature: String,
     /// Weights shared by every setting.
@@ -86,7 +87,8 @@ fn objective(sets: &[SetRecord], spec: &SweepSpec) -> Result<f64, String> {
     let set = sets.iter().find(|s| s.name == spec.objective_set);
     let set = set.ok_or_else(|| format!("objective set {} has no pieces", spec.objective_set))?;
     if spec.objective_feature == "mean" {
-        return Ok(set.rates.iter().sum::<f64>() / 6.0);
+        let augmentednet = &set.rates[..AUGMENTEDNET_FEATURES];
+        return Ok(augmentednet.iter().sum::<f64>() / AUGMENTEDNET_FEATURES as f64);
     }
     let index = FEATURES.iter().position(|f| *f == spec.objective_feature);
     let index = index.ok_or_else(|| format!("unknown objective feature {}", spec.objective_feature))?;

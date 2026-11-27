@@ -64,7 +64,7 @@ cargo build --release
 
 **Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
 
-**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match.
+**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match. Two further columns separate chord errors from key errors. **Chord** counts a frame as correct when root, quality and inversion all match, whatever the key. **RN|key** is the RN accuracy over only the frames whose key is correct.
 
 **Expert agreement**
 - **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.

@@ -3,26 +3,42 @@
 use crate::theory::label::Label;
 use serde::{Deserialize, Serialize};
 
-/// The features AugmentedNet reports, in its order. "rn" requires all of the others.
-pub const FEATURES: [&str; 6] = ["key", "degree", "quality", "inversion", "root", "rn"];
+/// The reported features. The first six are AugmentedNet's, in its order, and "rn" requires the
+/// five before it.
+/// "chord" requires quality, inversion and root, whatever the key.
+/// "rn|key" is the rn accuracy over only the frames whose key is correct.
+pub const FEATURES: [&str; 8] = ["key", "degree", "quality", "inversion", "root", "rn", "chord", "rn|key"];
 
-pub type FeatureCounts = [u64; 6];
+/// The number of leading features that AugmentedNet reports.
+pub const AUGMENTEDNET_FEATURES: usize = 6;
 
-pub fn feature_matches(a: &Label, b: &Label) -> [bool; 6] {
+/// The number of leading features that are compared frame by frame.
+/// The remaining feature, "rn|key", is derived from the counts for "rn" and "key".
+pub const MATCHED_FEATURES: usize = 7;
+
+const KEY: usize = 0;
+const RN: usize = 5;
+
+pub type FeatureCounts = [u64; MATCHED_FEATURES];
+
+type FeatureFlags = [bool; MATCHED_FEATURES];
+
+pub fn feature_matches(a: &Label, b: &Label) -> FeatureFlags {
     let key = a.key == b.key;
     let degree = a.degree == b.degree && a.secondary == b.secondary;
     let quality = a.quality == b.quality;
     let inversion = a.inversion == b.inversion;
     let root = a.root == b.root;
-    [key, degree, quality, inversion, root, key && degree && quality && inversion && root]
+    let chord = quality && inversion && root;
+    [key, degree, quality, inversion, root, key && degree && chord, chord]
 }
 
 /// Reports whether two labels agree on the full Roman numeral, the benchmark's "rn" feature.
 pub fn is_rn_match(a: &Label, b: &Label) -> bool {
-    feature_matches(a, b)[5]
+    feature_matches(a, b)[RN]
 }
 
-fn add_where(counts: &mut FeatureCounts, flags: [bool; 6]) {
+fn add_where(counts: &mut FeatureCounts, flags: FeatureFlags) {
     for (count, flag) in counts.iter_mut().zip(flags) {
         *count += flag as u64;
     }
@@ -48,8 +64,11 @@ impl Accuracy {
         add_where_counts(&mut self.correct, &other.correct);
     }
 
-    pub fn rates(&self) -> [f64; 6] {
-        self.correct.map(|c| ratio(c, self.frames))
+    /// Returns the rate for each of `FEATURES`.
+    pub fn rates(&self) -> Vec<f64> {
+        let mut rates: Vec<f64> = self.correct.iter().map(|&c| ratio(c, self.frames)).collect();
+        rates.push(ratio(self.correct[RN], self.correct[KEY]));
+        rates
     }
 }
 
@@ -76,10 +95,10 @@ impl Agreement {
         self.frames += 1;
         self.offered_readings += offered.len() as u64;
         let agree = feature_matches(first, second);
-        let top_first = top.map_or([false; 6], |t| feature_matches(t, first));
-        let top_second = top.map_or([false; 6], |t| feature_matches(t, second));
-        let offers =
-            |truth: &Label| offered.iter().fold([false; 6], |acc, o| or(acc, feature_matches(o, truth)));
+        let none = [false; MATCHED_FEATURES];
+        let top_first = top.map_or(none, |t| feature_matches(t, first));
+        let top_second = top.map_or(none, |t| feature_matches(t, second));
+        let offers = |truth: &Label| offered.iter().fold(none, |acc, o| or(acc, feature_matches(o, truth)));
         let (offers_first, offers_second) = (offers(first), offers(second));
         let disagree = agree.map(|a| !a);
         add_where(&mut self.analysts_agree, agree);
@@ -107,7 +126,7 @@ impl Agreement {
     }
 
     pub fn summary(&self) -> AgreementSummary {
-        let per_feature = |f: &dyn Fn(usize) -> f64| std::array::from_fn(f);
+        let per_feature = |f: &dyn Fn(usize) -> f64| (0..MATCHED_FEATURES).map(f).collect();
         let disagreements = |i: usize| self.frames - self.analysts_agree[i];
         AgreementSummary {
             analyst_agreement: per_feature(&|i| ratio(self.analysts_agree[i], self.frames)),
@@ -122,13 +141,14 @@ impl Agreement {
     }
 }
 
+/// Agreement rates for each of the first `MATCHED_FEATURES` features.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AgreementSummary {
-    pub analyst_agreement: [f64; 6],
-    pub target_consensus_rate: [f64; 6],
-    pub consensus_rate: [f64; 6],
-    pub disagreement_coverage: [f64; 6],
-    pub disagreement_top_matches_either: [f64; 6],
+    pub analyst_agreement: Vec<f64>,
+    pub target_consensus_rate: Vec<f64>,
+    pub consensus_rate: Vec<f64>,
+    pub disagreement_coverage: Vec<f64>,
+    pub disagreement_top_matches_either: Vec<f64>,
     pub mean_offered: f64,
 }
 
@@ -138,14 +158,76 @@ fn add_where_counts(counts: &mut FeatureCounts, other: &FeatureCounts) {
     }
 }
 
-fn and(a: [bool; 6], b: [bool; 6]) -> [bool; 6] {
+fn and(a: FeatureFlags, b: FeatureFlags) -> FeatureFlags {
     std::array::from_fn(|i| a[i] && b[i])
 }
 
-fn or(a: [bool; 6], b: [bool; 6]) -> [bool; 6] {
+fn or(a: FeatureFlags, b: FeatureFlags) -> FeatureFlags {
     std::array::from_fn(|i| a[i] || b[i])
 }
 
 fn ratio(numerator: u64, denominator: u64) -> f64 {
     if denominator == 0 { 0.0 } else { numerator as f64 / denominator as f64 }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pitch::tpc_from_name;
+    use crate::theory::chord::{Chord, Quality};
+    use crate::theory::key::Key;
+
+    fn label(key: &str, root: &str, bass: &str) -> Label {
+        let key = Key::parse(key, "major").unwrap();
+        let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
+        Label::new(key, None, chord, tpc_from_name(bass).unwrap())
+    }
+
+    fn index(feature: &str) -> usize {
+        FEATURES.iter().position(|f| *f == feature).unwrap()
+    }
+
+    fn rate(accuracy: &Accuracy, feature: &str) -> f64 {
+        accuracy.rates()[index(feature)]
+    }
+
+    /// Two frames in C: one wholly right, one with the right chord read in the wrong key.
+    /// One frame in G with the right key and the wrong inversion.
+    fn accuracy() -> Accuracy {
+        let mut accuracy = Accuracy::default();
+        accuracy.add_frame(Some(&label("C", "G", "G")), &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "G", "G")), &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "D", "F#")), &label("G", "D", "D"));
+        accuracy
+    }
+
+    #[test]
+    fn chord_ignores_the_key() {
+        assert!(feature_matches(&label("G", "G", "G"), &label("C", "G", "G"))[index("chord")]);
+    }
+
+    #[test]
+    fn chord_requires_the_inversion() {
+        assert!(!feature_matches(&label("C", "G", "B"), &label("C", "G", "G"))[index("chord")]);
+    }
+
+    #[test]
+    fn chord_rate_counts_frames_with_the_wrong_key() {
+        assert_eq!(rate(&accuracy(), "chord"), 2.0 / 3.0);
+    }
+
+    #[test]
+    fn rn_given_key_counts_only_frames_with_the_right_key() {
+        assert_eq!(rate(&accuracy(), "rn|key"), 0.5);
+    }
+
+    #[test]
+    fn rn_given_key_is_zero_without_a_right_key() {
+        assert_eq!(rate(&Accuracy::default(), "rn|key"), 0.0);
+    }
+
+    #[test]
+    fn rates_cover_every_feature() {
+        assert_eq!(accuracy().rates().len(), FEATURES.len());
+    }
 }
