@@ -11,13 +11,14 @@ const PAIRS_PER_KIND: usize = 3;
 
 pub fn render_kinds(set: &SetDiagnosis) -> String {
     let row = |(name, kind): &(String, KindTally)| {
-        vec![name.clone(), share(kind.frames, set.frames), kind.frames.to_string(), common_pairs(kind)]
+        let (frames, equivalent) = (kind.frames.to_string(), share(kind.equivalent, kind.frames));
+        vec![name.clone(), share(kind.frames, set.frames), frames, equivalent, common_pairs(kind)]
     };
     let rows: Vec<Vec<String>> = set.kinds.iter().map(row).collect();
     format!(
-        "### Error kinds on `{}`, by frames lost\n\nThe share is of all the set's frames. The most common pairs are written expert first, then engine, with the number of frames each; a key is written as M (major) or m (minor) before the numeral.\n\n{}",
+        "### Error kinds on `{}`, by frames lost\n\nThe share is of all the set's frames. **RN eq** is the percentage of the kind's frames that the equivalents measure counts as right. The most common pairs are written expert first, then engine, with the number of frames each; a key is written as M (major) or m (minor) before the numeral.\n\n{}",
         set.name,
-        table(&["kind", "% of frames", "frames", "most common (expert vs engine)"], &rows)
+        table(&["kind", "% of frames", "frames", "RN eq", "most common (expert vs engine)"], &rows)
     )
 }
 

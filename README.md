@@ -51,7 +51,7 @@ cargo build --release
 `bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
 
 `diagnose` runs the same evaluation and assigns every frame the top reading gets wrong to exactly one kind, ranked by frames lost, for each set and its subsets:
-- **Where the analysts agree, or there is only one:** key errors by relation (relative, dominant, subdominant, parallel, tonicization against modulation split by which side tonicizes, other), each sustained or brief; then, in the right key, a root a third, fifth or step away, a function (applied or not), a seventh added or missing, or an inversion. Labels the engine cannot produce at all are counted apart, by reason, using the rule set's own proposers and vocabulary. A label that is right but shifted by up to a quarter note counts as timing.
+- **Where the analysts agree, or there is only one:** key errors by relation (relative, dominant, subdominant, parallel, tonicization against modulation split by which side tonicizes, other), each sustained or brief; then, in the right key, a root a third, fifth or step away, a function (applied or not), a seventh added or missing, or an inversion. Labels the engine cannot produce at all are counted apart, by reason, using the rule set's own proposers and vocabulary. A label that is right but shifted by up to a quarter note counts as timing. Each kind also gives the share of its frames that the equivalents measure counts as right, and each set the frames that each equivalence credits.
 - **Where they disagree:** frames are classified by what the analysts differ on (cadential six-four as I64 or V, tonicization against modulation, seventh against triad, and so on). For each class it reports how often the top reading matches either analyst and how often both readings are offered, matching the `disagreements` lines of `bench`, and why a missing reading is missing: the engine cannot produce it, it was in the beam below the offer cut-off, or it was not in the beam at all.
 - For each set, it splits the frames into those with the key right and wrong, gives the quality, inversion, root and chord accuracy in each, and reports the share of chord-wrong frames whose key is right.
 - It also prints chord changes per bar, how many distinct readings the beam holds at each slice, and the longest wrong spans with their measure numbers. `--json` writes everything, including the common label pairs of each kind.
@@ -74,10 +74,21 @@ cargo build --release
 - **RN|key:** RN accuracy over only the frames whose key is right.
 - **Offered:** the share of frames whose full Roman numeral is among the readings the engine offers (defined below). The accuracy table prints the mean number offered beside it.
 - **Key now, RN now:** the reading a listener would hold at the moment, which is the best hypothesis in the beam two quarter notes later. The other columns score the retrospective reading, the best final hypothesis traced back through the piece, as AugmentedNet's do. The gap between RN and RN now shows how much the engine relies on later music to revise earlier labels.
+- **RN eq, RN eq now:** RN and RN now with notational equivalents of the expert's label also counted as right (see below).
+
+**Equivalents RN** (`rn eq`) counts a frame as right when the engine's label is the expert's, or when it differs from the expert's label as given only by one of these conventions:
+- **Seventh:** the expert labels a triad and then its own seventh chord on the same bass, or the reverse (V then V7), and the engine gives either label anywhere over the pair. Whether a seventh that enters partway makes a new chord is a matter of judgment (Kostka, Payne and Almén 2023, ch. 15). A seventh entering in the bass (V then V42) changes the bass and inversion, so it does not count.
+- **Applied:** X/Y in a key against X in the key that Y stands for, with Y's mode from its case: V/V in C against V in G, viio7/ii in C against viio7 in d, or TAVERN's key-area labels such as I/V. Only the frame with the slash counts, not the rest of a key area. A chord applied to the tonic of the other mode (VI/i in a major key, a way of writing mixture) does not count, since that would credit the parallel key.
+- **Rootless:** V7 in any inversion against viio, viio7 or viiø7 of the same key and tonicization, over the same bass, while the dominant's root is not sounding: they then name the same pitches (Burstein and Straus 2016, ch. 13; Kostka, Payne and Almén 2023, ch. 7), apart from the ninth of viio7 and viiø7, which the benchmark ignores in every label.
+- **Pedal:** where the score's lowest pitch class is held or restruck through two or more of the expert's labels, at least one of which leaves it out, the engine counts if it names the chord above the pedal in any inversion (where the expert's bass is not the pedal note), or the expert's chord at the pedal's start or end whose bass is the pedal note. Kostka, Payne and Almén (2023, ch. 13) leave inversions above a pedal unmarked and hear the pedal as prolonging its own harmony.
+- **Timing:** the engine gives the expert's label, or one of the equivalents above, within an eighth note (`--timing-tolerance`, in quarter notes). No source gives a value, so it was measured on `tune`: the timing credit grows from 1.5% of frames at a sixteenth to 2.8% at an eighth and 4.4% at a quarter, so each further frame of reach credits less beyond an eighth (0.75, 0.65, then 0.40 points per frame), and a quarter note begins to reach whole neighboring chords.
+
+Genuinely different readings never count: a cadential six-four read as V, relative or parallel keys, a tonicized area read as a modulation beyond the applied chord itself, or roots a third apart. `bench`, `diagnose` and RESULTS.md report how many frames each equivalence credits, in each corpus.
 
 **Expert agreement** scores the engine against two analyses of the same piece, where a piece has them (`agreement`, `agreement-tune` and `tune-tavern`):
 - **Where the analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate, about as often as a third expert would.
 - **Where they disagree,** the measure is how often both readings are among those the engine offers ("both offered"). How often the top reading matches either analyst is reported beside it.
+- **The rn eq column** counts two analysts whose labels are equivalents of each other as agreeing, and the engine as matching an analyst when its label is an equivalent of theirs.
 - **Offered readings** are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
 
 Tune on `tune`, and report on `test`.
@@ -115,7 +126,7 @@ A systematic offset or a wrong key in the labels can look like an engine error. 
 
 A change can be a cited rule, a vocabulary entry or a weight, or a change to the search or the theory model, such as how the beam is pruned or what a key can be. Its size does not matter. Making one change at a time keeps each change's effect measurable, so a large change is tested as one unit. Before benching a change, write down which `diagnose` error kind it targets and about how many frames are at stake.
 
-Keep a change only if it passes all four checks:
+Keep a change only if it passes all five checks:
 
 | check | passes when |
 |---|---|
@@ -123,6 +134,7 @@ Keep a change only if it passes all four checks:
 | **No corpus harmed** | no corpus loses more than about 1 RN point |
 | **Coverage** | how often both readings are offered where analysts disagree does not fall, in either the RN or the chord column |
 | **Mechanism** | `diagnose` shows most of the gain coming from the targeted error kind |
+| **Not a convention** | where RN on `tune` improves, RN eq improves too and its 95% interval excludes zero |
 
 Record rejected and masked ideas in the commit message or the round report.
 
@@ -135,6 +147,8 @@ Record rejected and masked ideas in the commit message or the round report.
 - A change that raises `offered` without raising the mean number offered also counts in its favor, as long as it passes the RN checks.
 
 **Masked changes.** RN needs the key and the chord both right, so a chord-layer change shows only where the key is right, and a key-layer change only where the chord is right. Judge each change on its own layer's measure as well. A chord-layer change that clearly improves `chord` and `RN|key` but leaves RN flat is recorded as **masked** rather than rejected, and tried again once key accuracy improves.
+
+**Conventions.** A change whose RN gain disappears under the equivalents measure was teaching the engine to match a notational convention, such as where a seventh starts or how a pedal's chords are inverted, rather than to hear the music better. Reject it, however large its RN gain. A change that raises RN eq without raising RN fixes readings the experts would accept, and counts in its favor.
 
 **Side effects.** A gain that shows up mostly outside the targeted error kind is a side effect. Report it, but do not accept the change as a fix for that kind.
 

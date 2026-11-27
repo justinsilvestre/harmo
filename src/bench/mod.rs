@@ -2,6 +2,9 @@
 
 pub mod bootstrap;
 pub mod bootstrap_coverage;
+pub mod equivalence;
+mod equivalence_pedal;
+mod equivalence_rules;
 pub mod frames;
 pub mod groundtruth;
 mod groundtruth_fragments;

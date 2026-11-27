@@ -1,8 +1,8 @@
 //! Everything known about one piece once the engine has run on it, laid out frame by frame.
 
-use super::frame_runs::{key_run_lengths, label_runs};
+use super::frame_runs::key_run_lengths;
 use super::producibility::{Gap, find_gap};
-use crate::bench::frames::{FRAME, frame_slices};
+use crate::bench::frames::{FRAME, frame_slices, label_runs};
 use crate::bench::metrics::is_rn_match;
 use crate::bench::runner::{BenchPiece, EvalConfig, top_frames};
 use crate::engine::ruleset::RuleSet;
@@ -26,6 +26,8 @@ pub struct PieceContext<'a> {
     /// The length in frames of the run over which the main analyst's key and the engine's stay the same.
     pub key_runs: Vec<usize>,
     pub sustained_frames: usize,
+    /// The timing tolerance of the equivalents measure, in quarter notes.
+    pub timing_tolerance: f64,
 }
 
 impl<'a> PieceContext<'a> {
@@ -39,7 +41,17 @@ impl<'a> PieceContext<'a> {
         let gaps = piece.analyses.iter().map(gap_frames).collect();
         let key_runs = key_run_lengths(&piece.analyses[0].1, &top);
         let sustained_frames = (SUSTAINED_BARS * mean_bar(piece) / FRAME).round() as usize;
-        PieceContext { piece, analysis, top, frame_slices, gaps, key_runs, sustained_frames }
+        let timing_tolerance = config.timing_tolerance;
+        PieceContext {
+            piece,
+            analysis,
+            top,
+            frame_slices,
+            gaps,
+            key_runs,
+            sustained_frames,
+            timing_tolerance,
+        }
     }
 
     pub fn main_frames(&self) -> &[Option<Label>] {

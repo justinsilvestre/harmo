@@ -26,6 +26,7 @@ const USAGE: &str = "usage:
   harmo rules
 common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
+  --timing-tolerance QUARTERS (how far the equivalents RN measure looks for a shifted label)
 set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split),
   tune (every piece outside the test split), each with its per-corpus subsets";
 
@@ -79,6 +80,7 @@ fn bench(args: &Args) -> Result<(), String> {
         args.value("compare").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("runs/latest.json"));
     let previous = report::load(&previous_path).ok();
     report::print_accuracy(&sets_summary, previous.as_ref());
+    report::print_equivalence_credits(&sets_summary);
     if let Some(previous) = &previous {
         bootstrap::print_intervals(&sets_summary, &results, previous);
     }
@@ -255,6 +257,7 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
         offer_count: number("offer-count", defaults.offer_count as f64)? as usize,
         offer_margin: number("offer-margin", defaults.offer_margin as f64)? as f32,
         offer_lag: number("offer-lag", defaults.offer_lag)?,
+        timing_tolerance: number("timing-tolerance", defaults.timing_tolerance)?,
     })
 }
 
@@ -266,6 +269,7 @@ fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
         ("offer_count", config.offer_count as f64),
         ("offer_margin", config.offer_margin as f64),
         ("offer_lag", config.offer_lag),
+        ("timing_tolerance", config.timing_tolerance),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v))

@@ -7,8 +7,9 @@ use std::collections::HashMap;
 
 const SEED: u64 = 2;
 
-/// The coverage columns that get an interval, as indices into `FEATURES`: rn and chord.
-const COLUMNS: [(usize, &str); 2] = [(5, "rn"), (6, "chord")];
+/// The coverage columns that get an interval, as indices into the agreement features: rn, chord
+/// and rn eq.
+const COLUMNS: [(usize, &str); 3] = [(5, "rn"), (6, "chord"), (7, "rn eq")];
 
 /// Prints, for each set with two analyses, the change in "both readings offered" in the rn and
 /// chord columns, with a 95% interval from resampling the set's pieces, paired by id, and the mean
@@ -46,7 +47,7 @@ pub fn print_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], pre
 }
 
 /// Pairs each piece's coverage of `feature` with the previous run's, leaving out pieces missing
-/// from either run or without disagreements on the feature.
+/// from either run, or without the feature in the previous run, or without disagreements on it.
 pub fn paired_pieces(
     members: &[&PieceResult],
     old: &HashMap<&str, &PieceCoverage>,
@@ -54,13 +55,11 @@ pub fn paired_pieces(
 ) -> Vec<PairedPiece> {
     let pair = |r: &&PieceResult| {
         let agreement = r.agreement.as_ref()?;
-        let previous = old.get(r.id.as_str())?;
+        let previous = old.get(r.id.as_str())?.offered_both.get(feature)?;
         let disagreements = agreement.disagreements()[feature];
         (disagreements > 0).then(|| PairedPiece {
             frames: disagreements as f64,
-            weighted_changes: vec![
-                agreement.offered_both[feature] as f64 - previous.offered_both[feature] as f64,
-            ],
+            weighted_changes: vec![agreement.offered_both[feature] as f64 - *previous as f64],
         })
     };
     members.iter().filter_map(pair).collect()
@@ -69,11 +68,11 @@ pub fn paired_pieces(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bench::metrics::{Accuracy, Agreement, MATCHED_FEATURES};
+    use crate::bench::metrics::{AGREEMENT_FEATURES, Accuracy, Agreement, MATCHED_FEATURES};
 
     fn result(id: &str, frames: u64, offered_both: u64) -> PieceResult {
         let agreement =
-            Agreement { frames, offered_both: [offered_both; MATCHED_FEATURES], ..Agreement::default() };
+            Agreement { frames, offered_both: [offered_both; AGREEMENT_FEATURES], ..Agreement::default() };
         PieceResult {
             id: id.into(),
             sets: vec![],
@@ -106,6 +105,14 @@ mod tests {
         let old_coverage = coverage(0);
         let old = HashMap::from([("a", &old_coverage)]);
         assert!(paired_pieces(&[&new], &old, 5).is_empty());
+    }
+
+    #[test]
+    fn a_feature_missing_from_the_previous_run_is_left_out() {
+        let new = result("a", 10, 7);
+        let old_coverage = coverage(4);
+        let old = HashMap::from([("a", &old_coverage)]);
+        assert!(paired_pieces(&[&new], &old, MATCHED_FEATURES).is_empty());
     }
 
     #[test]

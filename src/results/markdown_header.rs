@@ -12,13 +12,14 @@ Labels are compared at every thirty-second note, called a **frame**. Unless a ta
 ";
 
 /// Readable names for the search settings, in the order they are listed.
-const SETTING_NAMES: [(&str, &str); 6] = [
+const SETTING_NAMES: [(&str, &str); 7] = [
     ("beam", "beam width"),
     ("candidates", "candidate readings per slice"),
     ("distinct_depth", "distinct depth"),
     ("offer_count", "readings offered at most"),
     ("offer_margin", "offer margin"),
     ("offer_lag", "offer lag in quarter notes"),
+    ("timing_tolerance", "RN eq timing tolerance in quarter notes"),
 ];
 
 pub fn render_header(header: &RunHeader) -> String {

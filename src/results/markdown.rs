@@ -2,6 +2,7 @@
 
 use super::markdown_accuracy::{render_test, render_tune};
 use super::markdown_agreement::render_agreement;
+use super::markdown_equivalents::render_equivalents;
 use super::markdown_errors::render_errors;
 use super::markdown_header::render_header;
 use super::record::ResultsRecord;
@@ -20,6 +21,7 @@ pub fn render(record: &ResultsRecord) -> String {
         render_header(&record.header),
         render_test(&record.accuracy),
         render_tune(&record.accuracy),
+        render_equivalents(&record.accuracy),
         render_agreement(&record.accuracy),
         render_errors(&record.diagnoses, offer_count as usize),
         LEFT_OUT.to_string(),

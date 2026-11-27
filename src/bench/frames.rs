@@ -1,5 +1,6 @@
 //! Samples labels on a fixed time grid, as AugmentedNet does when it evaluates.
 
+use super::metrics::is_rn_match;
 use crate::score::model::Offset;
 use crate::score::slicing::Slice;
 use crate::theory::label::Label;
@@ -35,4 +36,25 @@ pub fn frame_slices(slices: &[Slice], count: usize) -> Vec<usize> {
         slice
     };
     (0..count).map(&mut slice_at).collect()
+}
+
+/// Splits the frames into runs of equal labels, as (first frame, one past the last frame).
+pub fn label_runs(frames: &[Option<Label>]) -> Vec<(usize, usize)> {
+    let mut runs = Vec::new();
+    let mut start = 0;
+    for frame in 1..=frames.len() {
+        if frame == frames.len() || !is_same(&frames[frame], &frames[start]) {
+            runs.push((start, frame));
+            start = frame;
+        }
+    }
+    runs
+}
+
+fn is_same(a: &Option<Label>, b: &Option<Label>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => is_rn_match(a, b),
+        (None, None) => true,
+        _ => false,
+    }
 }

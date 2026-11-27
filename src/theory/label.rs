@@ -34,9 +34,24 @@ impl Label {
         }
     }
 
+    /// Returns the chord the label names, whatever its key.
+    pub fn chord(&self) -> Chord {
+        Chord::new(self.root, self.quality)
+    }
+
+    /// Returns the chord member in the bass, spelled as the chord spells it.
+    pub fn bass(&self) -> Tpc {
+        self.chord().members().nth(self.inversion as usize).unwrap_or(self.root)
+    }
+
+    /// Returns the key the numeral is read in: the tonicized key of an applied chord, or else the key.
+    pub fn reference_key(&self) -> Key {
+        self.tonicized.unwrap_or(self.key)
+    }
+
     /// Formats the label as a Roman numeral figure such as "V65/V" or "Ger65".
     pub fn figure(&self) -> String {
-        let reference = self.tonicized.unwrap_or(self.key);
+        let reference = self.reference_key();
         let degree = displayed_degree(reference.mode, self.degree);
         let main =
             format!("{}{}", numeral(degree, self.quality), inversion_figure(self.quality, self.inversion));

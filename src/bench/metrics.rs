@@ -1,5 +1,6 @@
 //! Frame-level accuracy and expert-agreement counts.
 
+use super::equivalence::{Credit, EQUIVALENCES};
 use crate::theory::label::Label;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +11,9 @@ use serde::{Deserialize, Serialize};
 /// "offered" is the share of frames whose full Roman numeral is among the readings the engine offers.
 /// "key now" and "rn now" score the reading held at the moment rather than the one traced back from
 /// the end of the piece.
-pub const FEATURES: [&str; 11] = [
+/// "rn eq" and "rn eq now" are rn and rn now with notational equivalents counted as matches (see
+/// `equivalence`).
+pub const FEATURES: [&str; 13] = [
     "key",
     "degree",
     "quality",
@@ -22,6 +25,8 @@ pub const FEATURES: [&str; 11] = [
     "offered",
     "key now",
     "rn now",
+    "rn eq",
+    "rn eq now",
 ];
 
 /// The number of leading features that AugmentedNet reports.
@@ -35,9 +40,16 @@ pub const MATCHED_FEATURES: usize = 7;
 const KEY: usize = 0;
 const RN: usize = 5;
 
+/// The features compared between a pair of analysts: the matched features, then "rn eq".
+pub const AGREEMENT_FEATURES: usize = MATCHED_FEATURES + 1;
+
 pub type FeatureCounts = [u64; MATCHED_FEATURES];
 
 type FeatureFlags = [bool; MATCHED_FEATURES];
+
+pub type AgreementCounts = [u64; AGREEMENT_FEATURES];
+
+type AgreementFlags = [bool; AGREEMENT_FEATURES];
 
 pub fn feature_matches(a: &Label, b: &Label) -> FeatureFlags {
     let key = a.key == b.key;
@@ -54,7 +66,7 @@ pub fn is_rn_match(a: &Label, b: &Label) -> bool {
     feature_matches(a, b)[RN]
 }
 
-fn add_where(counts: &mut FeatureCounts, flags: FeatureFlags) {
+fn add_where<const N: usize>(counts: &mut [u64; N], flags: [bool; N]) {
     for (count, flag) in counts.iter_mut().zip(flags) {
         *count += flag as u64;
     }
@@ -74,6 +86,13 @@ pub struct Accuracy {
     pub now_key: u64,
     /// Frames whose in-the-moment reading has the right full Roman numeral.
     pub now_rn: u64,
+    /// Frames whose top reading matches under the equivalents measure.
+    pub equivalent: u64,
+    /// Frames whose in-the-moment reading matches under the equivalents measure.
+    pub now_equivalent: u64,
+    /// Frames that the equivalents measure credits but the exact one does not, for each of
+    /// `EQUIVALENCES`.
+    pub credits: [u64; EQUIVALENCES.len()],
 }
 
 impl Accuracy {
@@ -90,9 +109,22 @@ impl Accuracy {
         self.now_rn += now_matches[RN] as u64;
     }
 
+    /// Adds how the top reading and the in-the-moment reading of the frame last added match under
+    /// the equivalents measure.
+    pub fn add_equivalence(&mut self, top: Option<Credit>, now: Option<Credit>) {
+        self.equivalent += top.is_some() as u64;
+        self.now_equivalent += now.is_some() as u64;
+        if let Some(index) = top.and_then(|credit| EQUIVALENCES.iter().position(|&e| e == credit)) {
+            self.credits[index] += 1;
+        }
+    }
+
     pub fn merge(&mut self, other: &Accuracy) {
         self.frames += other.frames;
         add_where_counts(&mut self.correct, &other.correct);
+        add_where_counts(&mut self.credits, &other.credits);
+        self.equivalent += other.equivalent;
+        self.now_equivalent += other.now_equivalent;
         self.offered += other.offered;
         self.offered_readings += other.offered_readings;
         self.now_key += other.now_key;
@@ -106,6 +138,8 @@ impl Accuracy {
         rates.push(ratio(self.offered, self.frames));
         rates.push(ratio(self.now_key, self.frames));
         rates.push(ratio(self.now_rn, self.frames));
+        rates.push(ratio(self.equivalent, self.frames));
+        rates.push(ratio(self.now_equivalent, self.frames));
         rates
     }
 
@@ -123,26 +157,43 @@ impl Accuracy {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Agreement {
     pub frames: u64,
-    pub analysts_agree: FeatureCounts,
-    pub top_matches_consensus: FeatureCounts,
-    pub offered_first_analyst: FeatureCounts,
-    pub offered_second_analyst: FeatureCounts,
-    pub offered_both: FeatureCounts,
-    pub top_matches_either: FeatureCounts,
+    pub analysts_agree: AgreementCounts,
+    pub top_matches_consensus: AgreementCounts,
+    pub offered_first_analyst: AgreementCounts,
+    pub offered_second_analyst: AgreementCounts,
+    pub offered_both: AgreementCounts,
+    pub top_matches_either: AgreementCounts,
     /// Sum over frames of the number of distinct full readings offered.
     pub offered_readings: u64,
 }
 
+/// How the labels of one frame match under the equivalents measure, for a pair of analysts.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct EquivalentMatches {
+    pub analysts: bool,
+    pub top_first: bool,
+    pub top_second: bool,
+    pub offers_first: bool,
+    pub offers_second: bool,
+}
+
 impl Agreement {
-    pub fn add_frame(&mut self, top: Option<&Label>, offered: &[Label], first: &Label, second: &Label) {
+    pub fn add_frame(
+        &mut self,
+        top: Option<&Label>,
+        offered: &[Label],
+        (first, second): (&Label, &Label),
+        equivalents: EquivalentMatches,
+    ) {
         self.frames += 1;
         self.offered_readings += offered.len() as u64;
-        let agree = feature_matches(first, second);
         let none = [false; MATCHED_FEATURES];
-        let top_first = top.map_or(none, |t| feature_matches(t, first));
-        let top_second = top.map_or(none, |t| feature_matches(t, second));
         let offers = |truth: &Label| offered.iter().fold(none, |acc, o| or(acc, feature_matches(o, truth)));
-        let (offers_first, offers_second) = (offers(first), offers(second));
+        let agree = with(feature_matches(first, second), equivalents.analysts);
+        let top_first = with(top.map_or(none, |t| feature_matches(t, first)), equivalents.top_first);
+        let top_second = with(top.map_or(none, |t| feature_matches(t, second)), equivalents.top_second);
+        let offers_first = with(offers(first), equivalents.offers_first);
+        let offers_second = with(offers(second), equivalents.offers_second);
         let disagree = agree.map(|a| !a);
         add_where(&mut self.analysts_agree, agree);
         add_where(&mut self.top_matches_consensus, and(agree, top_first));
@@ -174,7 +225,7 @@ impl Agreement {
     }
 
     pub fn summary(&self) -> AgreementSummary {
-        let per_feature = |f: &dyn Fn(usize) -> f64| (0..MATCHED_FEATURES).map(f).collect();
+        let per_feature = |f: &dyn Fn(usize) -> f64| (0..AGREEMENT_FEATURES).map(f).collect();
         let disagreements = |i: usize| self.frames - self.analysts_agree[i];
         AgreementSummary {
             analyst_agreement: per_feature(&|i| ratio(self.analysts_agree[i], self.frames)),
@@ -189,7 +240,8 @@ impl Agreement {
     }
 }
 
-/// Agreement rates for each of the first `MATCHED_FEATURES` features.
+/// Agreement rates for each of the first `MATCHED_FEATURES` features and then "rn eq".
+/// Runs saved before "rn eq" was added lack its rate.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AgreementSummary {
     pub analyst_agreement: Vec<f64>,
@@ -200,17 +252,22 @@ pub struct AgreementSummary {
     pub mean_offered: f64,
 }
 
-fn add_where_counts(counts: &mut FeatureCounts, other: &FeatureCounts) {
+fn add_where_counts<const N: usize>(counts: &mut [u64; N], other: &[u64; N]) {
     for (count, extra) in counts.iter_mut().zip(other) {
         *count += extra;
     }
 }
 
-fn and(a: FeatureFlags, b: FeatureFlags) -> FeatureFlags {
+/// Appends the equivalents measure's flag to the matched features' flags.
+fn with(flags: FeatureFlags, equivalent: bool) -> AgreementFlags {
+    std::array::from_fn(|i| if i < MATCHED_FEATURES { flags[i] } else { equivalent })
+}
+
+fn and<const N: usize>(a: [bool; N], b: [bool; N]) -> [bool; N] {
     std::array::from_fn(|i| a[i] && b[i])
 }
 
-fn or(a: FeatureFlags, b: FeatureFlags) -> FeatureFlags {
+fn or<const N: usize>(a: [bool; N], b: [bool; N]) -> [bool; N] {
     std::array::from_fn(|i| a[i] || b[i])
 }
 
