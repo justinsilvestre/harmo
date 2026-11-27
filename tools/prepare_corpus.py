@@ -74,6 +74,8 @@ MEASURE_SHIFTS = {
     ("quartets-beethoven-ludwig-van-op059-no2-1", "main"): [(210, 4)],
     # The main analysis has m174a and m174b; this one writes the repeat as "m175-194 = m1-20" without them.
     ("piano-sonatas-mozart-wolfgang-amadeus-k310-3", "DT"): [(175, 1)],
+    # The score numbers its first full bar 0; the analysis calls it m1.
+    ("openscore-liedercorpus-schumann-robert-dichterliebe-op-48-10-hor-ich-das-liedchen-klingen", "main"): [(1, -1)],
 }
 # Corrections to the RomanText of analyses, by piece and analyst: each replaces text that occurs once.
 KEY_CORRECTIONS = {
@@ -83,6 +85,14 @@ KEY_CORRECTIONS = {
     ("textbooks-reger-max-modulation-38", "main"): [("db: IV6", "ab: IV6")],
     # Titled "C# Major to G- minor"; the target key is written as G-flat major yet ends on i.
     ("textbooks-reger-max-modulation-45b", "main"): [("Gb: V7", "gb: V7")],
+    # The figures are those of G minor (V43/V is A-C#-E-G over E), and the repeat at m283 is labeled "g: i".
+    ("quartets-beethoven-ludwig-van-op074-3", "main"): [("m114 c: i", "m114 g: i")],
+    # "m32-34 = m16-18" copies E-major labels; the score repeats mm. 16-18 a major third higher, in G-sharp.
+    ("openscore-liedercorpus-schumann-robert-dichterliebe-op-48-16-die-alten-bosen-lieder", "main"): [
+        ("m32-34 = m16-18", "m32 G#: I\nm34 V")
+    ],
+    # The conversion folds the second ending (score m67) into "m66a I I", so later labels sit a bar early.
+    ("quartets-beethoven-ludwig-van-op135-2", "main"): [("m66a I I b2 V2/IV", "m66a I b2 V2/IV\nm66b I")],
 }
 ANET_SPLIT_MODULES = ["wir", "abc_dcml", "mps", "wirwtc"]
 ANET_SPLITS = ["training", "validation", "test"]
