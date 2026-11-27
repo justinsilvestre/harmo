@@ -94,14 +94,16 @@ Tune on `tune`, and report on `test`.
 | BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) | 68.1 | 51.8 |
 | all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 | 65.5 | 50.5 |
 
-Expert agreement (%, on RN unless noted), for the pieces with two analyses. `agreement` includes pieces outside the test split. "Analysts agree" is the share of all frames, "top matches consensus" is over the frames where the analysts agree, and the next three columns are over the frames where they disagree.
+Expert agreement (%), for the pieces with two analyses; `agreement` includes pieces outside the test split. "Consensus" is how often the top reading matches the analysts where they agree, with its target in brackets. "Both" is how often both readings are offered where they disagree. The bench reports every feature; key, chord and RN are shown here.
 
-| set | analysts agree | top matches consensus (target) | both offered | both offered, chord | top matches either | readings offered |
-|---|---|---|---|---|---|---|
-| `agreement` (150 pieces) | 81.7 | 73.5 (90.4) | 21.7 | 19.2 | 60.7 | 3.4 |
-| test: WiR | 88.3 | 66.8 (94.0) | 30.0 | 30.8 | 76.7 | 3.4 |
-| test: MPS | 78.9 | 71.8 (88.8) | 23.9 | 21.9 | 55.6 | 3.5 |
-| test: TAVERN | 95.2 | 55.8 (97.6) | 13.8 | 15.2 | 69.6 | 3.1 |
+| set | key: consensus | key: both | chord: consensus | chord: both | RN: consensus | RN: both | readings offered |
+|---|---|---|---|---|---|---|---|
+| `agreement` (150 pieces) | 92.4 (96.8) | 52.8 | 78.7 (93.2) | 19.2 | 73.5 (90.4) | 21.7 | 3.4 |
+| test: WiR | 77.5 (96.8) | 75.0 | 86.0 (97.4) | 30.8 | 66.8 (94.0) | 30.0 | 3.4 |
+| test: MPS | 93.0 (96.9) | 50.9 | 75.6 (91.8) | 21.9 | 71.8 (88.8) | 23.9 | 3.5 |
+| test: TAVERN | 84.3 (100.0) | – | 66.2 (97.6) | 15.2 | 55.8 (97.6) | 13.8 | 3.1 |
+
+The TAVERN analysts never disagree on the key.
 
 - **RN against single features:** the engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of its labels is one chord in one key, so a right label is right on every feature at once, while AugmentedNet predicts each feature separately.
 - **In the moment:** RN now is 3 to 5 points lower on most corpora, but about the same on WTC, whose preludes rarely revise an earlier hearing.
