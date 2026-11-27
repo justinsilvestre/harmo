@@ -6,6 +6,7 @@ pub mod chord_fit;
 pub mod chord_proposal;
 pub mod chord_rhythm;
 pub mod chord_seventh_sonority;
+pub mod function_picardy_third;
 pub mod function_progression;
 pub mod function_rare_mediant;
 pub mod function_seventh_style;
@@ -36,6 +37,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_phrase_close::RULES,
         function_vocabulary::RULES,
         function_progression::RULES,
+        function_picardy_third::RULES,
         function_seventh_style::RULES,
         function_rare_mediant::RULES,
         function_six_four::RULES,
