@@ -93,7 +93,8 @@ fn is_tonic_six_four(segment: &Segment) -> bool {
     is_tonic(segment) && segment.bass_tpc() == key.tonic + 1
 }
 
-fn is_tonic(segment: &Segment) -> bool {
+/// Reports whether the segment is the tonic chord of its key, in any inversion.
+pub fn is_tonic(segment: &Segment) -> bool {
     let reading = segment.reading;
     reading.tonicized.is_none() && reading.chord.root == reading.key.tonic
 }

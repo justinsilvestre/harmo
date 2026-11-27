@@ -14,6 +14,7 @@ pub mod function_rare_mediant;
 pub mod function_seventh_style;
 pub mod function_six_four;
 pub mod function_vocabulary;
+pub mod key_absent_tonic;
 pub mod key_cadence;
 pub mod key_confirmation;
 pub mod key_context;
@@ -48,6 +49,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_cadence::RULES,
         key_six_four_tonicization::RULES,
         key_confirmation::RULES,
+        key_absent_tonic::RULES,
         key_phrase_close::RULES,
         key_opening_tonic::RULES,
         function_vocabulary::RULES,
