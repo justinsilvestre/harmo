@@ -81,34 +81,59 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split.** Accuracy (%), with AugmentedNet's published numbers in brackets. It reports no chord or in-the-moment figures and none for MPS. Columns are defined under **Accuracy** above. The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
+### Current results
 
-| corpus | key | degree | quality | inversion | root | RN | chord | RN now |
-|---|---|---|---|---|---|---|---|---|
-| WiR | 79.0 (81.8) | 71.7 (69.2) | 83.4 (85.9) | 87.8 (90.3) | 89.7 (90.3) | 61.2 (56.4) | 78.0 | 57.8 |
-| ABC | 80.9 (83.6) | 63.4 (65.6) | 72.2 (78.0) | 70.9 (76.9) | 75.9 (78.9) | 47.7 (44.5) | 57.3 | 43.3 |
-| MPS | 89.1 | 75.7 | 77.7 | 79.4 | 82.2 | 63.0 | 69.1 | 58.3 |
-| WTC | 78.6 (77.2) | 63.5 (69.7) | 67.1 (75.0) | 72.9 (74.4) | 78.4 (82.7) | 48.0 (46.2) | 59.3 | 47.4 |
-| HaydnSun | 74.6 (81.2) | 61.7 (62.9) | 74.7 (80.2) | 79.0 (82.7) | 82.6 (86.5) | 47.7 (48.6) | 64.5 | 44.3 |
-| TAVERN | 84.3 (88.7) | 68.4 (60.0) | 77.0 (77.4) | 76.6 (78.8) | 80.0 (81.5) | 55.6 (42.6) | 65.7 | 52.9 |
-| BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) | 68.1 | 51.8 |
-| all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 | 65.5 | 50.5 |
+These figures come from the test run at the end of round 5 (`bench --set test --set agreement`). The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
 
-Expert agreement (%), for the pieces with two analyses; `agreement` includes pieces outside the test split. "Consensus" is how often the top reading matches the analysts where they agree, with its target in brackets. "Both" is how often both readings are offered where they disagree. The bench reports every feature; key, chord and RN are shown here.
+**Accuracy on the test split.** Each figure is the percentage of the music, counted in thirty-second-note frames, on which the engine's top reading matches the expert's label in that respect. For example, a key of 79.0 for WiR means that the engine names the expert's key for 79% of the WiR test pieces. AugmentedNet's published figures are in brackets; it publishes none for MPS.
 
-| set | key: consensus | key: both | chord: consensus | chord: both | RN: consensus | RN: both | readings offered |
+| corpus | key | degree | quality | inversion | root | RN |
+|---|---|---|---|---|---|---|
+| WiR | 79.0 (81.8) | 71.7 (69.2) | 83.4 (85.9) | 87.8 (90.3) | 89.7 (90.3) | 61.2 (56.4) |
+| ABC | 80.9 (83.6) | 63.4 (65.6) | 72.2 (78.0) | 70.9 (76.9) | 75.9 (78.9) | 47.7 (44.5) |
+| MPS | 89.1 | 75.7 | 77.7 | 79.4 | 82.2 | 63.0 |
+| WTC | 78.6 (77.2) | 63.5 (69.7) | 67.1 (75.0) | 72.9 (74.4) | 78.4 (82.7) | 48.0 (46.2) |
+| HaydnSun | 74.6 (81.2) | 61.7 (62.9) | 74.7 (80.2) | 79.0 (82.7) | 82.6 (86.5) | 47.7 (48.6) |
+| TAVERN | 84.3 (88.7) | 68.4 (60.0) | 77.0 (77.4) | 76.6 (78.8) | 80.0 (81.5) | 55.6 (42.6) |
+| BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) |
+| all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 |
+
+The engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of the engine's labels is one chord in one key, so a label that is right is right on every feature at once. AugmentedNet predicts each feature separately, so its features are more often right one at a time but less often right together.
+
+**Further measures on the test split.** AugmentedNet publishes nothing comparable to these.
+- **Chord:** the expert's chord (root, quality and inversion), whatever the key.
+- **RN given key:** RN, counting only the music where the key is right.
+- **Key now, RN now:** key and RN for the reading the engine holds two quarter notes after each moment, rather than after hearing the whole piece.
+- **Offered:** the expert's RN is among the readings the engine offers. "Per frame" is how many it offers on average.
+
+| corpus | chord | RN given key | key now | RN now | offered | per frame |
+|---|---|---|---|---|---|---|
+| WiR | 78.0 | 77.4 | 75.9 | 57.8 | 75.1 | 3.5 |
+| ABC | 57.3 | 59.0 | 76.8 | 43.3 | 61.7 | 3.6 |
+| MPS | 69.1 | 70.8 | 84.5 | 58.3 | 76.0 | 3.5 |
+| WTC | 59.3 | 61.0 | 78.4 | 47.4 | 65.6 | 3.5 |
+| HaydnSun | 64.5 | 64.0 | 70.6 | 44.3 | 59.6 | 3.2 |
+| TAVERN | 65.7 | 66.0 | 82.3 | 52.9 | 65.9 | 3.1 |
+| BPS | 68.1 | 68.5 | 77.5 | 51.8 | 71.6 | 3.6 |
+| all seven | 65.5 | 66.4 | 78.2 | 50.5 | 68.2 | 3.5 |
+
+RN now is 3 to 5 points below RN on most corpora, which is what the engine gains by revising earlier readings once it has heard more. WTC, whose preludes rarely call for such revision, loses almost nothing.
+
+**Agreement with two experts.** The `agreement` set has the 150 pieces with two analyses: 100 Bach chorales and the Mozart piano sonatas, some of them outside the test split. Each row is a percentage of frames.
+
+| | key | degree | quality | inversion | root | chord | RN |
 |---|---|---|---|---|---|---|---|
-| `agreement` (150 pieces) | 92.4 (96.8) | 52.8 | 78.7 (93.2) | 19.2 | 73.5 (90.4) | 21.7 | 3.4 |
-| test: WiR | 77.5 (96.8) | 75.0 | 86.0 (97.4) | 30.8 | 66.8 (94.0) | 30.0 | 3.4 |
-| test: MPS | 93.0 (96.9) | 50.9 | 75.6 (91.8) | 21.9 | 71.8 (88.8) | 23.9 | 3.5 |
-| test: TAVERN | 84.3 (100.0) | – | 66.2 (97.6) | 15.2 | 55.8 (97.6) | 13.8 | 3.1 |
+| The two analysts give the same label | 93.6 | 89.6 | 92.0 | 91.9 | 94.0 | 86.8 | 81.7 |
+| Where they agree, the engine's top reading matches them | 92.4 | 80.9 | 84.7 | 85.4 | 87.2 | 78.7 | 73.5 |
+| Target: how often a third expert would be expected to match them | 96.8 | 94.7 | 95.9 | 95.9 | 96.9 | 93.2 | 90.4 |
+| Where they disagree, the top reading matches one of them | 87.8 | 73.4 | 79.8 | 84.7 | 80.8 | 67.5 | 60.7 |
+| Where they disagree, both readings are among those offered | 52.8 | 40.1 | 41.7 | 39.3 | 34.2 | 19.2 | 21.7 |
 
-The TAVERN analysts never disagree on the key.
+The target is the square root of the analysts' agreement rate: if each expert matched an ideal analysis at rate *p*, two experts would agree at about *p*², and a third would match their consensus at about *p*. The engine offers 3.4 readings per frame on average here.
 
-- **RN against single features:** the engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of its labels is one chord in one key, so a right label is right on every feature at once, while AugmentedNet predicts each feature separately.
-- **In the moment:** RN now is 3 to 5 points lower on most corpora, but about the same on WTC, whose preludes rarely revise an earlier hearing.
-- **Corrected labels:** four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. Two of the corrections change labels that AugmentedNet's published numbers were scored against.
-- **Speed:** on 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
+**Notes.**
+- Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point of RN to WiR and 2 to ABC. Two of the corrections change labels that AugmentedNet's published figures were scored against.
+- On 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
 
 ## Improving the engine
 
