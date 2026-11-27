@@ -1,4 +1,4 @@
-//! Scores how well the music around a slice fits the key of a reading.
+//! Scores how well the music heard up to a slice fits the key of a reading.
 
 use super::key_profile::profile_logs;
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001};
@@ -10,12 +10,14 @@ use std::cell::Cell;
 pub const RULES: &[Rule] = &[Rule {
     id: "key.context_profile",
     layer: Layer::Key,
-    summary: "Prefer keys that fit the music around a slice, not only the slice itself. Each slice \
-              scores the key profile against the pitch classes sounding within six quarter-note \
-              measures to either side, weighted by duration and by nearness, times the slice's \
-              duration. A chord that briefly sounds like a tonic is then heard within its \
-              surroundings. The window stops at a fermata, which ends a phrase in a chorale, so \
-              that each phrase is heard in the key it cadences in.",
+    summary: "Prefer keys that fit the music heard so far, not only the slice itself. Each slice \
+              scores the key profile against the pitch classes sounding in the slice, in the music \
+              before it, and in at most the next two quarter notes, the same lag the benchmark \
+              allows offered readings. Earlier music counts for less the further back it is, half \
+              as much every sixteen quarter notes, and each note counts by its duration. The fit \
+              is multiplied by the slice's duration. A chord that briefly sounds like a tonic is then heard within \
+              what led up to it. The window stops at a fermata, which ends a phrase in a chorale, \
+              so that each phrase is heard afresh.",
     citations: &[
         Citation {
             source: TEMPERLEY_2001,
@@ -30,12 +32,20 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 69 (a phrase of a Bach chorale ends where the voices reach a fermata)",
         },
     ],
-    default_weight: 1.0,
+    default_weight: 0.5,
     hook: Hook::Slice(context_fit),
 }];
 
-/// Half the width of the window, in quarter notes. Weights fall linearly to zero at its edges.
-const REACH: f64 = 24.0;
+/// How far the window reaches past the end of the slice, in quarter notes. It is the same lag the
+/// benchmark allows offered readings, so the window holds only music a listener has heard, or will
+/// hear within a beat or two.
+const LOOK_AHEAD: f64 = 2.0;
+
+/// The distance back, in quarter notes, at which a slice's weight halves.
+const HALF_LIFE: f64 = 16.0;
+
+/// How far back the window reaches, in quarter notes. Weights there have fallen to a sixteenth.
+const REACH: f64 = 4.0 * HALF_LIFE;
 
 fn context_fit(context: &SliceContext) -> f32 {
     let weights = cached_window_weights(context.slices, context.index);
@@ -71,23 +81,31 @@ fn cached_window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
     weights
 }
 
-/// Sums the sounding duration of each pitch class near a slice and in its phrase, tapering with
-/// distance.
+/// Sums the sounding duration of each pitch class in the slice, in the music of its phrase heard
+/// before it, tapering with distance, and in the next two quarter notes.
 fn window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
     let slice = &slices[index];
-    let (from, to) = (slice.start - REACH, slice.start + slice.duration + REACH);
+    let horizon = slice.start + slice.duration + LOOK_AHEAD;
     let in_phrase = |other: &&Slice| other.phrase == slice.phrase;
-    let before =
-        slices[..index].iter().rev().take_while(in_phrase).take_while(|s| s.start + s.duration > from);
-    let after = slices[index..].iter().take_while(in_phrase).take_while(|s| s.start < to);
+    let before = slices[..index]
+        .iter()
+        .rev()
+        .take_while(in_phrase)
+        .take_while(|s| s.start + s.duration > slice.start - REACH);
+    let after = slices[index + 1..].iter().take_while(in_phrase).take_while(|s| s.start < horizon);
     let mut weights = [0.0; 12];
-    for other in before.chain(after) {
-        let middle = other.start + other.duration / 2.0;
-        let distance = (slice.start - middle).max(middle - slice.start - slice.duration).max(0.0);
-        let weight = ((1.0 - distance / REACH).max(0.0) * other.duration) as f32;
+    let mut add = |other: &Slice, weight: f64| {
         for note in &other.notes {
-            weights[pitch_class(note.tpc) as usize] += weight;
+            weights[pitch_class(note.tpc) as usize] += weight as f32;
         }
+    };
+    add(slice, slice.duration);
+    for other in before {
+        let distance = slice.start - (other.start + other.duration / 2.0);
+        add(other, 0.5f64.powf(distance / HALF_LIFE) * other.duration);
+    }
+    for other in after {
+        add(other, horizon.min(other.start + other.duration) - other.start);
     }
     weights
 }
@@ -158,19 +176,40 @@ mod tests {
         assert!(fit(&slices, 4, "C") > fit(&slices, 4, "F"));
     }
 
+    fn weight(weights: &[f32; 12], name: &str) -> f32 {
+        weights[pitch_class(tpc_from_name(name).unwrap()) as usize]
+    }
+
+    #[test]
+    fn window_weights_stop_at_the_start_of_the_phrase() {
+        let mut slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
+        slices[1].phrase = 1;
+        assert_eq!(weight(&window_weights(&slices, 1), "C"), 0.0);
+    }
+
     #[test]
     fn window_weights_stop_at_the_end_of_the_phrase() {
         let mut slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
         slices[1].phrase = 1;
-        let weights = window_weights(&slices, 0);
-        assert_eq!(weights[pitch_class(tpc_from_name("D").unwrap()) as usize], 0.0);
+        assert_eq!(weight(&window_weights(&slices, 0), "D"), 0.0);
     }
 
     #[test]
     fn window_weights_fade_with_distance() {
-        let slices = [slice(0.0, &["C"]), slice(4.0, &["D"]), slice(16.0, &["E"])];
-        let weights = window_weights(&slices, 0);
-        let pc = |name: &str| pitch_class(tpc_from_name(name).unwrap()) as usize;
-        assert!(weights[pc("D")] > weights[pc("E")]);
+        let slices = [slice(0.0, &["C"]), slice(12.0, &["D"]), slice(16.0, &["E"])];
+        let weights = window_weights(&slices, 2);
+        assert!(weight(&weights, "D") > weight(&weights, "C"));
+    }
+
+    #[test]
+    fn window_weights_count_the_next_two_quarter_notes() {
+        let slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
+        assert_eq!(weight(&window_weights(&slices, 0), "D"), 2.0);
+    }
+
+    #[test]
+    fn window_weights_ignore_music_more_than_two_quarter_notes_ahead() {
+        let slices = [slice(0.0, &["C"]), slice(4.0, &["D"]), slice(8.0, &["E"])];
+        assert_eq!(weight(&window_weights(&slices, 0), "E"), 0.0);
     }
 }
