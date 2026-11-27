@@ -1,5 +1,6 @@
 //! Benchmarking against expert Roman numeral analyses.
 
+pub mod bootstrap;
 pub mod frames;
 pub mod groundtruth;
 mod groundtruth_fragments;

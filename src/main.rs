@@ -1,5 +1,6 @@
 //! Command-line entry point: `harmo analyze | bench | diagnose | sweep | inspect | rules`.
 
+use harmo::bench::bootstrap;
 use harmo::bench::manifest::Manifest;
 use harmo::bench::report::{self, RunRecord};
 use harmo::bench::runner::{EvalConfig, evaluate, load_pieces};
@@ -71,6 +72,9 @@ fn bench(args: &Args) -> Result<(), String> {
         args.value("compare").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("runs/latest.json"));
     let previous = report::load(&previous_path).ok();
     report::print_accuracy(&sets_summary, previous.as_ref());
+    if let Some(previous) = &previous {
+        bootstrap::print_intervals(&sets_summary, &results, previous);
+    }
     report::print_agreement(&sets_summary);
     let slices: usize = results.iter().map(|r| r.slices).sum();
     println!("\nanalyzed {} pieces ({slices} slices) in {seconds:.2}s", results.len());
