@@ -10,8 +10,8 @@ pub const RULES: &[Rule] = &[Rule {
     id: "chord.seventh_sonority",
     layer: Layer::Chord,
     summary: "Read a seventh chord other than the dominant and diminished sevenths only when its root \
-              and seventh sound together for a substantial share of the span (half or more costs \
-              nothing). Otherwise the seventh, or the root, is better read as a nonchord tone.",
+              and seventh sound together for a substantial share of the span (five eighths or \
+              more costs nothing). Otherwise the seventh, or the root, is better read as a nonchord tone.",
     citations: &[
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -31,9 +31,9 @@ pub const RULES: &[Rule] = &[Rule {
 const SHARE_TARGET: Param = Param {
     index: 0,
     name: "share_target",
-    default: 0.5,
+    default: 0.625,
     unit: "share of the segment",
-    provenance: "measured: 34a3f45, round 2 (0.75 or 1.0: tune RN +1.0 against +0.8, but WTC and keyboard_other lose up to 2 points)",
+    provenance: "measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0.25 / 0.375 / 0.5 / 0.5625 / 0.625 / 0.6875 / 0.75 / 0.875 / 1: tune RN -0.16 / -0.04 / 0 / +0.06 / +0.15 / +0.15 / +0.14 / +0.13 / +0.13; 0.625: +0.15 [+0.09, +0.22], agreement-tune both offered +0.03 [-0.05, +0.11]; taken); 34a3f45, round 2, had found 0.75 and 1.0 costing WTC and keyboard_other up to 2 points",
 };
 
 fn seventh_sonority(context: &CloseContext, params: &[f64]) -> f32 {
@@ -110,11 +110,17 @@ mod tests {
     }
 
     #[test]
-    fn a_supertonic_seventh_with_root_and_seventh_together_costs_nothing() {
+    fn a_supertonic_seventh_with_root_and_seventh_together_throughout_costs_nothing() {
         assert_eq!(
-            score("D", Quality::MinorSeventh, &[slice(&["D", "F", "A", "C"]), slice(&["F", "A"])]),
+            score("D", Quality::MinorSeventh, &[slice(&["D", "F", "A", "C"]), slice(&["D", "C"])]),
             0.0
         );
+    }
+
+    #[test]
+    fn a_supertonic_seventh_with_root_and_seventh_together_for_half_the_span_costs() {
+        let cost = score("D", Quality::MinorSeventh, &[slice(&["D", "F", "A", "C"]), slice(&["F", "A"])]);
+        assert!(cost < 0.0);
     }
 
     #[test]
