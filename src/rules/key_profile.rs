@@ -25,12 +25,12 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 256 (a secondary function belongs more closely to another key)",
         },
     ],
-    default_weight: 0.375,
+    default_weight: 0.0,
     hook: Hook::Slice(profile_fit),
 }];
 
 /// How much of an applied chord's score comes from the key it tonicizes rather than the main key.
-const TONICIZED_SHARE: f32 = 0.5;
+pub const TONICIZED_SHARE: f32 = 0.5;
 
 /// Proportion of segments containing each scale degree, by semitones above the tonic.
 const MAJOR_PROFILE: [f32; 12] =
@@ -45,6 +45,11 @@ fn centered_logs(profile: &[f32; 12]) -> [f32; 12] {
     let logs = profile.map(f32::ln);
     let mean = logs.iter().sum::<f32>() / 12.0;
     logs.map(|value| value - mean)
+}
+
+/// Returns the proportion of segments containing each scale degree in a mode, by semitones above the tonic.
+pub fn profile_proportions(mode: Mode) -> &'static [f32; 12] {
+    if mode == Mode::Major { &MAJOR_PROFILE } else { &MINOR_PROFILE }
 }
 
 /// Returns the log key profile of a mode, centered on its mean, by semitones above the tonic.

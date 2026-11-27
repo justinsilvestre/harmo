@@ -1,0 +1,14 @@
+{
+  "sets": ["tune", "agreement-tune"],
+  "objective_set": "tune",
+  "objective_feature": "rn",
+  "one_at_a_time": true,
+  "base": {},
+  "grid": {
+    "key.segment_profile": [0.125, 0.1875, 0.3125, 0.375],
+    "key.profile": [0.1, 0.2],
+    "key.context_profile": [0.375, 0.625],
+    "key.modulation": [0.75, 1.25, 1.5, 2, 3],
+    "key.area_duration": [0.125, 0.5, 1]
+  }
+}
