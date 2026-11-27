@@ -162,7 +162,7 @@ fn read_measure(measure: Node, state: &mut PartState) -> Measure {
         reached = reached.max(state.position);
     }
     let nominal = state.beats as f64 * 4.0 / state.beat_type as f64;
-    let duration = if reached - start > EPSILON { reached - start } else { nominal };
+    let duration = measure_duration(measure, reached - start, nominal);
     state.position = start + duration;
     Measure {
         number: measure.attribute("number").unwrap_or("").to_string(),
@@ -170,6 +170,23 @@ fn read_measure(measure: Node, state: &mut PartState) -> Measure {
         duration,
         beats: state.beats,
         beat_type: state.beat_type,
+    }
+}
+
+/// Returns how long a part's measure lasts, given how far its contents reach.
+/// - A measure with nothing in it takes no time: converters leave such measures at stray barlines.
+/// - A measure of rests lasts at most a full bar, since some files write a whole-bar rest twice.
+/// - A measure whose contents take no time, such as one holding only grace notes, lasts a full bar.
+fn measure_duration(measure: Node, reached: Offset, nominal: Offset) -> Offset {
+    let mut events = measure.children().filter(|c| c.has_tag_name("note") || c.has_tag_name("forward"));
+    let is_rest = |event: Node| event.has_tag_name("forward") || child(event, "rest").is_some();
+    if reached > EPSILON {
+        let is_rests_only = events.all(is_rest);
+        if is_rests_only { reached.min(nominal) } else { reached }
+    } else if events.next().is_none() {
+        0.0
+    } else {
+        nominal
     }
 }
 
@@ -279,6 +296,29 @@ mod tests {
         <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration>
             <notations><fermata/></notations></note>
         </measure></part></score-partwise>"#;
+
+    fn measure_starts(measures_xml: &str) -> Vec<Offset> {
+        let text = format!(
+            r#"<score-partwise><part id="P1"><measure number="1">
+            <attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+            <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
+            </measure>{measures_xml}</part></score-partwise>"#
+        );
+        parse_musicxml(&text).unwrap().measures.iter().map(|m| m.start).collect()
+    }
+
+    #[test]
+    fn empty_measure_takes_no_time() {
+        let next = r#"<measure number="2"><note><rest/><duration>4</duration></note></measure>"#;
+        assert_eq!(measure_starts(&format!(r#"<measure number="0"/>{next}"#)), vec![0.0, 4.0, 4.0]);
+    }
+
+    #[test]
+    fn doubled_whole_bar_rest_lasts_one_bar() {
+        let rests = r#"<measure number="2"><note><rest/><duration>4</duration></note>
+            <note><rest/><duration>4</duration></note></measure><measure number="3"/>"#;
+        assert_eq!(measure_starts(rests), vec![0.0, 4.0, 8.0]);
+    }
 
     #[test]
     fn fermata_ends_are_read_from_notations() {
