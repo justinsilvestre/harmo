@@ -23,6 +23,7 @@ pub mod key_modulation;
 pub mod key_opening_tonic;
 pub mod key_phrase_close;
 pub mod key_profile;
+pub mod key_raised_fourth;
 pub mod key_segment_profile;
 pub mod key_signature;
 pub mod key_six_four_tonicization;
@@ -48,6 +49,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_modulation::RULES,
         key_cadence::RULES,
         key_six_four_tonicization::RULES,
+        key_raised_fourth::RULES,
         key_confirmation::RULES,
         key_absent_tonic::RULES,
         key_phrase_close::RULES,
