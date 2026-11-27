@@ -1,9 +1,11 @@
 //! A set of rules with weights, split by hook so the engine can call each group directly.
 
 use super::rule::{
-    AdmitFn, CloseContext, CloseFn, DepartureContext, DepartureFn, Hook, InterpretFn, ProposeFn, Rule,
-    SliceContext, SliceFn, TransitionContext, TransitionFn,
+    AdmitFn, CloseContext, CloseFn, DepartureContext, DepartureFn, Hook, InterpretFn, ProposeFn,
+    ProposeKeysFn, Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
 };
+use crate::score::slicing::Slice;
+use crate::theory::key::Key;
 use std::collections::HashMap;
 
 /// Rule weights by rule id, and parameter values by `<rule id>.<parameter name>`.
@@ -27,6 +29,7 @@ pub struct RuleSet {
     /// The values of each rule's parameters, in rule order.
     pub params: Vec<Vec<f64>>,
     pub proposers: Vec<ProposeFn>,
+    pub key_proposers: Vec<ProposeKeysFn>,
     pub interpreters: Vec<InterpretFn>,
     pub slice_rules: Vec<Scorer<SliceFn>>,
     pub transition_rules: Vec<Scorer<TransitionScorer>>,
@@ -55,6 +58,7 @@ impl RuleSet {
             weights,
             params,
             proposers: vec![],
+            key_proposers: vec![],
             interpreters: vec![],
             slice_rules: vec![],
             transition_rules: vec![],
@@ -73,6 +77,7 @@ impl RuleSet {
             let params: Box<[f64]> = params.clone().into_boxed_slice();
             match rule.hook {
                 Hook::ProposeChords(f) => self.proposers.push(f),
+                Hook::ProposeKeys(f) => self.key_proposers.push(f),
                 Hook::Interpret(f) => self.interpreters.push(f),
                 Hook::Slice(f) => self.slice_rules.push((f, weight, params)),
                 Hook::Transition(f) => {
@@ -102,6 +107,15 @@ impl RuleSet {
                 .collect::<Vec<_>>()
         };
         rules.flat_map(changed).collect()
+    }
+
+    /// Returns every key that some key proposer offers for a segment opening on the slice, in order
+    /// and without repeats.
+    pub fn propose_keys(&self, slice: &Slice) -> Vec<Key> {
+        let mut keys: Vec<Key> = self.key_proposers.iter().flat_map(|propose| propose(slice)).collect();
+        keys.sort();
+        keys.dedup();
+        keys
     }
 
     pub fn score_slice(&self, context: &SliceContext) -> f32 {

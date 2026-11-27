@@ -93,7 +93,7 @@ static ALL_KEYS: std::sync::LazyLock<Vec<Key>> = std::sync::LazyLock::new(|| {
     majors.chain(minors).collect()
 });
 
-/// Returns every key the engine can consider: tonics Bbb to B# in both modes.
+/// Returns every key the engine can represent: tonics Bbb to B# in both modes.
 pub fn all_keys() -> &'static [Key] {
     &ALL_KEYS
 }

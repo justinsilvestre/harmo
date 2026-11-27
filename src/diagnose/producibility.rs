@@ -13,7 +13,7 @@ use serde::Serialize;
 pub enum Gap {
     /// The expert's pitch set matches no chord template, for example a chord with an added sixth.
     UnknownQuality,
-    /// The key is not among those the engine considers.
+    /// The key is not among those the engine can represent.
     KeyOutOfRange,
     /// The vocabulary has no reading of the chord in the key.
     ChordNotInKey,
@@ -24,7 +24,8 @@ pub enum Gap {
     AppliedNonDominant,
     /// The label applies a dominant or leading-tone chord to a degree the engine does not tonicize.
     AppliedTargetMissing,
-    /// The vocabulary allows the reading, but no rule proposes the chord from the notes.
+    /// The vocabulary allows the reading, but no rule proposes the chord, or no rule proposes the
+    /// key, on any of the label's slices.
     NotProposed,
 }
 
@@ -51,7 +52,7 @@ pub fn find_gap(rules: &RuleSet, label: &Label, slices: &[Slice]) -> Option<Gap>
         return Some(Gap::KeyOutOfRange);
     }
     let chord = Chord::new(label.root, label.quality);
-    vocabulary_gap(rules, label, chord).or_else(|| proposal_gap(rules, chord, slices))
+    vocabulary_gap(rules, label, chord).or_else(|| proposal_gap(rules, label, chord, slices))
 }
 
 fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
@@ -77,8 +78,11 @@ fn has_same_numeral(label: &Label, tonicized: Option<Key>, chord: Chord) -> bool
     reading.degree == label.degree && reading.secondary == label.secondary
 }
 
-fn proposal_gap(rules: &RuleSet, chord: Chord, slices: &[Slice]) -> Option<Gap> {
-    let is_proposed = |slice: &Slice| rules.proposers.iter().any(|propose| propose(slice).contains(&chord));
+fn proposal_gap(rules: &RuleSet, label: &Label, chord: Chord, slices: &[Slice]) -> Option<Gap> {
+    let is_proposed = |slice: &Slice| {
+        rules.propose_keys(slice).contains(&label.key)
+            && rules.proposers.iter().any(|propose| propose(slice).contains(&chord))
+    };
     (!slices.iter().any(is_proposed)).then_some(Gap::NotProposed)
 }
 
