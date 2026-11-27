@@ -15,7 +15,7 @@ const SUSTAINED_BARS: f64 = 2.0;
 
 pub struct PieceContext<'a> {
     pub piece: &'a BenchPiece,
-    /// An analysis with beam snapshots recorded.
+    /// An analysis with beam snapshots and pruned hypotheses recorded.
     pub analysis: Analysis,
     /// The top reading at each frame.
     pub top: Vec<Option<Label>>,
@@ -30,7 +30,7 @@ pub struct PieceContext<'a> {
 
 impl<'a> PieceContext<'a> {
     pub fn new(piece: &'a BenchPiece, rules: &RuleSet, config: &EvalConfig) -> PieceContext<'a> {
-        let engine = Config { record_snapshots: true, ..config.engine.clone() };
+        let engine = Config { record_snapshots: true, record_pruning: true, ..config.engine.clone() };
         let analysis = analyze(&piece.slices, rules, &engine);
         let top = top_frames(&analysis, piece);
         let frame_slices = frame_slices(&piece.slices, top.len());

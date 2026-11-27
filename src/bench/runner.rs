@@ -185,9 +185,14 @@ fn slice_values_by_frame<T: Clone + Default>(slices: &[Slice], count: usize, per
 /// Returns the beam as it stood `lag` quarter notes after the slice `at` began, best first.
 /// Requires an analysis run with `Config::record_snapshots`.
 pub fn lagged_beam<'a>(analysis: &'a Analysis, slices: &[Slice], at: usize, lag: f64) -> Option<&'a [u32]> {
+    analysis.snapshots.get(lagged_slice(slices, at, lag)).map(Vec::as_slice)
+}
+
+/// Returns the last slice that begins within `lag` quarter notes of the slice `at`.
+pub fn lagged_slice(slices: &[Slice], at: usize, lag: f64) -> usize {
     let horizon = slices[at].start + lag;
     let later = slices[at..].partition_point(|s| s.start <= horizon + 1e-6);
-    analysis.snapshots.get(at + later.saturating_sub(1)).map(Vec::as_slice)
+    at + later.saturating_sub(1)
 }
 
 fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> Vec<Label> {

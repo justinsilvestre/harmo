@@ -20,7 +20,7 @@ pub fn run(args: &Args) -> Result<(), String> {
     let rules = RuleSet::new(default_rules(), &weights)?;
     let score = read_score(Path::new(path))?;
     let slices = slice_score(&score);
-    let config = Config { record_snapshots: true, ..Config::default() };
+    let config = Config { record_snapshots: true, record_pruning: true, ..Config::default() };
     let analysis = analyze(&slices, &rules, &config);
     let output =
         build_output(&score, &slices, &analysis, &rules, &OutputOptions { alternatives: 8, margin: 4.0 });

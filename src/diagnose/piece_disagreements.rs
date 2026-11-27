@@ -80,7 +80,7 @@ fn add_outcome(tally: &mut ClassTally, outcome: &Outcome) {
     for reason in &outcome.missing {
         match *reason {
             MissingReason::Unproducible => tally.missing_unproducible += 1,
-            MissingReason::OutsideBeam => tally.missing_outside_beam += 1,
+            MissingReason::OutsideBeam(absence) => tally.add_absence(absence),
             MissingReason::BelowCutoff { rank, gap } => {
                 tally.missing_below_cutoff += 1;
                 tally.below_cutoff_rank += rank as u64;

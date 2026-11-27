@@ -1,9 +1,10 @@
 //! Explains why the engine does not offer an analyst's reading.
 
+use super::beam_absence::{Absence, find_pruning};
 use super::beam_diversity::segment_label;
 use super::piece_context::PieceContext;
 use crate::bench::metrics::is_rn_match;
-use crate::bench::runner::{EvalConfig, lagged_beam};
+use crate::bench::runner::{EvalConfig, lagged_beam, lagged_slice};
 use crate::engine::history::segment_at;
 use crate::theory::label::Label;
 
@@ -17,7 +18,7 @@ pub enum MissingReason {
         rank: usize,
         gap: f32,
     },
-    OutsideBeam,
+    OutsideBeam(Absence),
 }
 
 /// Looks for the reading in the whole beam from which readings are offered, and otherwise asks
@@ -40,6 +41,10 @@ pub fn missing_reason(
             gap: best - analysis.arena[beam[rank] as usize].score,
         },
         None if context.gaps[analyst][frame].is_some() => MissingReason::Unproducible,
-        None => MissingReason::OutsideBeam,
+        None => {
+            let until = lagged_slice(slices, at, config.offer_lag);
+            let pruning = find_pruning(analysis, slices, (at, until), label);
+            MissingReason::OutsideBeam(pruning.unwrap_or(Absence::NeverHeld))
+        }
     }
 }
