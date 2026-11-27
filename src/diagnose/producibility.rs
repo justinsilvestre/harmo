@@ -4,7 +4,7 @@
 use crate::engine::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
-use crate::theory::key::all_keys;
+use crate::theory::key::{Key, all_keys};
 use crate::theory::label::Label;
 use serde::Serialize;
 
@@ -57,7 +57,7 @@ pub fn find_gap(rules: &RuleSet, label: &Label, slices: &[Slice]) -> Option<Gap>
 fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
     let readings: Vec<_> =
         rules.interpreters.iter().flat_map(|interpret| interpret(label.key, chord)).collect();
-    if readings.iter().any(|(tonicized, _)| *tonicized == label.tonicized) {
+    if readings.iter().any(|(tonicized, _)| has_same_numeral(label, *tonicized, chord)) {
         return None;
     }
     let is_dominant_function = matches!(label.degree.number, 5 | 7);
@@ -67,6 +67,14 @@ fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
         Some(_) if !is_dominant_function => Gap::AppliedNonDominant,
         Some(_) => Gap::AppliedTargetMissing,
     })
+}
+
+/// Reports whether reading `chord` as tonicizing `tonicized` gives the label's degree and secondary
+/// degree, which is all the benchmark compares. The mode of a tonicized key matters only where it
+/// changes a degree, as it does for leading-tone chords but not for dominants.
+fn has_same_numeral(label: &Label, tonicized: Option<Key>, chord: Chord) -> bool {
+    let reading = Label::new(label.key, tonicized, chord, chord.root);
+    reading.degree == label.degree && reading.secondary == label.secondary
 }
 
 fn proposal_gap(rules: &RuleSet, chord: Chord, slices: &[Slice]) -> Option<Gap> {
@@ -81,7 +89,6 @@ mod tests {
     use crate::pitch::{Tpc, tpc_from_name};
     use crate::rules::default_rules;
     use crate::score::slicing::SliceNote;
-    use crate::theory::key::Key;
 
     fn rules() -> RuleSet {
         RuleSet::new(default_rules(), &Weights::new()).unwrap()
@@ -99,8 +106,12 @@ mod tests {
     }
 
     fn label(target: Option<&str>, root: &str, quality: Quality) -> Label {
+        label_with_mode(target, "major", root, quality)
+    }
+
+    fn label_with_mode(target: Option<&str>, mode: &str, root: &str, quality: Quality) -> Label {
         let key = Key::parse("C", "major").unwrap();
-        let tonicized = target.map(|t| Key::parse(t, "major").unwrap());
+        let tonicized = target.map(|t| Key::parse(t, mode).unwrap());
         let root: Tpc = tpc_from_name(root).unwrap();
         Label::new(key, tonicized, Chord::new(root, quality), root)
     }
@@ -110,6 +121,19 @@ mod tests {
         let gap =
             find_gap(&rules(), &label(Some("G"), "D", Quality::DominantSeventh), &[slice(&["D", "F#", "C"])]);
         assert_eq!(gap, None);
+    }
+
+    #[test]
+    fn dominant_of_a_minor_target_matches_the_major_target_reading() {
+        let label = label_with_mode(Some("F"), "minor", "C", Quality::DominantSeventh);
+        assert_eq!(find_gap(&rules(), &label, &[slice(&["C", "E", "Bb"])]), None);
+    }
+
+    #[test]
+    fn leading_tone_chord_of_a_minor_target_needs_that_target() {
+        let label = label_with_mode(Some("F"), "minor", "E", Quality::DiminishedSeventh);
+        let gap = find_gap(&rules(), &label, &[slice(&["E", "G", "Bb", "Db"])]);
+        assert_eq!(gap, Some(Gap::AppliedTargetMissing));
     }
 
     #[test]
