@@ -6,6 +6,7 @@
 //! Hypotheses that differ only in where their recent segments begin compete for one place in the beam,
 //! so that the beam holds more distinct interpretations.
 
+use super::bass::{Bass, BassNote, is_downbeat};
 use super::model::{NONE, Node, Reading, Segment};
 use super::rule::{CloseContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
@@ -170,21 +171,28 @@ fn best_predecessor(
 }
 
 fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice) -> Segment {
-    let empty =
-        Segment { reading, start: index as u32, previous, duration: 0.0, members_heard: 0, bass: None };
+    let empty = Segment {
+        reading,
+        start: index as u32,
+        previous,
+        duration: 0.0,
+        members_heard: 0,
+        bass: Bass::default(),
+    };
     extend(empty, slice)
 }
 
 fn extend(mut segment: Segment, slice: &Slice) -> Segment {
+    let lowest = slice.bass().map(|n| n.midi);
     segment.duration += slice.duration;
     for note in &slice.notes {
         let Some(member) = segment.reading.chord.member_index(note.tpc) else {
             continue;
         };
         segment.members_heard |= 1 << member;
-        if segment.bass.is_none_or(|(midi, _)| note.midi < midi) {
-            segment.bass = Some((note.midi, note.tpc));
-        }
+        let is_downbeat_bass = is_downbeat(slice.metric_level) && lowest == Some(note.midi);
+        segment.bass =
+            segment.bass.hear(&BassNote { midi: note.midi, tpc: note.tpc, member, is_downbeat_bass });
     }
     segment
 }
@@ -256,8 +264,14 @@ mod tests {
     }
 
     fn node(root: &str, start: u32, previous: u32, score: f32) -> Node {
-        let segment =
-            Segment { reading: reading(root), start, previous, duration: 1.0, members_heard: 0, bass: None };
+        let segment = Segment {
+            reading: reading(root),
+            start,
+            previous,
+            duration: 1.0,
+            members_heard: 0,
+            bass: Bass::default(),
+        };
         Node { parent: previous, slice: 2, segment, score }
     }
 
