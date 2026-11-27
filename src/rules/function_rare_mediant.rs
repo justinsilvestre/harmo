@@ -27,6 +27,7 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.0,
+    params: &[],
     hook: Hook::Close(rare_mediant),
 }];
 
@@ -35,7 +36,7 @@ const MEDIANT: i32 = 4;
 /// The mediant root in minor, in fifths above the tonic.
 const MINOR_MEDIANT: i32 = -3;
 
-fn rare_mediant(context: &CloseContext) -> f32 {
+fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
     let reading = context.segment.reading;
     if reading.category != Category::Diatonic || reading.tonicized.is_some() {
         return 0.0;
@@ -70,7 +71,7 @@ mod tests {
             members_heard: 0b111,
             bass: Bass::default(),
         };
-        rare_mediant(&CloseContext { segment: &segment, slices: &[], next_slice: None })
+        rare_mediant(&CloseContext { segment: &segment, slices: &[], next_slice: None }, &[])
     }
 
     #[test]

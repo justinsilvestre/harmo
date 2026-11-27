@@ -1,7 +1,7 @@
 //! Rules about the chord that ends a phrase as evidence for a key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -22,13 +22,20 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.0,
+    params: &[HALF_CADENCE],
     hook: Hook::Close(phrase_close),
 }];
 
 /// The score of a phrase that ends on the dominant, relative to one that ends on the tonic.
-const HALF_CADENCE: f32 = 0.5;
+const HALF_CADENCE: Param = Param {
+    index: 0,
+    name: "half_cadence",
+    default: 0.5,
+    unit: "ratio to the tonic",
+    provenance: "measured: e332070, round 2 (0 and 1 gained less tune RN than 0.5); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN +0.00 / -0.01 / -0.04 / -0.07; kept)",
+};
 
-fn phrase_close(context: &CloseContext) -> f32 {
+fn phrase_close(context: &CloseContext, params: &[f64]) -> f32 {
     let reading = context.segment.reading;
     if !ends_phrase(context) || reading.tonicized.is_some() {
         return 0.0;
@@ -38,7 +45,7 @@ fn phrase_close(context: &CloseContext) -> f32 {
     if root == reading.key.tonic {
         1.0
     } else if root == reading.key.tonic + 1 && is_major {
-        HALF_CADENCE
+        HALF_CADENCE.read(params) as f32
     } else {
         0.0
     }
@@ -86,7 +93,10 @@ mod tests {
             bass: Bass::default(),
         };
         let next = next_phrase.map(slice);
-        phrase_close(&CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() })
+        phrase_close(
+            &CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]
@@ -96,7 +106,7 @@ mod tests {
 
     #[test]
     fn dominant_at_the_end_of_the_piece_is_a_half_cadence() {
-        assert_eq!(close("G", None), HALF_CADENCE);
+        assert_eq!(close("G", None), 0.5);
     }
 
     #[test]

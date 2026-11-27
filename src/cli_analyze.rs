@@ -1,7 +1,8 @@
 //! The `analyze` and `rules` commands.
 
 use crate::cli_args::Args;
-use crate::engine::ruleset::{RuleSet, Weights};
+use crate::cli_overrides::load_overrides;
+use crate::engine::ruleset::RuleSet;
 use crate::engine::search::{Config, analyze};
 use crate::output::analysis::{OutputOptions, Status, build_output};
 use crate::rules::default_rules;
@@ -12,12 +13,7 @@ use std::path::Path;
 
 pub fn run(args: &Args) -> Result<(), String> {
     let path = args.positional(0).ok_or("analyze needs a score path")?;
-    let weights: Weights = match args.value("weights") {
-        Some(file) => serde_json::from_str(&std::fs::read_to_string(file).map_err(|e| e.to_string())?)
-            .map_err(|e| e.to_string())?,
-        None => Weights::new(),
-    };
-    let rules = RuleSet::new(default_rules(), &weights)?;
+    let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
     let score = read_score(Path::new(path))?;
     let slices = slice_score(&score);
     let config = Config { record_snapshots: true, record_pruning: true, ..Config::default() };
@@ -54,6 +50,10 @@ pub fn print_rules() {
         println!("    {}", rule.summary);
         for citation in rule.citations {
             println!("    - {} {}", citation.source, citation.locator);
+        }
+        for param in rule.params {
+            println!("    param {}.{} = {} {}", rule.id, param.name, param.default, param.unit);
+            println!("        {}", param.provenance);
         }
     }
     println!("\nsources:");

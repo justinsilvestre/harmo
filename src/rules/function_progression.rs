@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::{Category, Reading, Segment};
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::pitch::{Tpc, pitch_class};
 use crate::theory::chord::Quality;
 
@@ -33,6 +33,7 @@ pub const RULES: &[Rule] = &[
             },
         ],
         default_weight: 1.0,
+        params: &[LOWERED_SIXTH_MIXTURE, CONTINUED_TONICIZATION],
         hook: Hook::Transition(diatonic_preference),
     },
     Rule {
@@ -44,6 +45,7 @@ pub const RULES: &[Rule] = &[
             locator: "pp. 256–260, 273–276 (secondary functions in context)",
         }],
         default_weight: 0.75,
+        params: &[UNRESOLVED_COST],
         hook: Hook::Transition(applied_resolution),
     },
     Rule {
@@ -68,6 +70,7 @@ pub const RULES: &[Rule] = &[
             },
         ],
         default_weight: 0.75,
+        params: &[],
         hook: Hook::Transition(dominant_resolution),
     },
     Rule {
@@ -79,19 +82,44 @@ pub const RULES: &[Rule] = &[
             locator: "pp. 383–386, 391 (augmented sixths and other bass positions)",
         }],
         default_weight: 1.0,
+        params: &[],
         hook: Hook::Transition(augmented_sixth_bass),
     },
 ];
 
+/// The cost of a mixture chord whose only borrowed tone is the lowered sixth degree, against 1 for
+/// other altered chords.
+const LOWERED_SIXTH_MIXTURE: Param = Param {
+    index: 0,
+    name: "lowered_sixth_mixture",
+    default: 0.5,
+    unit: "ratio",
+    provenance: "chosen: b557b0a, round 1 (Kostka, Payne and Almen 2023, p. 361, name these the most frequent borrowed chords but give no rate; only 0.5 tried: RN +0.1); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN -0.02 / -0.03 / -0.07 / -0.10; kept)",
+};
 /// The cost of an applied chord that continues a tonicization, against 1 for one that begins it.
-const CONTINUED_TONICIZATION: f32 = 0.75;
+const CONTINUED_TONICIZATION: Param = Param {
+    index: 1,
+    name: "continued_tonicization",
+    default: 0.75,
+    unit: "ratio",
+    provenance: "measured: de9d21b, round 5 (0 / 0.25 / 0.5 / 0.625 / 0.75 / 0.875: tune RN -0.26 / -0.09 / +0.03 / +0.04 / +0.06 / +0.04); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.625 / 0.875 / 1: tune RN -0.02 / -0.00 / +0.01 / -0.04; kept)",
+};
+/// The cost of an applied chord not followed by the chord it tonicizes, against a credit of 1 for
+/// one that is.
+const UNRESOLVED_COST: Param = Param {
+    index: 0,
+    name: "unresolved_cost",
+    default: 1.0,
+    unit: "ratio to the credit",
+    provenance: "chosen: 4e0fbe2, round 1 (not swept); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.5 / 2: tune RN -0.00 / +0.02 / -0.08 / -0.21; kept)",
+};
 
-fn diatonic_preference(context: &TransitionContext) -> f32 {
+fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
     let next = context.next;
     match next.category {
         Category::Diatonic => 0.0,
-        Category::Mixture if borrows_only_lowered_sixth(next) => -0.5,
-        Category::Applied if continues_tonicization(context) => -CONTINUED_TONICIZATION,
+        Category::Mixture if borrows_only_lowered_sixth(next) => -LOWERED_SIXTH_MIXTURE.read(params) as f32,
+        Category::Applied if continues_tonicization(context) => -CONTINUED_TONICIZATION.read(params) as f32,
         _ => -1.0,
     }
 }
@@ -122,18 +150,18 @@ fn borrows_only_lowered_sixth(reading: &Reading) -> bool {
     reading.chord.members().filter(is_altered).all(|tpc| reading.key.degree_of(tpc).number == 6)
 }
 
-fn applied_resolution(context: &TransitionContext) -> f32 {
+fn applied_resolution(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
     match previous.reading.tonicized {
         Some(target) if target.tonic == context.next.chord.root => 1.0,
-        Some(_) => -1.0,
+        Some(_) => -UNRESOLVED_COST.read(params) as f32,
         None => 0.0,
     }
 }
 
-fn dominant_resolution(context: &TransitionContext) -> f32 {
+fn dominant_resolution(context: &TransitionContext, _: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
@@ -155,7 +183,7 @@ fn has_dominant_function(reading: Reading) -> bool {
     }
 }
 
-fn augmented_sixth_bass(context: &TransitionContext) -> f32 {
+fn augmented_sixth_bass(context: &TransitionContext, _: &[f64]) -> f32 {
     let chord = context.next.chord;
     let lowered_sixth = match chord.quality {
         Quality::ItalianSixth | Quality::GermanSixth => chord.root - 10,
@@ -218,7 +246,10 @@ mod tests {
         let last = arena.len() as u32 - 1;
         let history = History { arena: &arena, slices: &[], last };
         let previous = Some(&arena[last as usize].segment);
-        diatonic_preference(&TransitionContext { previous, next: &next, slice: &slice, history })
+        diatonic_preference(
+            &TransitionContext { previous, next: &next, slice: &slice, history },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]
@@ -229,15 +260,12 @@ mod tests {
     #[test]
     fn an_applied_chord_after_its_target_and_a_chord_applied_to_it_costs_less() {
         let chords = [("D", Quality::DominantSeventh, Some("G")), ("G", Quality::Major, None)];
-        assert_eq!(secondary_dominant_after(&chords), -CONTINUED_TONICIZATION);
+        assert_eq!(secondary_dominant_after(&chords), -0.75);
     }
 
     #[test]
     fn an_applied_chord_after_another_applied_to_the_same_degree_costs_less() {
-        assert_eq!(
-            secondary_dominant_after(&[("D", Quality::DominantSeventh, Some("G"))]),
-            -CONTINUED_TONICIZATION
-        );
+        assert_eq!(secondary_dominant_after(&[("D", Quality::DominantSeventh, Some("G"))]), -0.75);
     }
 
     #[test]

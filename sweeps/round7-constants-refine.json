@@ -1,0 +1,28 @@
+{
+ "sets": [
+  "tune",
+  "agreement-tune"
+ ],
+ "objective_set": "tune",
+ "objective_feature": "rn",
+ "one_at_a_time": true,
+ "base": {},
+ "grid": {
+  "chord.seventh_sonority.share_target": [
+   0.5625,
+   0.6875,
+   0.875,
+   1.0
+  ],
+  "key.context_profile.modal_look_back": [
+   8,
+   24
+  ],
+  "chord.thin_texture_rhythm.subdivision_level": [
+   3
+  ],
+  "chord.seventh_evidence.share_target": [
+   0.625
+  ]
+ }
+}

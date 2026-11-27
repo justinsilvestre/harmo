@@ -1,8 +1,8 @@
 //! Scores the set of pitch classes heard in a slice's measure against the key of a reading.
 
-use super::key_profile::{TONICIZED_SHARE, profile_proportions};
+use super::key_profile::profile_proportions;
 use super::sources::{CAPLIN_2024, TEMPERLEY_2001, TEMPERLEY_2007};
-use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
@@ -47,23 +47,49 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.25,
+    params: &[LOOK_AHEAD, TONICIZED_SHARE, DOMINANT_ALLOWANCE],
     hook: Hook::Slice(segment_fit),
 }];
 
-/// How far the set reaches past the end of the slice, in quarter notes, the lag the benchmark
-/// allows offered readings.
-const LOOK_AHEAD: f64 = 2.0;
+/// How far the set reaches past the end of the slice, at most the lag the benchmark allows offered
+/// readings.
+const LOOK_AHEAD: Param = Param {
+    index: 0,
+    name: "look_ahead",
+    default: 2.0,
+    unit: "quarter notes",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); chosen: db6832e, round 4 (not swept); measured: sweeps/round7-constants.json, round 7 (0 / 1: tune RN -0.19 / -0.10; kept)",
+};
+/// How much of an applied chord's score comes from the key it tonicizes rather than the main key.
+const TONICIZED_SHARE: Param = Param {
+    index: 1,
+    name: "tonicized_share",
+    default: 0.5,
+    unit: "share",
+    provenance: "measured: db6832e, round 4 (0.5 / 0.75: tune RN +0.48 / +0.47, textbooks -1.3 at 0.75); d272bb6, round 1, in key.profile (1: less than 0.5 on WTC and chorales); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.75 / 1: tune RN -0.18 / -0.10 / -0.03 / -0.21; kept)",
+};
+/// The share of the major-key charge for an absent tonic that a dominant chord of the key is spared.
+const DOMINANT_ALLOWANCE: Param = Param {
+    index: 2,
+    name: "dominant_allowance",
+    default: 1.0,
+    unit: "ratio",
+    provenance: "measured: 7cdd769, round 5 (0.5 / 1 / 1.5 / 2 of the key's own mode share, main key only: tune RN +0.03 / +0.08 / +0.06 / -0.03; the major share taken: +0.12); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.25 / 1.5: tune RN -0.08 / -0.00 / -0.03 / +0.00; kept)",
+};
 
-/// The length of a segment in quarter notes, a measure of common time.
+/// The length of a segment in quarter notes, a measure of common time. Its score scales with the
+/// slice's duration over this length, so the length acts only as a scale on the rule's weight.
 const SEGMENT: f64 = 4.0;
 
-fn segment_fit(context: &SliceContext) -> f32 {
-    let (present, scores) = cached_key_scores(context.slices, context.index);
+fn segment_fit(context: &SliceContext, params: &[f64]) -> f32 {
+    let (present, scores) = cached_key_scores(context.slices, context.index, LOOK_AHEAD.read(params));
     let chord = context.reading.chord;
-    let fit_in = |key| key_score(&scores, key) + dominant_allowance(&present, key, chord);
+    let allowance = DOMINANT_ALLOWANCE.read(params) as f32;
+    let fit_in = |key| key_score(&scores, key) + allowance * dominant_allowance(&present, key, chord);
     let home = fit_in(context.reading.key);
+    let share = TONICIZED_SHARE.read(params) as f32;
     let fit = match context.reading.tonicized {
-        Some(local) => TONICIZED_SHARE * fit_in(local) + (1.0 - TONICIZED_SHARE) * home,
+        Some(local) => share * fit_in(local) + (1.0 - share) * home,
         None => home,
     };
     fit * (context.slice.duration / SEGMENT) as f32
@@ -92,22 +118,23 @@ fn key_score(scores: &[f32; 24], key: Key) -> f32 {
 type SliceIdentity = (usize, usize, usize, usize);
 
 thread_local! {
-    /// The scores of the most recent slice. The engine scores many readings of one slice in a
-    /// row, so one entry avoids nearly all recomputation without changing any result.
-    static LAST_SCORES: Cell<(SliceIdentity, [bool; 12], [f32; 24])> =
-        const { Cell::new(((0, 0, 0, usize::MAX), [false; 12], [0.0; 24])) };
+    /// The scores of the most recent slice, with the look-ahead they were found with. The engine
+    /// scores many readings of one slice in a row, so one entry avoids nearly all recomputation
+    /// without changing any result.
+    static LAST_SCORES: Cell<(SliceIdentity, f64, [bool; 12], [f32; 24])> =
+        const { Cell::new(((0, 0, 0, usize::MAX), 0.0, [false; 12], [0.0; 24])) };
 }
 
 /// Returns the pitch classes of the slice's measure and the score of each key for them.
-fn cached_key_scores(slices: &[Slice], index: usize) -> ([bool; 12], [f32; 24]) {
+fn cached_key_scores(slices: &[Slice], index: usize, look_ahead: f64) -> ([bool; 12], [f32; 24]) {
     let identity = (slices.as_ptr() as usize, slices[index].notes.as_ptr() as usize, slices.len(), index);
-    let (cached_identity, present, scores) = LAST_SCORES.get();
-    if cached_identity == identity {
+    let (cached_identity, cached_look_ahead, present, scores) = LAST_SCORES.get();
+    if cached_identity == identity && cached_look_ahead == look_ahead {
         return (present, scores);
     }
-    let present = measure_pitch_classes(slices, index);
+    let present = measure_pitch_classes(slices, index, look_ahead);
     let scores = key_scores(&present);
-    LAST_SCORES.set((identity, present, scores));
+    LAST_SCORES.set((identity, look_ahead, present, scores));
     (present, scores)
 }
 
@@ -130,11 +157,11 @@ fn key_scores(present: &[bool; 12]) -> [f32; 24] {
     scores.map(|score| score - mean)
 }
 
-/// Marks the pitch classes sounding in the slice's measure and phrase, up to two quarter notes
-/// past the slice.
-fn measure_pitch_classes(slices: &[Slice], index: usize) -> [bool; 12] {
+/// Marks the pitch classes sounding in the slice's measure and phrase, up to `look_ahead` quarter
+/// notes past the slice.
+fn measure_pitch_classes(slices: &[Slice], index: usize, look_ahead: f64) -> [bool; 12] {
     let slice = &slices[index];
-    let horizon = slice.start + slice.duration + LOOK_AHEAD;
+    let horizon = slice.start + slice.duration + look_ahead;
     let together = |other: &&Slice| other.measure == slice.measure && other.phrase == slice.phrase;
     let before = slices[..index].iter().rev().take_while(together);
     let after = slices[index + 1..].iter().take_while(together).take_while(|s| s.start < horizon);
@@ -204,32 +231,32 @@ mod tests {
     #[test]
     fn a_repeated_pitch_class_counts_once() {
         let slices = [slice(0.0, 1.0, &["D", "F#", "A"]), slice(1.0, 1.0, &["C"])];
-        assert_eq!(measure_pitch_classes(&slices, 0), set(&["D", "F#", "A", "C"]));
+        assert_eq!(measure_pitch_classes(&slices, 0, 2.0), set(&["D", "F#", "A", "C"]));
     }
 
     #[test]
     fn the_set_holds_earlier_music_of_the_measure() {
         let slices = [slice(0.0, 1.0, &["C"]), slice(1.0, 2.0, &["E"])];
-        assert!(has(&measure_pitch_classes(&slices, 1), "C"));
+        assert!(has(&measure_pitch_classes(&slices, 1, 2.0), "C"));
     }
 
     #[test]
     fn the_set_stops_at_the_start_of_the_measure() {
         let slices = [slice(0.0, 4.0, &["C"]), slice(4.0, 4.0, &["E"])];
-        assert!(!has(&measure_pitch_classes(&slices, 1), "C"));
+        assert!(!has(&measure_pitch_classes(&slices, 1, 2.0), "C"));
     }
 
     #[test]
     fn the_set_ignores_music_more_than_two_quarter_notes_ahead() {
         let slices = [slice(0.0, 1.0, &["C"]), slice(1.0, 2.0, &["E"]), slice(3.0, 1.0, &["G"])];
-        assert!(!has(&measure_pitch_classes(&slices, 0), "G"));
+        assert!(!has(&measure_pitch_classes(&slices, 0, 2.0), "G"));
     }
 
     #[test]
     fn the_set_stops_at_the_start_of_the_phrase() {
         let mut slices = [slice(0.0, 1.0, &["C"]), slice(1.0, 1.0, &["D"])];
         slices[1].phrase = 1;
-        assert!(!has(&measure_pitch_classes(&slices, 1), "C"));
+        assert!(!has(&measure_pitch_classes(&slices, 1, 2.0), "C"));
     }
 
     /// Scores a bar of D7 in C major, read either as V7/V or with no tonicization.
@@ -246,7 +273,7 @@ mod tests {
             reading: &reading,
             is_opening: true,
         };
-        segment_fit(&context)
+        segment_fit(&context, &RULES[0].default_params())
     }
 
     /// Scores a bar holding only the given notes against a key, read as a chord on the given root.
@@ -262,7 +289,7 @@ mod tests {
             reading: &reading,
             is_opening: true,
         };
-        segment_fit(&context)
+        segment_fit(&context, &RULES[0].default_params())
     }
 
     fn major(name: &str) -> Key {

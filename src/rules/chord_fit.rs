@@ -1,7 +1,7 @@
 //! Scores how well the notes of a slice fit the chord of a reading.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
 use crate::score::slicing::{Slice, SliceNote};
 
 pub const RULES: &[Rule] = &[
@@ -15,6 +15,7 @@ pub const RULES: &[Rule] = &[
             source: TEMPERLEY_2001, locator: "pp. 149–154 (HPR 1, Compatibility Rule)"
         }],
         default_weight: 1.0,
+        params: &[THIRD_VALUE, FIFTH_VALUE, SEVENTH_VALUE, ENHARMONIC_SHARE],
         hook: Hook::Slice(compatibility),
     },
     Rule {
@@ -32,31 +33,65 @@ pub const RULES: &[Rule] = &[
             },
         ],
         default_weight: 2.625,
+        params: &[STEP_RESOLUTION, ACCENT],
         hook: Hook::Slice(ornamental_dissonance),
     },
 ];
 
-/// Values of root, third, fifth and seventh, following HPR 1's ordering (^1, ^5, ^3, ^7).
-const MEMBER_VALUES: [f32; 4] = [1.0, 0.8, 0.9, 0.5];
+/// The values of the third, fifth and seventh of the chord, against 1 for the root. HPR 1 orders
+/// them root, fifth, third, seventh.
+const THIRD_VALUE: Param = Param {
+    index: 0,
+    name: "third_value",
+    default: 0.8,
+    unit: "ratio to the root",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.6 / 0.7 / 0.85: tune RN -0.37 / -0.17 / -0.00; kept)",
+};
+const FIFTH_VALUE: Param = Param {
+    index: 1,
+    name: "fifth_value",
+    default: 0.9,
+    unit: "ratio to the root",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.85 / 0.95 / 1: tune RN -0.02 / -0.01 / -0.08; kept)",
+};
+const SEVENTH_VALUE: Param = Param {
+    index: 2,
+    name: "seventh_value",
+    default: 0.5,
+    unit: "ratio to the root",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.625 / 0.75: tune RN -0.09 / -0.06 / -0.09 / -0.20; kept)",
+};
+/// The share of a chord tone's value earned by a note that matches it only enharmonically, since the
+/// spelling disagrees.
+const ENHARMONIC_SHARE: Param = Param {
+    index: 3,
+    name: "enharmonic_share",
+    default: 0.5,
+    unit: "ratio",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, scores spelled pitches); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.75 / 1: tune RN +0.01 / +0.02 / -0.02 / -0.03; kept)",
+};
 
-/// Enharmonically equivalent chord tones count for half, since the spelling disagrees.
-fn compatibility(context: &SliceContext) -> f32 {
+fn compatibility(context: &SliceContext, params: &[f64]) -> f32 {
     let notes = &context.slice.notes;
     if notes.is_empty() {
         return 0.0;
     }
     let chord = context.reading.chord;
+    let (third, fifth, seventh) =
+        (THIRD_VALUE.read(params), FIFTH_VALUE.read(params), SEVENTH_VALUE.read(params));
+    let member_values = [1.0, third as f32, fifth as f32, seventh as f32];
+    let enharmonic_share = ENHARMONIC_SHARE.read(params) as f32;
     let value =
         |note: &SliceNote| match (chord.member_index(note.tpc), chord.member_index_enharmonic(note.tpc)) {
-            (Some(member), _) => MEMBER_VALUES[member],
-            (None, Some(member)) => MEMBER_VALUES[member] / 2.0,
+            (Some(member), _) => member_values[member],
+            (None, Some(member)) => member_values[member] * enharmonic_share,
             (None, None) => 0.0,
         };
     notes.iter().map(value).sum::<f32>() / notes.len() as f32 * context.slice.duration as f32
 }
 
 /// Returns minus the mean cost of the slice's non-chord tones, times the slice's duration.
-fn ornamental_dissonance(context: &SliceContext) -> f32 {
+fn ornamental_dissonance(context: &SliceContext, params: &[f64]) -> f32 {
     let notes = &context.slice.notes;
     if notes.is_empty() {
         return 0.0;
@@ -66,19 +101,31 @@ fn ornamental_dissonance(context: &SliceContext) -> f32 {
     let cost: f32 = notes
         .iter()
         .filter(is_ornamental)
-        .map(|n| dissonance_cost(n, context.slice, context.next_slice))
+        .map(|n| dissonance_cost(n, context.slice, context.next_slice, params))
         .sum();
     -cost / notes.len() as f32 * context.slice.duration as f32
 }
 
 /// Cost factor for a nonchord tone followed by a note a step away, as in passing and neighbor figures.
-const STEP_RESOLUTION: f32 = 0.3;
+const STEP_RESOLUTION: Param = Param {
+    index: 0,
+    name: "step_resolution",
+    default: 0.3,
+    unit: "ratio",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 153, prefers ornamental tones followed by a step but gives no value); measured: sweeps/round7-constants.json, round 7 (0.15 / 0.225 / 0.45 / 0.6: tune RN -0.05 / -0.07 / -0.19 / -0.37; kept)",
+};
 /// Cost factor for a nonchord tone on a beat.
-const ACCENT: f32 = 1.5;
+const ACCENT: Param = Param {
+    index: 1,
+    name: "accent",
+    default: 1.5,
+    unit: "ratio",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 154, prefers metrically weak ornamental tones but gives no value); measured: sweeps/round7-constants.json, round 7 (1 / 1.25 / 2 / 3: tune RN -0.31 / -0.13 / -0.06 / -0.27; kept)",
+};
 
-fn dissonance_cost(note: &SliceNote, slice: &Slice, next: Option<&Slice>) -> f32 {
-    let resolution = if is_followed_by_step(note, next) { STEP_RESOLUTION } else { 1.0 };
-    let accent = if is_accented(note, slice) { ACCENT } else { 1.0 };
+fn dissonance_cost(note: &SliceNote, slice: &Slice, next: Option<&Slice>, params: &[f64]) -> f32 {
+    let resolution = if is_followed_by_step(note, next) { STEP_RESOLUTION.read(params) as f32 } else { 1.0 };
+    let accent = if is_accented(note, slice) { ACCENT.read(params) as f32 } else { 1.0 };
     resolution * accent
 }
 
@@ -111,13 +158,17 @@ mod tests {
     #[test]
     fn a_step_to_an_attacked_note_discounts_the_cost() {
         let next = slice(vec![note(60, true, 0)], 0);
-        assert_eq!(dissonance_cost(&note(62, true, 0), &slice(vec![], 0), Some(&next)), STEP_RESOLUTION);
+        let cost =
+            dissonance_cost(&note(62, true, 0), &slice(vec![], 0), Some(&next), &RULES[1].default_params());
+        assert_eq!(cost, 0.3);
     }
 
     #[test]
     fn a_step_to_a_held_note_is_no_resolution() {
         let next = slice(vec![note(60, false, 0)], 0);
-        assert_eq!(dissonance_cost(&note(62, true, 0), &slice(vec![], 0), Some(&next)), 1.0);
+        let cost =
+            dissonance_cost(&note(62, true, 0), &slice(vec![], 0), Some(&next), &RULES[1].default_params());
+        assert_eq!(cost, 1.0);
     }
 
     #[test]

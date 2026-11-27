@@ -35,6 +35,7 @@ pub const RULES: &[Rule] = &[Rule {
         Citation { source: KOSTKA_PAYNE_ALMEN_2023, locator: "pp. 382–389 (augmented sixth chords)" },
     ],
     default_weight: 1.0,
+    params: &[],
     hook: Hook::Interpret(interpret),
 }];
 

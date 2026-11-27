@@ -31,7 +31,39 @@ pub struct Rule {
     pub summary: &'static str,
     pub citations: &'static [Citation],
     pub default_weight: f32,
+    /// The constants inside the rule that can be overridden at runtime, in the order of their `index`.
+    pub params: &'static [Param],
     pub hook: Hook,
+}
+
+impl Rule {
+    /// Returns the default value of each of the rule's parameters, in order.
+    pub fn default_params(&self) -> Vec<f64> {
+        self.params.iter().map(|p| p.default).collect()
+    }
+}
+
+/// A constant inside a rule, such as a threshold, a duration or a ratio, that can be overridden
+/// at runtime as `<rule id>.<name>` beside the rule weights.
+///
+/// A scoring hook receives the values of its rule's parameters in order and reads each one with `read`.
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct Param {
+    /// The parameter's position in its rule's `params`.
+    pub index: usize,
+    pub name: &'static str,
+    pub default: f64,
+    pub unit: &'static str,
+    /// Where the default comes from: "cited: <source, page>", or "measured: <sweep or commit>"
+    /// with the values tried and what they gave.
+    pub provenance: &'static str,
+}
+
+impl Param {
+    #[inline]
+    pub fn read(&self, values: &[f64]) -> f64 {
+        values[self.index]
+    }
 }
 
 /// A way a chord can function in a key: the key it tonicizes, if any, and its category.
@@ -39,10 +71,11 @@ pub type Interpretation = (Option<Key>, Category);
 
 pub type ProposeFn = fn(&Slice) -> Vec<Chord>;
 pub type InterpretFn = fn(Key, Chord) -> Vec<Interpretation>;
-pub type SliceFn = fn(&SliceContext) -> f32;
-pub type TransitionFn = fn(&TransitionContext) -> f32;
-pub type DepartureFn = fn(&DepartureContext) -> f32;
-pub type CloseFn = fn(&CloseContext) -> f32;
+/// Scoring hooks receive the context and the values of their rule's parameters.
+pub type SliceFn = fn(&SliceContext, &[f64]) -> f32;
+pub type TransitionFn = fn(&TransitionContext, &[f64]) -> f32;
+pub type DepartureFn = fn(&DepartureContext, &[f64]) -> f32;
+pub type CloseFn = fn(&CloseContext, &[f64]) -> f32;
 pub type AdmitFn = fn(&TransitionContext) -> bool;
 
 #[derive(Clone, Copy)]

@@ -6,9 +6,10 @@ use harmo::bench::runner::{BenchPiece, EvalConfig, evaluate, load_pieces};
 use harmo::bench::sweep::{SweepSpec, run_sweep};
 use harmo::bench::{bootstrap, bootstrap_coverage};
 use harmo::cli_args::Args;
+use harmo::cli_overrides::load_overrides;
 use harmo::diagnose::report_text::print_report;
 use harmo::diagnose::summary as diagnosis;
-use harmo::engine::ruleset::{RuleSet, Weights};
+use harmo::engine::ruleset::RuleSet;
 use harmo::engine::search::Config;
 use harmo::results::markdown::render;
 use harmo::results::record::{ResultsRecord, RunHeader};
@@ -17,17 +18,19 @@ use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 const USAGE: &str = "usage:
-  harmo analyze <score.mxl|musicxml> [--weights FILE] [--json]
-  harmo bench [--set NAME]... [--weights FILE] [--label TEXT] [--compare RUN.json] [--limit N]
-  harmo diagnose [--set NAME]... [--weights FILE] [--json] [--limit N]
-  harmo results [--out FILE] [--weights FILE] [--limit N]
+  harmo analyze <score.mxl|musicxml> [--json]
+  harmo bench [--set NAME]... [--label TEXT] [--compare RUN.json] [--limit N]
+  harmo diagnose [--set NAME]... [--json] [--limit N]
+  harmo results [--out FILE] [--limit N]
   harmo sweep <sweep.json> [--limit N]
-  harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
+  harmo inspect <piece-id> [--analyst NAME]
   harmo labelfit [--set NAME]... [--piece TEXT [--measures A-B]] [--min-gain FRAMES] [--top N] [--json]
   harmo rules
 common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
   --timing-tolerance QUARTERS (how far the equivalents RN measure looks for a shifted label)
+  --weights FILE, --params FILE: JSON objects of rule weights by rule id and of rule
+    parameters by <rule id>.<parameter name> (listed by harmo rules)
 set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split),
   tune (every piece outside the test split), each with its per-corpus subsets";
 
@@ -52,9 +55,7 @@ fn main() {
         Some("diagnose") => diagnose(&args),
         Some("results") => results(&args),
         Some("sweep") => sweep(&args),
-        Some("inspect") => {
-            load_weights(args.value("weights")).and_then(|w| harmo::cli_inspect::run(&args, &w))
-        }
+        Some("inspect") => load_overrides(&args).and_then(|w| harmo::cli_inspect::run(&args, &w)),
         Some("labelfit") => harmo::cli_labelfit::run(&args, &expand_sets(&args.values("set"), &[])),
         Some("rules") => {
             harmo::cli_analyze::print_rules();
@@ -70,8 +71,7 @@ fn main() {
 
 fn bench(args: &Args) -> Result<(), String> {
     let sets = expand_sets(&args.values("set"), &["test"]);
-    let weights = load_weights(args.value("weights"))?;
-    let rules = RuleSet::new(default_rules(), &weights)?;
+    let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
     let config = eval_config(args)?;
     let pieces = load(args, &sets)?;
     let started = Instant::now();
@@ -99,6 +99,7 @@ fn bench(args: &Args) -> Result<(), String> {
         seconds,
         settings: settings_of(&config),
         weights: rules.rules.iter().zip(&rules.weights).map(|(r, w)| (r.id.to_string(), *w)).collect(),
+        params: rules.overridden_params().into_iter().collect(),
         sets: sets_summary,
         pieces: report::piece_records(&results),
     };
@@ -111,7 +112,7 @@ fn bench(args: &Args) -> Result<(), String> {
 
 fn diagnose(args: &Args) -> Result<(), String> {
     let sets = expand_sets(&args.values("set"), &["tune"]);
-    let rules = RuleSet::new(default_rules(), &load_weights(args.value("weights"))?)?;
+    let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
     let config = eval_config(args)?;
     let pieces = load(args, &sets)?;
     let diagnoses = diagnosis::diagnose_pieces(&pieces, &rules, &config);
@@ -127,8 +128,7 @@ fn diagnose(args: &Args) -> Result<(), String> {
 /// Runs the standard benchmark and diagnosis, and writes every figure to a Markdown document.
 fn results(args: &Args) -> Result<(), String> {
     let started = Instant::now();
-    let weights = load_weights(args.value("weights"))?;
-    let rules = RuleSet::new(default_rules(), &weights)?;
+    let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
     let config = eval_config(args)?;
     let names = |names: &[&str]| names.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let bench_sets = expand_sets(&names(&["test", "agreement", "tune", "agreement-tune"]), &[]);
@@ -150,7 +150,7 @@ fn results(args: &Args) -> Result<(), String> {
         has_uncommitted_changes: has_uncommitted_changes(),
         date: command_output("date", &["-u", "+%Y-%m-%d %H:%M UTC"]),
         settings: settings_of(&config),
-        weights: args.value("weights").map(str::to_string),
+        weights: override_files(args),
         pieces: piece_count,
         failures,
         threads: rayon::current_num_threads(),
@@ -163,6 +163,12 @@ fn results(args: &Args) -> Result<(), String> {
         .map_err(|e| format!("{path}: {e}"))?;
     println!("wrote {path} in {:.1}s", started.elapsed().as_secs_f64());
     Ok(())
+}
+
+/// Names the weights and parameters files given on the command line, if any.
+fn override_files(args: &Args) -> Option<String> {
+    let files: Vec<&str> = [args.value("weights"), args.value("params")].into_iter().flatten().collect();
+    (!files.is_empty()).then(|| files.join("` and `"))
 }
 
 /// Reports whether the engine's source differs from the commit.
@@ -277,14 +283,6 @@ fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
     .into_iter()
     .map(|(k, v)| (k.to_string(), v))
     .collect()
-}
-
-pub fn load_weights(path: Option<&str>) -> Result<Weights, String> {
-    let Some(path) = path else {
-        return Ok(Weights::new());
-    };
-    let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
-    serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))
 }
 
 fn now() -> u64 {

@@ -1,7 +1,7 @@
 //! Rules about chord changes and how many voices start together.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.full_attack",
@@ -22,15 +22,26 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.25,
+    params: &[FULL_ATTACK_NOTES],
     hook: Hook::Transition(full_attack),
 }];
 
 /// The fewest sounding notes for a slice struck all at once to count as a full attack.
-const FULL_ATTACK_NOTES: usize = 3;
+const FULL_ATTACK_NOTES: Param = Param {
+    index: 0,
+    name: "full_attack_notes",
+    default: 3.0,
+    unit: "notes",
+    provenance: "measured: b00871a, round 4 (3 or 4 notes; 3 gave tune RN +0.6 with the bass change, 4 gave +0.5); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN -0.15 / -0.14; kept)",
+};
 
-fn full_attack(context: &TransitionContext) -> f32 {
+fn full_attack(context: &TransitionContext, params: &[f64]) -> f32 {
     let is_change = context.previous.is_some();
-    if is_change && context.slice.is_struck_together(FULL_ATTACK_NOTES) { 1.0 } else { 0.0 }
+    if is_change && context.slice.is_struck_together(FULL_ATTACK_NOTES.read(params) as usize) {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -81,7 +92,7 @@ mod tests {
             slice: &slice,
             history: History { arena: &[], slices: &[], last: NONE },
         };
-        full_attack(&context)
+        full_attack(&context, &RULES[0].default_params())
     }
 
     #[test]

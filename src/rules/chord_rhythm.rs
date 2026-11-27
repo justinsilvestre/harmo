@@ -1,7 +1,7 @@
 //! Rules about where chord changes happen.
 
 use super::sources::TEMPERLEY_2001;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 
@@ -13,6 +13,7 @@ pub const RULES: &[Rule] = &[
                   downbeat costs nothing and one on the weakest positions costs the most.",
         citations: &[Citation { source: TEMPERLEY_2001, locator: "pp. 151, 157 (HPR 2, Strong Beat Rule)" }],
         default_weight: 0.5,
+        params: &[],
         hook: Hook::Transition(strong_beat),
     },
     Rule {
@@ -24,6 +25,7 @@ pub const RULES: &[Rule] = &[
             locator: "pp. 152, 157–158 (HPR 3, Harmonic Variance Rule)",
         }],
         default_weight: 0.1875,
+        params: &[MAX_DISTANCE],
         hook: Hook::Transition(harmonic_variance),
     },
     Rule {
@@ -39,43 +41,68 @@ pub const RULES: &[Rule] = &[
                       rhythm slow, so that single notes do not become chord spans of their own)",
         }],
         default_weight: 0.5,
+        params: &[THIN_PITCH_CLASSES, SUBDIVISION_LEVEL],
         hook: Hook::Transition(thin_texture_rhythm),
     },
 ];
 
+/// The distance between roots on the line of fifths at which the cost stops growing; it costs 1 there.
+const MAX_DISTANCE: Param = Param {
+    index: 0,
+    name: "max_distance",
+    default: 6.0,
+    unit: "fifths",
+    provenance: "chosen: 4e0fbe2, round 1 (a tritone; Temperley 2001, p. 152, gives no cap); measured: sweeps/round7-constants.json, round 7 (3 / 4 / 9 / 12: tune RN -0.02 / +0.02 / -0.02 / -0.02; kept)",
+};
 /// The most pitch classes a slice may sound for its texture to count as thin.
-const THIN_PITCH_CLASSES: usize = 2;
+const THIN_PITCH_CLASSES: Param = Param {
+    index: 0,
+    name: "thin_pitch_classes",
+    default: 2.0,
+    unit: "pitch classes",
+    provenance: "chosen: 222f9f0, round 4 (a single line, octaves or two voices); measured: sweeps/round7-constants.json, round 7 (1 / 3: tune RN -0.06 / -0.20; kept)",
+};
 /// The strongest metric level at which a change in a thin texture costs anything (a beat subdivision).
-const SUBDIVISION_LEVEL: u8 = 1;
+/// A change at that level costs 1 / (level + 1) of one at level 0.
+const SUBDIVISION_LEVEL: Param = Param {
+    index: 1,
+    name: "subdivision_level",
+    default: 1.0,
+    unit: "metric level",
+    provenance: "measured: 222f9f0, round 4 (the strong-beat curve on every level instead: tune RN +0.1 with wir -0.2 to -0.4); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0 / 2 / 3: tune RN -0.12 / +0.10 / +0.11; 2 gives +0.10 [+0.01, +0.20] but agreement-tune both offered -0.35 [-0.76, +0.04] while offering 0.014 more readings; kept)",
+};
 
-fn strong_beat(context: &TransitionContext) -> f32 {
+fn strong_beat(context: &TransitionContext, _: &[f64]) -> f32 {
     match context.previous {
         Some(_) => (context.slice.metric_level as f32 - 4.0) / 4.0,
         None => 0.0,
     }
 }
 
-fn harmonic_variance(context: &TransitionContext) -> f32 {
+fn harmonic_variance(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
+    let cap = MAX_DISTANCE.read(params) as i32;
     let distance = (previous.reading.chord.root - context.next.chord.root).abs();
-    -(distance.min(6) as f32) / 6.0
+    -(distance.min(cap) as f32) / cap as f32
 }
 
-fn thin_texture_rhythm(context: &TransitionContext) -> f32 {
+fn thin_texture_rhythm(context: &TransitionContext, params: &[f64]) -> f32 {
     let level = context.slice.metric_level;
-    if context.previous.is_none() || level > SUBDIVISION_LEVEL || !is_thin(context.slice) {
+    let strongest = SUBDIVISION_LEVEL.read(params) as u8;
+    let most_pitch_classes = THIN_PITCH_CLASSES.read(params) as usize;
+    if context.previous.is_none() || level > strongest || !is_thin(context.slice, most_pitch_classes) {
         return 0.0;
     }
-    -f32::from(SUBDIVISION_LEVEL + 1 - level) / f32::from(SUBDIVISION_LEVEL + 1)
+    -f32::from(strongest + 1 - level) / f32::from(strongest + 1)
 }
 
-fn is_thin(slice: &Slice) -> bool {
+fn is_thin(slice: &Slice, most_pitch_classes: usize) -> bool {
     let mut classes: Vec<u8> = slice.notes.iter().map(|n| pitch_class(n.tpc)).collect();
     classes.sort();
     classes.dedup();
-    classes.len() <= THIN_PITCH_CLASSES
+    classes.len() <= most_pitch_classes
 }
 
 #[cfg(test)]
@@ -126,7 +153,7 @@ mod tests {
             slice: &slice,
             history: History { arena: &[], slices: &[], last: NONE },
         };
-        thin_texture_rhythm(&context)
+        thin_texture_rhythm(&context, &RULES[2].default_params())
     }
 
     #[test]

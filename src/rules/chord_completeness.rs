@@ -1,7 +1,7 @@
 //! Rules about which chord members a segment must contain.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::{Slice, SliceNote};
 
@@ -22,6 +22,7 @@ pub const RULES: &[Rule] = &[
             },
         ],
         default_weight: 1.5,
+        params: &[MISSING_THIRD],
         hook: Hook::Close(completeness),
     },
     Rule {
@@ -47,17 +48,38 @@ pub const RULES: &[Rule] = &[
             },
         ],
         default_weight: 1.0,
+        params: &[SEVENTH_SHARE_TARGET, LEAPING_SEVENTH_FACTOR],
         hook: Hook::Close(seventh_evidence),
     },
 ];
 
+/// The cost of a segment whose third is never heard, against 1 for one whose root is never heard.
+const MISSING_THIRD: Param = Param {
+    index: 0,
+    name: "missing_third",
+    default: 0.5,
+    unit: "ratio to a missing root",
+    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 82, rank the third's omission after the fifth's and the root's); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN -0.16 / -0.02 / -0.15 / -0.35; kept)",
+};
 /// Share of the segment's duration at which the seventh costs nothing.
-const SEVENTH_SHARE_TARGET: f64 = 0.5;
-/// A seventh left by leap fits neither the suspension nor the passing figure it originated as,
-/// but may still be an escape tone, so its shortfall costs half.
-const LEAPING_SEVENTH_FACTOR: f32 = 0.5;
+const SEVENTH_SHARE_TARGET: Param = Param {
+    index: 0,
+    name: "share_target",
+    default: 0.5,
+    unit: "share of the segment",
+    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 247, let relative duration decide but give no share); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0.25 / 0.375 / 0.625 / 0.75 / 1: tune RN -0.25 / +0.01 / +0.17 / +0.12 / +0.08; 0.625 and 0.75 lower agreement-tune both offered by 1.0; kept)",
+};
+/// The share of the cost charged for a brief seventh left by leap. Such a seventh fits neither the
+/// suspension nor the passing figure it originated as, but may still be an escape tone.
+const LEAPING_SEVENTH_FACTOR: Param = Param {
+    index: 1,
+    name: "leaping_seventh_factor",
+    default: 0.5,
+    unit: "ratio",
+    provenance: "measured: a3b7bff, round 3 (0: tune RN +0.10 but both offered -0.14; 0.5: +0.06, both offered +0.01); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.375 / 0.75 / 1: tune RN -0.03 / +0.01 / +0.01 / -0.03 / -0.07; kept)",
+};
 
-fn seventh_evidence(context: &CloseContext) -> f32 {
+fn seventh_evidence(context: &CloseContext, params: &[f64]) -> f32 {
     let chord = context.segment.reading.chord;
     if !chord.quality.is_seventh() {
         return 0.0;
@@ -68,11 +90,12 @@ fn seventh_evidence(context: &CloseContext) -> f32 {
     if context.slices.iter().any(|s| attacks(s, seventh) && attacks(s, chord.root)) {
         return 0.0;
     }
-    let factor = if is_left_by_leap(context, seventh) { LEAPING_SEVENTH_FACTOR } else { 1.0 };
+    let factor =
+        if is_left_by_leap(context, seventh) { LEAPING_SEVENTH_FACTOR.read(params) as f32 } else { 1.0 };
     let sounds_seventh = |slice: &&Slice| slice.notes.iter().any(|n| n.tpc == seventh);
     let heard: f64 = context.slices.iter().filter(sounds_seventh).map(|s| s.duration).sum();
     let share = heard / context.segment.duration.max(1e-9);
-    factor * ((share / SEVENTH_SHARE_TARGET).min(1.0) - 1.0) as f32
+    factor * ((share / SEVENTH_SHARE_TARGET.read(params)).min(1.0) - 1.0) as f32
 }
 
 /// Reports whether a note of the given spelling is attacked and then left by leap: neither held into
@@ -99,10 +122,10 @@ fn attacks(slice: &Slice, tpc: Tpc) -> bool {
     slice.notes.iter().any(|n| n.attacked && n.tpc == tpc)
 }
 
-fn completeness(context: &CloseContext) -> f32 {
+fn completeness(context: &CloseContext, params: &[f64]) -> f32 {
     let segment = context.segment;
     let missing_root = if segment.has_heard_member(0) { 0.0 } else { 1.0 };
-    let missing_third = if segment.has_heard_member(1) { 0.0 } else { 0.5 };
+    let missing_third = if segment.has_heard_member(1) { 0.0 } else { MISSING_THIRD.read(params) as f32 };
     -(missing_root + missing_third)
 }
 
@@ -140,7 +163,10 @@ mod tests {
             members_heard: 0b1011,
             bass: Bass::default(),
         };
-        seventh_evidence(&CloseContext { segment: &segment, slices: &slices, next_slice: None })
+        seventh_evidence(
+            &CloseContext { segment: &segment, slices: &slices, next_slice: None },
+            &RULES[1].default_params(),
+        )
     }
 
     /// Scores a G7 segment with a held G and B, in which F5 (MIDI 77) is attacked for one beat
@@ -173,7 +199,10 @@ mod tests {
             members_heard: 0b1011,
             bass: Bass::default(),
         };
-        seventh_evidence(&CloseContext { segment: &segment, slices: &slices, next_slice: Some(&next) })
+        seventh_evidence(
+            &CloseContext { segment: &segment, slices: &slices, next_slice: Some(&next) },
+            &RULES[1].default_params(),
+        )
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! Rules about when a seventh chord other than the dominant seventh is heard as one sonority.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -23,13 +23,20 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.25,
+    params: &[SHARE_TARGET],
     hook: Hook::Close(seventh_sonority),
 }];
 
 /// Share of the segment's duration, with root and seventh sounding together, at which the rule costs nothing.
-const SHARE_TARGET: f64 = 0.5;
+const SHARE_TARGET: Param = Param {
+    index: 0,
+    name: "share_target",
+    default: 0.5,
+    unit: "share of the segment",
+    provenance: "measured: 34a3f45, round 2 (0.75 or 1.0: tune RN +1.0 against +0.8, but WTC and keyboard_other lose up to 2 points)",
+};
 
-fn seventh_sonority(context: &CloseContext) -> f32 {
+fn seventh_sonority(context: &CloseContext, params: &[f64]) -> f32 {
     let chord = context.segment.reading.chord;
     let Some(seventh) = chord.members().nth(3).filter(|_| is_judged(chord.quality)) else {
         return 0.0;
@@ -38,7 +45,7 @@ fn seventh_sonority(context: &CloseContext) -> f32 {
     let together = |slice: &&Slice| sounds(slice, seventh) && sounds(slice, chord.root);
     let heard: f64 = context.slices.iter().filter(together).map(|s| s.duration).sum();
     let share = heard / context.segment.duration.max(1e-9);
-    ((share / SHARE_TARGET).min(1.0) - 1.0) as f32
+    ((share / SHARE_TARGET.read(params)).min(1.0) - 1.0) as f32
 }
 
 /// Reports whether the rule judges a quality: the seventh chords, leaving out the dominant and diminished
@@ -96,7 +103,10 @@ mod tests {
             members_heard: 0b1111,
             bass: Bass::default(),
         };
-        seventh_sonority(&CloseContext { segment: &segment, slices, next_slice: None })
+        seventh_sonority(
+            &CloseContext { segment: &segment, slices, next_slice: None },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]

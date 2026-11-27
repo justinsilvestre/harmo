@@ -26,10 +26,11 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.0,
+    params: &[],
     hook: Hook::Departure(absent_tonic),
 }];
 
-fn absent_tonic(context: &DepartureContext) -> f32 {
+fn absent_tonic(context: &DepartureContext, _: &[f64]) -> f32 {
     let key = context.previous.reading.key;
     let mut area = context.history.segments().take_while(|s| s.reading.key == key);
     if area.any(is_tonic) { 0.0 } else { -1.0 }
@@ -73,7 +74,10 @@ mod tests {
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         let slice = Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None };
         let history = History { arena: &arena, slices: &[], last };
-        absent_tonic(&DepartureContext { previous: &arena[last as usize].segment, slice: &slice, history })
+        absent_tonic(
+            &DepartureContext { previous: &arena[last as usize].segment, slice: &slice, history },
+            &[],
+        )
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! Rules about changes of key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, DepartureContext, History, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, DepartureContext, History, Hook, Layer, Param, Rule, TransitionContext};
 use crate::theory::key::Key;
 
 pub const RULES: &[Rule] = &[
@@ -14,6 +14,7 @@ pub const RULES: &[Rule] = &[
             Citation { source: KOSTKA_PAYNE_ALMEN_2023, locator: "p. 298 (modulation and tonicization)" },
         ],
         default_weight: 1.0,
+        params: &[],
         hook: Hook::Transition(modulation),
     },
     Rule {
@@ -27,32 +28,40 @@ pub const RULES: &[Rule] = &[
             locator: "p. 299 (the length of time spent in the new key area as evidence of modulation)",
         }],
         default_weight: 0.1875,
+        params: &[ESTABLISHED_AREA],
         hook: Hook::Departure(area_duration),
     },
 ];
 
-/// Duration in quarter notes at which a key area is long enough to cost nothing when it ends.
-const ESTABLISHED_AREA: f64 = 16.0;
+/// The duration at which a key area is long enough to cost nothing when it ends.
+const ESTABLISHED_AREA: Param = Param {
+    index: 0,
+    name: "established_area",
+    default: 16.0,
+    unit: "quarter notes",
+    provenance: "chosen: 4e0fbe2, round 1 (four measures of common time; Kostka, Payne and Almen 2023, p. 299, name the time spent in the new key as evidence but give no length); measured: sweeps/round7-constants.json, round 7 (4 / 8 / 12 / 24 / 32: tune RN -0.03 / -0.03 / +0.01 / -0.00 / +0.02; kept)",
+};
 
-fn modulation(context: &TransitionContext) -> f32 {
+fn modulation(context: &TransitionContext, _: &[f64]) -> f32 {
     match context.previous {
         Some(previous) if previous.reading.key != context.next.key => -1.0,
         _ => 0.0,
     }
 }
 
-fn area_duration(context: &DepartureContext) -> f32 {
+fn area_duration(context: &DepartureContext, params: &[f64]) -> f32 {
     let key = context.previous.reading.key;
-    -((1.0 - area_heard(context.history, key) / ESTABLISHED_AREA).max(0.0) as f32)
+    let established = ESTABLISHED_AREA.read(params);
+    -((1.0 - area_heard(context.history, key, established) / established).max(0.0) as f32)
 }
 
 /// Sums the durations of the latest segments in the given key, stopping once the area is
 /// established, since a longer area costs no more.
-fn area_heard(history: History, key: Key) -> f64 {
+fn area_heard(history: History, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
     for segment in history.segments().take_while(|s| s.reading.key == key) {
         area += segment.duration;
-        if area >= ESTABLISHED_AREA {
+        if area >= established {
             break;
         }
     }
@@ -94,7 +103,11 @@ mod tests {
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
         let arena = arena(segments);
-        area_heard(History { arena: &arena, slices: &[], last: arena.len() as u32 - 1 }, reading("C").key)
+        area_heard(
+            History { arena: &arena, slices: &[], last: arena.len() as u32 - 1 },
+            reading("C").key,
+            16.0,
+        )
     }
 
     /// Scores leaving the key of the given segments.
@@ -115,7 +128,7 @@ mod tests {
             slice: &slice,
             history: History { arena: &arena, slices: &[], last },
         };
-        area_duration(&context)
+        area_duration(&context, &RULES[1].default_params())
     }
 
     #[test]

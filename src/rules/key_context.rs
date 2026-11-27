@@ -5,7 +5,7 @@ use super::key_profile::{natural_minor_logs, profile_logs};
 use super::sources::{
     BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001, TEMPERLEY_2007,
 };
-use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::key::Mode;
@@ -62,29 +62,69 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[LOOK_AHEAD, HALF_LIFE, REACH, MODAL_LOOK_BACK],
     hook: Hook::Slice(context_fit),
 }];
 
-/// How far the window reaches past the end of the slice, in quarter notes. It is the same lag the
-/// benchmark allows offered readings, so the window holds only music a listener has heard, or will
-/// hear within a beat or two.
-const LOOK_AHEAD: f64 = 2.0;
+/// How far the window reaches past the end of the slice. It is at most the lag the benchmark allows
+/// offered readings, so the window holds only music a listener has heard, or will hear within a
+/// beat or two.
+const LOOK_AHEAD: Param = Param {
+    index: 0,
+    name: "look_ahead",
+    default: 2.0,
+    unit: "quarter notes",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); 14ea08d, round 4, also tried no look-ahead; measured: sweeps/round7-constants.json, round 7 (0 / 1: tune RN -0.04 / -0.07; kept)",
+};
+/// The distance back at which a slice's weight halves.
+const HALF_LIFE: Param = Param {
+    index: 1,
+    name: "half_life",
+    default: 16.0,
+    unit: "quarter notes",
+    provenance: "measured: 14ea08d, round 4 (6 / 10 / 16 at weight 1: tune RN -0.59 / -0.32 / -0.26; 12 / 16 / 20 at weight 0.5: -0.14 / -0.03 / -0.04); measured: sweeps/round7-constants.json, round 7 (8 / 12 / 24 / 32: tune RN -0.33 / -0.08 / -0.07 / -0.16; kept)",
+};
+/// How far back the window reaches.
+const REACH: Param = Param {
+    index: 2,
+    name: "reach",
+    default: 64.0,
+    unit: "quarter notes",
+    provenance: "chosen: 14ea08d, round 4 (four half-lives, where weights have fallen to a sixteenth); measured: sweeps/round7-constants.json, round 7 (32 / 48 / 96 / 128: tune RN -0.20 / -0.06 / -0.02 / -0.02; kept)",
+};
+/// How far back a minor key's raised leading tone must be absent for the natural minor profile to apply.
+const MODAL_LOOK_BACK: Param = Param {
+    index: 3,
+    name: "modal_look_back",
+    default: 64.0,
+    unit: "quarter notes",
+    provenance: "measured: 6083e2a, round 5 (32 / 48 / 64 / 96: tune RN +0.03 / +0.04 / +0.03 / +0.03, both offered 21.02 / 21.07 / 21.10 / 21.09); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (8 / 16 / 24 / 32 / 48 / 96 / 128: tune RN +0.07 / +0.07 / +0.05 / +0.03 / +0.01 / +0.01 / -0.00; 16 gives +0.07 [-0.03, +0.20] and tune both offered -0.15 [-0.29, -0.05]; kept)",
+};
 
-/// The distance back, in quarter notes, at which a slice's weight halves.
-const HALF_LIFE: f64 = 16.0;
+/// The extent of the window around a slice, in quarter notes.
+#[derive(Clone, Copy, PartialEq, Debug)]
+struct Window {
+    look_ahead: f64,
+    half_life: f64,
+    reach: f64,
+}
 
-/// How far back the window reaches, in quarter notes. Weights there have fallen to a sixteenth.
-const REACH: f64 = 4.0 * HALF_LIFE;
-
-fn context_fit(context: &SliceContext) -> f32 {
-    let weights = cached_window_weights(context.slices, context.index);
+fn context_fit(context: &SliceContext, params: &[f64]) -> f32 {
+    let window = Window {
+        look_ahead: LOOK_AHEAD.read(params),
+        half_life: HALF_LIFE.read(params),
+        reach: REACH.read(params),
+    };
+    let weights = cached_window_weights(context.slices, context.index, window);
     let total: f32 = weights.iter().sum();
     if total == 0.0 {
         return 0.0;
     }
     let key = context.reading.key;
     let tonic = pitch_class(key.tonic) as usize;
-    let is_modal = key.mode == Mode::Minor && modal_minor_tonics(context.slices, context.index)[tonic];
+    let look_back = MODAL_LOOK_BACK.read(params);
+    let is_modal =
+        key.mode == Mode::Minor && modal_minor_tonics(context.slices, context.index, look_back)[tonic];
     let logs = if is_modal { natural_minor_logs() } else { profile_logs(key.mode) };
     let fit: f32 = (0..12).map(|pc| weights[pc] * logs[(pc + 12 - tonic) % 12]).sum();
     fit / total * context.slice.duration as f32
@@ -97,31 +137,34 @@ type SliceIdentity = (usize, usize, usize, usize);
 thread_local! {
     /// The most recent window. The engine scores many readings of one slice in a row, so one
     /// entry avoids nearly all recomputation without changing any result.
-    static LAST_WINDOW: Cell<(SliceIdentity, [f32; 12])> = const { Cell::new(((0, 0, 0, usize::MAX), [0.0; 12])) };
+    static LAST_WINDOW: Cell<(SliceIdentity, Window, [f32; 12])> = const {
+        let window = Window { look_ahead: 0.0, half_life: 0.0, reach: 0.0 };
+        Cell::new(((0, 0, 0, usize::MAX), window, [0.0; 12]))
+    };
 }
 
-fn cached_window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
+fn cached_window_weights(slices: &[Slice], index: usize, window: Window) -> [f32; 12] {
     let identity = (slices.as_ptr() as usize, slices[index].notes.as_ptr() as usize, slices.len(), index);
-    let (cached_identity, weights) = LAST_WINDOW.get();
-    if cached_identity == identity {
+    let (cached_identity, cached_window, weights) = LAST_WINDOW.get();
+    if cached_identity == identity && cached_window == window {
         return weights;
     }
-    let weights = window_weights(slices, index);
-    LAST_WINDOW.set((identity, weights));
+    let weights = window_weights(slices, index, window);
+    LAST_WINDOW.set((identity, window, weights));
     weights
 }
 
 /// Sums the sounding duration of each pitch class in the slice, in the music of its phrase heard
-/// before it, tapering with distance, and in the next two quarter notes.
-fn window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
+/// before it, tapering with distance, and in the music just ahead.
+fn window_weights(slices: &[Slice], index: usize, window: Window) -> [f32; 12] {
     let slice = &slices[index];
-    let horizon = slice.start + slice.duration + LOOK_AHEAD;
+    let horizon = slice.start + slice.duration + window.look_ahead;
     let in_phrase = |other: &&Slice| other.phrase == slice.phrase;
     let before = slices[..index]
         .iter()
         .rev()
         .take_while(in_phrase)
-        .take_while(|s| s.start + s.duration > slice.start - REACH);
+        .take_while(|s| s.start + s.duration > slice.start - window.reach);
     let after = slices[index + 1..].iter().take_while(in_phrase).take_while(|s| s.start < horizon);
     let mut weights = [0.0; 12];
     let mut add = |other: &Slice, weight: f64| {
@@ -132,7 +175,7 @@ fn window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
     add(slice, slice.duration);
     for other in before {
         let distance = slice.start - (other.start + other.duration / 2.0);
-        add(other, 0.5f64.powf(distance / HALF_LIFE) * other.duration);
+        add(other, 0.5f64.powf(distance / window.half_life) * other.duration);
     }
     for other in after {
         add(other, horizon.min(other.start + other.duration) - other.start);
@@ -200,7 +243,7 @@ mod tests {
             reading: &reading,
             is_opening: true,
         };
-        context_fit(&context)
+        context_fit(&context, &RULES[0].default_params())
     }
 
     #[test]
@@ -224,6 +267,10 @@ mod tests {
         assert!(established > fit_in(&natural_minor_passage(&["C", "E", "A"]), 3, a_minor));
     }
 
+    fn default_window() -> Window {
+        Window { look_ahead: 2.0, half_life: 16.0, reach: 64.0 }
+    }
+
     fn weight(weights: &[f32; 12], name: &str) -> f32 {
         weights[pitch_class(tpc_from_name(name).unwrap()) as usize]
     }
@@ -232,32 +279,32 @@ mod tests {
     fn window_weights_stop_at_the_start_of_the_phrase() {
         let mut slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
         slices[1].phrase = 1;
-        assert_eq!(weight(&window_weights(&slices, 1), "C"), 0.0);
+        assert_eq!(weight(&window_weights(&slices, 1, default_window()), "C"), 0.0);
     }
 
     #[test]
     fn window_weights_stop_at_the_end_of_the_phrase() {
         let mut slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
         slices[1].phrase = 1;
-        assert_eq!(weight(&window_weights(&slices, 0), "D"), 0.0);
+        assert_eq!(weight(&window_weights(&slices, 0, default_window()), "D"), 0.0);
     }
 
     #[test]
     fn window_weights_fade_with_distance() {
         let slices = [slice(0.0, &["C"]), slice(12.0, &["D"]), slice(16.0, &["E"])];
-        let weights = window_weights(&slices, 2);
+        let weights = window_weights(&slices, 2, default_window());
         assert!(weight(&weights, "D") > weight(&weights, "C"));
     }
 
     #[test]
     fn window_weights_count_the_next_two_quarter_notes() {
         let slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
-        assert_eq!(weight(&window_weights(&slices, 0), "D"), 2.0);
+        assert_eq!(weight(&window_weights(&slices, 0, default_window()), "D"), 2.0);
     }
 
     #[test]
     fn window_weights_ignore_music_more_than_two_quarter_notes_ahead() {
         let slices = [slice(0.0, &["C"]), slice(4.0, &["D"]), slice(8.0, &["E"])];
-        assert_eq!(weight(&window_weights(&slices, 0), "E"), 0.0);
+        assert_eq!(weight(&window_weights(&slices, 0, default_window()), "E"), 0.0);
     }
 }
