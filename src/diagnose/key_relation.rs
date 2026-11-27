@@ -6,8 +6,10 @@ use serde::Serialize;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize)]
 pub enum KeyRelation {
-    /// One label applies a chord to another degree of its key, and the other is in that degree's key.
-    Tonicization,
+    /// The expert applies a chord to another degree of the key, and the engine modulates to that degree.
+    ExpertTonicizes,
+    /// The engine applies a chord to another degree of the key, and the expert modulates to that degree.
+    EngineTonicizes,
     /// Major and minor keys that share a key signature, such as C and a.
     Relative,
     /// The engine's key lies a fifth above the expert's.
@@ -22,7 +24,8 @@ pub enum KeyRelation {
 impl KeyRelation {
     pub fn name(self) -> &'static str {
         match self {
-            KeyRelation::Tonicization => "tonicization vs modulation",
+            KeyRelation::ExpertTonicizes => "expert tonicizes, engine modulates",
+            KeyRelation::EngineTonicizes => "engine tonicizes, expert modulates",
             KeyRelation::Relative => "relative",
             KeyRelation::Dominant => "dominant",
             KeyRelation::Subdominant => "subdominant",
@@ -34,8 +37,11 @@ impl KeyRelation {
 
 /// Relates the key of the engine's label to that of the expert's, which must differ.
 pub fn relate_keys(expert: &Label, engine: &Label) -> KeyRelation {
-    if is_tonicization_of(expert, engine) || is_tonicization_of(engine, expert) {
-        return KeyRelation::Tonicization;
+    if is_tonicization_of(expert, engine) {
+        return KeyRelation::ExpertTonicizes;
+    }
+    if is_tonicization_of(engine, expert) {
+        return KeyRelation::EngineTonicizes;
     }
     let (from, to) = (expert.key, engine.key);
     match (from.mode == to.mode, to.tonic - from.tonic) {
@@ -104,14 +110,14 @@ mod tests {
     }
 
     #[test]
-    fn v_of_v_against_v_in_the_dominant_is_tonicization() {
+    fn expert_v_of_v_against_engine_v_in_the_dominant_is_expert_tonicizing() {
         let relation = relate_keys(&applied("C", "G", "D"), &label("G", "major", "D"));
-        assert_eq!(relation, KeyRelation::Tonicization);
+        assert_eq!(relation, KeyRelation::ExpertTonicizes);
     }
 
     #[test]
     fn engine_tonicizing_where_the_expert_modulates_is_tonicization() {
         let relation = relate_keys(&label("G", "major", "D"), &applied("C", "G", "D"));
-        assert_eq!(relation, KeyRelation::Tonicization);
+        assert_eq!(relation, KeyRelation::EngineTonicizes);
     }
 }
