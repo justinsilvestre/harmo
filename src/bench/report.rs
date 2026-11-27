@@ -38,6 +38,19 @@ pub struct PieceRecord {
     pub frames: u64,
     pub rates: Vec<f64>,
     pub seconds: f64,
+    /// Where the piece's analysts disagree, per feature. Older runs and single-analysis pieces lack it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<PieceCoverage>,
+}
+
+/// Counts behind the "both readings offered" rates of one piece, for each of the first
+/// `MATCHED_FEATURES` features.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PieceCoverage {
+    /// Frames where the two analyses disagree on the feature.
+    pub disagreements: Vec<u64>,
+    /// Those frames where both analyses' readings are offered.
+    pub offered_both: Vec<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -85,6 +98,10 @@ pub fn piece_records(results: &[PieceResult]) -> Vec<PieceRecord> {
         frames: r.accuracy.frames,
         rates: r.accuracy.rates(),
         seconds: r.seconds,
+        coverage: r.agreement.as_ref().map(|a| PieceCoverage {
+            disagreements: a.disagreements(),
+            offered_both: a.offered_both.to_vec(),
+        }),
     };
     results.iter().map(record).collect()
 }

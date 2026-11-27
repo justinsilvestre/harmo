@@ -1,10 +1,10 @@
 //! Command-line entry point: `harmo analyze | bench | diagnose | sweep | inspect | rules`.
 
-use harmo::bench::bootstrap;
 use harmo::bench::manifest::Manifest;
 use harmo::bench::report::{self, RunRecord};
 use harmo::bench::runner::{EvalConfig, evaluate, load_pieces};
 use harmo::bench::sweep::{SweepSpec, run_sweep};
+use harmo::bench::{bootstrap, bootstrap_coverage};
 use harmo::cli_args::Args;
 use harmo::diagnose::report_text::print_report;
 use harmo::diagnose::summary as diagnosis;
@@ -76,6 +76,10 @@ fn bench(args: &Args) -> Result<(), String> {
         bootstrap::print_intervals(&sets_summary, &results, previous);
     }
     report::print_agreement(&sets_summary);
+    if let Some(previous) = &previous {
+        println!();
+        bootstrap_coverage::print_coverage_intervals(&sets_summary, &results, previous);
+    }
     let slices: usize = results.iter().map(|r| r.slices).sum();
     println!("\nanalyzed {} pieces ({slices} slices) in {seconds:.2}s", results.len());
     let record = RunRecord {

@@ -168,6 +168,11 @@ impl Agreement {
         }
     }
 
+    /// Frames where the analysts disagree, for each matched feature.
+    pub fn disagreements(&self) -> Vec<u64> {
+        self.analysts_agree.iter().map(|agree| self.frames - agree).collect()
+    }
+
     pub fn summary(&self) -> AgreementSummary {
         let per_feature = |f: &dyn Fn(usize) -> f64| (0..MATCHED_FEATURES).map(f).collect();
         let disagreements = |i: usize| self.frames - self.analysts_agree[i];
