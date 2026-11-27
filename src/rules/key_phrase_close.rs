@@ -29,10 +29,8 @@ pub const RULES: &[Rule] = &[Rule {
 const HALF_CADENCE: f32 = 0.5;
 
 fn phrase_close(context: &CloseContext) -> f32 {
-    let Some(last) = context.slices.last() else { return 0.0 };
-    let ends_phrase = context.next_slice.is_none_or(|next| next.phrase != last.phrase);
     let reading = context.segment.reading;
-    if !ends_phrase || reading.tonicized.is_some() {
+    if !ends_phrase(context) || reading.tonicized.is_some() {
         return 0.0;
     }
     let root = reading.chord.root;
@@ -44,6 +42,12 @@ fn phrase_close(context: &CloseContext) -> f32 {
     } else {
         0.0
     }
+}
+
+/// Reports whether a segment ends a phrase: it reaches a fermata or the end of the piece.
+pub fn ends_phrase(context: &CloseContext) -> bool {
+    let Some(last) = context.slices.last() else { return false };
+    context.next_slice.is_none_or(|next| next.phrase != last.phrase)
 }
 
 #[cfg(test)]
