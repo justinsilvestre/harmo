@@ -1,8 +1,8 @@
-//! Command-line entry point: `harmo analyze | bench | diagnose | sweep | inspect | rules`.
+//! Command-line entry point: `harmo analyze | bench | diagnose | results | sweep | inspect | rules`.
 
 use harmo::bench::manifest::Manifest;
 use harmo::bench::report::{self, RunRecord};
-use harmo::bench::runner::{EvalConfig, evaluate, load_pieces};
+use harmo::bench::runner::{BenchPiece, EvalConfig, evaluate, load_pieces};
 use harmo::bench::sweep::{SweepSpec, run_sweep};
 use harmo::bench::{bootstrap, bootstrap_coverage};
 use harmo::cli_args::Args;
@@ -10,6 +10,8 @@ use harmo::diagnose::report_text::print_report;
 use harmo::diagnose::summary as diagnosis;
 use harmo::engine::ruleset::{RuleSet, Weights};
 use harmo::engine::search::Config;
+use harmo::results::markdown::render;
+use harmo::results::record::{ResultsRecord, RunHeader};
 use harmo::rules::default_rules;
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -18,6 +20,7 @@ const USAGE: &str = "usage:
   harmo analyze <score.mxl|musicxml> [--weights FILE] [--json]
   harmo bench [--set NAME]... [--weights FILE] [--label TEXT] [--compare RUN.json] [--limit N]
   harmo diagnose [--set NAME]... [--weights FILE] [--json] [--limit N]
+  harmo results [--out FILE] [--weights FILE] [--limit N]
   harmo sweep <sweep.json> [--limit N]
   harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
   harmo rules
@@ -25,6 +28,9 @@ common options: --data DIR (default: data) --beam N --candidates N --distinct-de
   --offer-count N --offer-margin X --offer-lag QUARTERS
 set aliases: test (AugmentedNet test split), dev (AugmentedNet validation split),
   tune (every piece outside the test split), each with its per-corpus subsets";
+
+/// A piece that could not be loaded: its id and the reason.
+type LoadFailure = (String, String);
 
 /// The AugmentedNet modules, which the test and dev aliases report one by one.
 const ANET_MODULES: &[&str] = &["wir", "abc_dcml", "mps", "wirwtc", "haydnsun", "tavern", "bps"];
@@ -42,6 +48,7 @@ fn main() {
         Some("analyze") => harmo::cli_analyze::run(&args),
         Some("bench") => bench(&args),
         Some("diagnose") => diagnose(&args),
+        Some("results") => results(&args),
         Some("sweep") => sweep(&args),
         Some("inspect") => {
             load_weights(args.value("weights")).and_then(|w| harmo::cli_inspect::run(&args, &w))
@@ -113,6 +120,61 @@ fn diagnose(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+/// Runs the standard benchmark and diagnosis, and writes every figure to a Markdown document.
+fn results(args: &Args) -> Result<(), String> {
+    let started = Instant::now();
+    let weights = load_weights(args.value("weights"))?;
+    let rules = RuleSet::new(default_rules(), &weights)?;
+    let config = eval_config(args)?;
+    let names = |names: &[&str]| names.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let bench_sets = expand_sets(&names(&["test", "agreement", "tune", "agreement-tune"]), &[]);
+    let diagnose_sets = expand_sets(&names(&["tune", "agreement-tune"]), &[]);
+    let (pieces, failures) = load_with_failures(args, &bench_sets)?;
+    let bench_started = Instant::now();
+    let results = evaluate(&pieces, &rules, &config);
+    let bench_seconds = bench_started.elapsed().as_secs_f64();
+    let accuracy = report::summarize(&results, &bench_sets).into_iter().filter(|s| s.name != "all").collect();
+    let piece_count = pieces.len();
+    let diagnosed: Vec<_> =
+        pieces.into_iter().filter(|p| p.sets.iter().any(|s| diagnose_sets.contains(s))).collect();
+    let diagnose_started = Instant::now();
+    let diagnoses =
+        diagnosis::summarize(&diagnosis::diagnose_pieces(&diagnosed, &rules, &config), &diagnose_sets);
+    let diagnose_seconds = diagnose_started.elapsed().as_secs_f64();
+    let header = RunHeader {
+        commit: command_output("git", &["rev-parse", "--short", "HEAD"]),
+        has_uncommitted_changes: has_uncommitted_changes(),
+        date: command_output("date", &["-u", "+%Y-%m-%d %H:%M UTC"]),
+        settings: settings_of(&config),
+        weights: args.value("weights").map(str::to_string),
+        pieces: piece_count,
+        failures,
+        threads: rayon::current_num_threads(),
+        bench_seconds,
+        diagnose_seconds,
+        total_seconds: started.elapsed().as_secs_f64(),
+    };
+    let path = args.value("out").unwrap_or("RESULTS.md");
+    std::fs::write(path, render(&ResultsRecord { header, accuracy, diagnoses }))
+        .map_err(|e| format!("{path}: {e}"))?;
+    println!("wrote {path} in {:.1}s", started.elapsed().as_secs_f64());
+    Ok(())
+}
+
+/// Reports whether the engine's source differs from the commit.
+fn has_uncommitted_changes() -> bool {
+    !command_output("git", &["status", "--porcelain", "--", "src", "Cargo.toml", "Cargo.lock"]).is_empty()
+}
+
+/// Runs a command and returns its trimmed standard output, or "unknown" if it cannot run.
+fn command_output(program: &str, arguments: &[&str]) -> String {
+    let output = std::process::Command::new(program).args(arguments).output();
+    output
+        .ok()
+        .filter(|o| o.status.success())
+        .map_or("unknown".to_string(), |o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+}
+
 fn sweep(args: &Args) -> Result<(), String> {
     let spec_path = args.positional(0).ok_or(USAGE)?;
     let text = std::fs::read_to_string(spec_path).map_err(|e| format!("{spec_path}: {e}"))?;
@@ -138,7 +200,12 @@ fn sweep(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
-fn load(args: &Args, sets: &[String]) -> Result<Vec<harmo::bench::runner::BenchPiece>, String> {
+fn load(args: &Args, sets: &[String]) -> Result<Vec<BenchPiece>, String> {
+    load_with_failures(args, sets).map(|(pieces, _)| pieces)
+}
+
+/// Loads the pieces of the given sets, and also returns the ids of those that failed, with the reason.
+fn load_with_failures(args: &Args, sets: &[String]) -> Result<(Vec<BenchPiece>, Vec<LoadFailure>), String> {
     let manifest = Manifest::load(Path::new(args.value("data").unwrap_or("data")))?;
     let mut selected = manifest.select(sets);
     if let Some(limit) = args.number("limit")? {
@@ -155,7 +222,7 @@ fn load(args: &Args, sets: &[String]) -> Result<Vec<harmo::bench::runner::BenchP
         started.elapsed().as_secs_f64(),
         errors.len()
     );
-    Ok(pieces)
+    Ok((pieces, errors))
 }
 
 /// Expands the aliases "test", "dev" and "tune" into a set and its per-corpus subsets.
