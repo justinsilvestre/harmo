@@ -81,6 +81,10 @@ MEASURE_SHIFTS = {
     ("openscore-liedercorpus-schumann-robert-dichterliebe-op-48-10-hor-ich-das-liedchen-klingen", "main"): [
         (1, -1)
     ],
+    # The analysis leaves out the first ending (score mm. 52-55) and a bar that its DCML source omits, so from
+    # m50 on its labels sit five bars early: the E-major Maggiore is labeled from score m54, but starts after m58.
+    # Chord-tone fit over mm. 50-133: 0.46 as placed, 0.83 five bars later.
+    ("quartets-beethoven-ludwig-van-op059-no2-3", "main"): [(50, 5)],
 }
 # Corrections to the RomanText of analyses, by piece and analyst: each replaces text that occurs once.
 KEY_CORRECTIONS = {
@@ -98,6 +102,68 @@ KEY_CORRECTIONS = {
     ],
     # The conversion folds the second ending (score m67) into "m66a I I", so later labels sit a bar early.
     ("quartets-beethoven-ludwig-van-op135-2", "main"): [("m66a I I b2 V2/IV", "m66a I b2 V2/IV\nm66b I")],
+    # In the analyses below, the figures fit another key than the one named. In parentheses: the chord-tone fit
+    # of the measures concerned as labeled and as corrected, from `harmo labelfit`.
+    # mm. 126-129 sound F#-A#-C#-E then D-F#-B: V43 and i6 of B minor, not of B-flat (0.00 -> 1.00).
+    ("piano-sonatas-beethoven-ludwig-van-op053-1", "main"): [("m126 Bb: V43", "m126 b: V43")],
+    # mm. 116-121 alternate B-D#-F#-A and E-G-B, V7 and i64 of E minor; read in A they would be E7 and A minor
+    # (0.46 -> 0.99). m121's viio/V/ii (B#-D#-F#) leads to the F-sharp minor of m122.
+    ("quartets-haydn-franz-joseph-op20-no4-1", "main"): [("m116 V7", "m116 e: V7")],
+    # viio, viiø2 and V7 over the closing C pedal are F#-A-C, E-F#-A-C and D-F#-A-C: G major, not D (0.20 -> 0.93).
+    ("quartets-beethoven-ludwig-van-op018-no2-3", "main"): [("m84 D: viio", "m84 G: viio")],
+    # Ger6, Cad64, V7 and I in mm. 350-354 are B-flat-D-F-G#, A-D-F#, A-C#-E-G and D-F#-A, so they lead to D
+    # (0.27 -> 0.95); G returns at m355, whose viio7/vi is D#-F#-A-C.
+    ("quartets-beethoven-ludwig-van-op018-no2-4", "main"): [
+        ("m350 G: Ger6", "m350 D: Ger6"),
+        ("m355 #viio7/vi", "m355 G: #viio7/vi"),
+    ],
+    # The passages that follow V2/iii are in G-sharp minor (i64 is D#-G#-B, V is D#-F##-A#), not E minor
+    # (mm. 34-35 0.32 -> 0.89, mm. 41-43 0.44 -> 0.90).
+    ("quartets-beethoven-ludwig-van-op131-1", "main"): [
+        ("m34 e: i64", "m34 g#: i64"),
+        ("m41 e: V", "m41 g#: V"),
+    ],
+    # The analysis counts four dotted-quarter beats to the bar, in 12/8 and then 9/8, while the score writes
+    # the chorale in 4/4 and 3/4 with the same bars, so 15 of its 43 labels fell past the end of their bar.
+    # Reading its beats as quarter notes raises the chord-tone fit from 0.53 to 0.90.
+    ("early-choral-bach-johann-sebastian-chorales-344", "main"): [
+        ("Time Signature: 12/8", "Time Signature: 4/4"),
+        ("Time Signature: 9/8", "Time Signature: 3/4"),
+    ],
+    # The BCMH analyses below leave out a change of key, or name the wrong one, where the main analysis and the
+    # notes agree on the key that the figures are written in.
+    # m4 moves to C minor, as in the main analysis: VI is A-flat-C-E-flat (0.34 -> 0.97).
+    ("early-choral-bach-johann-sebastian-chorales-087", "BCMH"): [("m4 b2 VI b4 i6", "m4 b2 c: VI b4 i6")],
+    # mm. 7-10 are in A minor (VI is F-A-C, V is E-G#-B), as in the main analysis (0.24 -> 0.90).
+    ("early-choral-bach-johann-sebastian-chorales-003", "BCMH"): [
+        ("m7 VI b2 i6 b3 V b4 i", "m7 a: VI b2 i6 b3 V b4 i")
+    ],
+    # m1 b3 to m3 b1 is in C major (I is C-E-G), as in the main analysis, before "a: iv" (0.48 -> 0.88).
+    ("early-choral-bach-johann-sebastian-chorales-041", "BCMH"): [
+        ("m1 v b2 VI b3 I b4 I6", "m1 v b2 VI b3 C: I b4 I6")
+    ],
+    # m7 b2.5 moves to D, not E (ii6 is G-B-E, V2 G-A-C#-E), as in the main analysis (0.29 -> 0.95).
+    ("early-choral-bach-johann-sebastian-chorales-046", "BCMH"): [("b2.5 E: ii6", "b2.5 D: ii6")],
+    # m11 b2 moves to D minor, not A minor (V65 is C#-E-G-A), as in the main analysis (0.41 -> 0.92).
+    ("early-choral-bach-johann-sebastian-chorales-047", "BCMH"): [("m11 i b2 a: V65", "m11 i b2 d: V65")],
+    # m3 b3 moves to A minor (IV65 is F#-A-C-D, viio G#-B-D), as in the main analysis (0.47 -> 0.91).
+    ("early-choral-bach-johann-sebastian-chorales-048", "BCMH"): [
+        ("b3 IV65 b3.5 viio b4 i", "b3 a: IV65 b3.5 viio b4 i")
+    ],
+    # m8 b4 moves to G, not D again (V2 is C-D-F#-A), as in the main analysis (0.48 -> 0.92).
+    ("early-choral-bach-johann-sebastian-chorales-069", "BCMH"): [("m8 I b4 D: V2", "m8 I b4 G: V2")],
+    # m9 b3 to m10 b2 is in A major (V65 is G#-B-D-E, IV D-F#-A), as in the main analysis (0.50 -> 0.84).
+    ("early-choral-bach-johann-sebastian-chorales-045", "BCMH"): [
+        ("m9 V b2 i b3 V65 b4 I b4.5 V2/IV", "m9 V b2 i b3 A: V65 b4 I b4.5 V2/IV")
+    ],
+    # m2 is in F major (IV is B-flat-D-F), as in the main analysis (0.44 -> 0.94).
+    ("early-choral-bach-johann-sebastian-chorales-011", "BCMH"): [
+        ("m2 I6 b2 I b3 IV b4 C: V6/V", "m2 F: I6 b2 I b3 IV b4 C: V6/V")
+    ],
+    # The chorale opens in F-sharp minor (i is F#-A-C#), as in the main analysis, not A (0.50 -> 0.94).
+    ("early-choral-bach-johann-sebastian-chorales-083", "BCMH"): [
+        ("m1 A: i b2 V6 b3 i b4 A: V6", "m1 f#: i b2 V6 b3 i b4 A: V6")
+    ],
 }
 ANET_SPLIT_MODULES = ["wir", "abc_dcml", "mps", "wirwtc"]
 ANET_SPLITS = ["training", "validation", "test"]
