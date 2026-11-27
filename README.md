@@ -76,12 +76,12 @@ cargo build --release
 
 **Expert agreement** scores the engine against two analyses of the same piece, where a piece has them (`agreement`, `agreement-tune` and `tune-tavern`):
 - **Where the analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate, about as often as a third expert would.
-- **Where they disagree,** the measure is how often both readings are among those the engine offers ("both readings offered").
+- **Where they disagree,** the measure is how often both readings are among those the engine offers ("both offered"). How often the top reading matches either analyst is reported beside it.
 - **Offered readings** are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (%).** AugmentedNet's published numbers are in brackets. It reports no chord or in-the-moment figures and none for MPS. Columns are defined under **Accuracy** above. The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
+**Current results, test split.** Accuracy (%), with AugmentedNet's published numbers in brackets. It reports no chord or in-the-moment figures and none for MPS. Columns are defined under **Accuracy** above. The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
 
 | corpus | key | degree | quality | inversion | root | RN | chord | RN now |
 |---|---|---|---|---|---|---|---|---|
@@ -94,9 +94,17 @@ Tune on `tune`, and report on `test`.
 | BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) | 68.1 | 51.8 |
 | all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 | 65.5 | 50.5 |
 
+Expert agreement (%, on RN unless noted), for the pieces with two analyses. `agreement` includes pieces outside the test split. "Analysts agree" is the share of all frames, "top matches consensus" is over the frames where the analysts agree, and the next three columns are over the frames where they disagree.
+
+| set | analysts agree | top matches consensus (target) | both offered | both offered, chord | top matches either | readings offered |
+|---|---|---|---|---|---|---|
+| `agreement` (150 pieces) | 81.7 | 73.5 (90.4) | 21.7 | 19.2 | 60.7 | 3.4 |
+| test: WiR | 88.3 | 66.8 (94.0) | 30.0 | 30.8 | 76.7 | 3.4 |
+| test: MPS | 78.9 | 71.8 (88.8) | 23.9 | 21.9 | 55.6 | 3.5 |
+| test: TAVERN | 95.2 | 55.8 (97.6) | 13.8 | 15.2 | 69.6 | 3.1 |
+
 - **RN against single features:** the engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of its labels is one chord in one key, so a right label is right on every feature at once, while AugmentedNet predicts each feature separately.
 - **In the moment:** RN now is 3 to 5 points lower on most corpora, but about the same on WTC, whose preludes rarely revise an earlier hearing.
-- **Expert agreement** (`agreement`, 150 pieces): where the analysts agree, the top reading matches them for 73.5% of frames (target 90.4). Where they disagree, both readings are offered for 21.7% of frames (19.2% for the chord alone), with 3.4 readings offered on average.
 - **Corrected labels:** four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. Two of the corrections change labels that AugmentedNet's published numbers were scored against.
 - **Speed:** on 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
 
