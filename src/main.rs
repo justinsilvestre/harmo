@@ -129,7 +129,7 @@ fn diagnose(args: &Args) -> Result<(), String> {
 fn results(args: &Args) -> Result<(), String> {
     let started = Instant::now();
     let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
-    let config = eval_config(args)?;
+    let config = EvalConfig { measure_offer_delays: true, ..eval_config(args)? };
     let names = |names: &[&str]| names.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let bench_sets = expand_sets(&names(&["test", "agreement", "tune", "agreement-tune"]), &[]);
     let diagnose_sets = expand_sets(&names(&["tune", "agreement-tune"]), &[]);
@@ -267,6 +267,7 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
         offer_margin: number("offer-margin", defaults.offer_margin as f64)? as f32,
         offer_lag: number("offer-lag", defaults.offer_lag)?,
         timing_tolerance: number("timing-tolerance", defaults.timing_tolerance)?,
+        measure_offer_delays: false,
     })
 }
 

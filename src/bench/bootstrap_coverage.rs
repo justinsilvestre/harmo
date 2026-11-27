@@ -80,6 +80,7 @@ mod tests {
             seconds: 0.0,
             accuracy: Accuracy::default(),
             agreement: Some(agreement),
+            offer_delays: None,
         }
     }
 

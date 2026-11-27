@@ -11,6 +11,7 @@ mod groundtruth_fragments;
 pub mod groundtruth_measures;
 pub mod manifest;
 pub mod metrics;
+pub mod offer_delay;
 pub mod report;
 pub mod runner;
 pub mod sweep;

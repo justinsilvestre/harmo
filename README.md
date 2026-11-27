@@ -147,6 +147,8 @@ Genuinely different readings never count: a cadential six-four read as V, a lead
 - **The rn eq column** counts two analysts whose labels are equivalents of each other as agreeing, and the engine as matching an analyst when its label is an equivalent of theirs.
 - **Offered readings** are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
 
+**Offer delay** measures how soon each expert label's reading is first offered, for every analysis of each piece, in RN, key and chord. The beam after each slice is read with the offer count and margin, for the label's first slice and for the latest slice of the label heard so far, and the delay runs from the label's onset to the start of the first slice whose beam offers the reading. The search stops two bars after the onset or at the end of the label, whichever is later. Only `harmo results` reports it: the median delay, the shares offered within a beat, a bar and two bars, and the share not offered by the end of the search.
+
 Tune on `tune`, and report on `test`.
 
 ### Current results

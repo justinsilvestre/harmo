@@ -3,6 +3,7 @@
 use super::markdown::render;
 use super::record::{ResultsRecord, RunHeader};
 use crate::bench::metrics::AgreementSummary;
+use crate::bench::offer_delay::DelaySummary;
 use crate::bench::report::SetRecord;
 use crate::diagnose::summary::SetDiagnosis;
 use crate::diagnose::tally::{Example, KindTally};
@@ -33,6 +34,19 @@ fn set_record(name: &str, agreement: Option<AgreementSummary>) -> SetRecord {
         mean_offered: Some(3.0),
         agreement,
         equivalence_credits: Some([("timing".to_string(), 2)].into_iter().collect()),
+        offer_delays: Some(vec![delays(); 3]),
+    }
+}
+
+fn delays() -> DelaySummary {
+    DelaySummary {
+        layer: "rn".into(),
+        labels: 10,
+        median: Some(0.5),
+        within_beat: 0.6,
+        within_bar: 0.7,
+        within_two_bars: 0.8,
+        not_offered: 0.1,
     }
 }
 
@@ -129,4 +143,9 @@ fn totals_the_disagreement_classes() {
 #[test]
 fn gives_the_length_of_wrong_spans_in_quarter_notes() {
     assert!(document().contains("| inversion | p | 4 | 0.2 | C: I6 | C: I |"));
+}
+
+#[test]
+fn gives_how_soon_readings_are_offered() {
+    assert!(document().contains("| agreement | 10 | 0.50 | 60.0 | 70.0 | 80.0 | 10.0 |"));
 }

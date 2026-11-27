@@ -40,10 +40,15 @@ pub fn frame_slices(slices: &[Slice], count: usize) -> Vec<usize> {
 
 /// Splits the frames into runs of equal labels, as (first frame, one past the last frame).
 pub fn label_runs(frames: &[Option<Label>]) -> Vec<(usize, usize)> {
+    label_runs_by(frames, is_rn_match)
+}
+
+/// Splits the frames into runs of labels that `matches` counts as equal.
+pub fn label_runs_by(frames: &[Option<Label>], matches: fn(&Label, &Label) -> bool) -> Vec<(usize, usize)> {
     let mut runs = Vec::new();
     let mut start = 0;
     for frame in 1..=frames.len() {
-        if frame == frames.len() || !is_same(&frames[frame], &frames[start]) {
+        if frame == frames.len() || !is_same(&frames[frame], &frames[start], matches) {
             runs.push((start, frame));
             start = frame;
         }
@@ -51,9 +56,9 @@ pub fn label_runs(frames: &[Option<Label>]) -> Vec<(usize, usize)> {
     runs
 }
 
-fn is_same(a: &Option<Label>, b: &Option<Label>) -> bool {
+fn is_same(a: &Option<Label>, b: &Option<Label>, matches: fn(&Label, &Label) -> bool) -> bool {
     match (a, b) {
-        (Some(a), Some(b)) => is_rn_match(a, b),
+        (Some(a), Some(b)) => matches(a, b),
         (None, None) => true,
         _ => false,
     }

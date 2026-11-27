@@ -10,6 +10,7 @@ mod markdown_errors;
 mod markdown_errors_examples;
 mod markdown_header;
 mod markdown_kinds;
+mod markdown_offer_delays;
 mod markdown_set_figures;
 mod markdown_table;
 #[cfg(test)]

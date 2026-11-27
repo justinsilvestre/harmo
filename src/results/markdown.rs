@@ -5,6 +5,7 @@ use super::markdown_agreement::render_agreement;
 use super::markdown_equivalents::render_equivalents;
 use super::markdown_errors::render_errors;
 use super::markdown_header::render_header;
+use super::markdown_offer_delays::render_offer_delays;
 use super::record::ResultsRecord;
 
 const LEFT_OUT: &str = "## What this document leaves out
@@ -23,6 +24,7 @@ pub fn render(record: &ResultsRecord) -> String {
         render_tune(&record.accuracy),
         render_equivalents(&record.accuracy),
         render_agreement(&record.accuracy),
+        render_offer_delays(&record.accuracy),
         render_errors(&record.diagnoses, offer_count as usize),
         LEFT_OUT.to_string(),
     ];
