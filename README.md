@@ -66,17 +66,20 @@ cargo build --release
 
 **Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
 
-**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note (a frame), and each column gives the share of frames that are right.
+**Metrics** are of two kinds, accuracy and expert agreement. `bench` reports both, and both decide whether a change is kept (step 4 under "Improving the engine").
+
+*Accuracy* compares the engine with one analysis per piece, on every set. It follows AugmentedNet: labels are compared at every thirty-second note (a frame), and each column gives the share of frames that are right.
 - **Key, degree, quality, inversion, root:** AugmentedNet's five features. Degree includes the secondary degree, such as the "/V" of V7/V.
 - **RN:** the full Roman numeral, right only when all five features match.
 - **Chord:** root, quality and inversion all match, whatever the key.
 - **RN|key:** RN accuracy over only the frames whose key is right.
-- **Offered:** the share of frames whose full Roman numeral is among the readings the engine offers (defined under expert agreement below), against the main analysis. The accuracy table prints the mean number offered beside it.
-- **Key now, RN now:** the reading a listener would hold at the moment, which is the best hypothesis in the beam two quarter notes later, the same lag as for offered readings. The other columns score the retrospective reading, the best final hypothesis traced back through the piece, as AugmentedNet's do. The gap between RN and RN now shows how much the engine relies on later music to revise earlier labels.
+- **Offered:** the share of frames whose full Roman numeral is among the readings the engine offers (defined below). The accuracy table prints the mean number offered beside it.
+- **Key now, RN now:** the reading a listener would hold at the moment, which is the best hypothesis in the beam two quarter notes later. The other columns score the retrospective reading, the best final hypothesis traced back through the piece, as AugmentedNet's do. The gap between RN and RN now shows how much the engine relies on later music to revise earlier labels.
 
-**Expert agreement**
-- **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
-- **Where they disagree,** the measure is how often both readings are among those the engine offers. Offered readings are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
+*Expert agreement* compares the engine with two analyses of the same piece, on the pieces that have them (`agreement`, `agreement-tune` and `tune-tavern`). It is reported for key, degree, quality, inversion, root, RN and chord.
+- **Where the analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate, about as often as a third expert would.
+- **Where they disagree,** the measure is how often both readings are among those the engine offers ("both readings offered").
+- **Offered readings** are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
 
 Tune on `tune`, and report on `test`.
 
