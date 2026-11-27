@@ -78,21 +78,63 @@ Tune on `tune`, and report on `test`.
 
 ## Improving the engine
 
-Each round of work follows the same loop.
+Work proceeds in rounds. Each round finds where the engine is weakest, compares its analysis with the experts' there, and changes the engine one step at a time.
 
-1. **Survey the errors.** Run `harmo diagnose --set tune --set agreement-tune`. It breaks the wrong frames on `tune` down by kind (key, root, quality, inversion, labels the engine cannot produce) and by corpus, and ranks the kinds by frames lost.
-   - Report frames where the analysts in `agreement-tune` disagree separately. There, the top reading is right if it matches either analyst, and the goal is to offer both readings.
-   - Classify these disagreements (for example, cadential six-four as I64 or V, or tonicization against modulation), and check whether the second reading is missing from the vocabulary, ranked too low, or pushed out of the beam.
-   - Only `agreement-tune` has two analysts, so elsewhere ambiguity and error cannot be told apart.
-2. **Compare with the experts.** For the largest kinds, read weak passages in the score beside `harmo inspect` and the rule traces from `analyze --json`. Find what the expert hears that the engine does not, and trace it to a rule, a missing rule or a weight.
-3. **Check the ground truth.** A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation rather than in the engine.
-4. **Change one thing at a time.** Each change is a cited rule, a vocabulary entry or a weight. Keep it only if it helps `tune` overall, costs no corpus more than about 1 RN point, and does not lower how often both readings are offered where analysts disagree, in either the RN column or the chord column of `disagreements: both readings offered`. The chord column is checked on its own because a change can keep RN coverage by offering more keys for the same chord while offering fewer chords. Compare both at an equal mean number of readings offered: on `agreement-tune` it rises about 5 points for each extra reading offered, so a change could otherwise win or lose coverage only by offering more or fewer readings. When the means differ, rerun the side that offers more with a smaller `--offer-margin` until they agree within about 0.02, or interpolate between two such reruns. Coverage counts as lowered only when the 95% interval of its change (below) lies entirely below zero. A change that raises `offered` without raising the mean number offered, and without lowering RN by more than the usual guard, also counts in its favor; RN remains the safeguard. Judge each change on its own layer as well: since RN needs key and chord both right, a chord-layer change only shows where the key is right, and a key-layer change only where the chord is right. A chord-layer change that clearly improves `chord` and `RN|key` but leaves RN flat is recorded as **masked** rather than rejected, to be tried again once key accuracy improves. Two further checks keep a gain from being noise or an accident:
-   - **Noise:** `bench --compare` resamples the pieces of each set with replacement (1000 times, paired by piece) and prints a 95% interval for each change, including the change in both readings offered (RN and chord columns) for each set with two analyses. Accept a change only when its RN interval excludes zero, or when the interval of the layer measure it targets does.
-   - **Mechanism:** before benching a change, write down which `diagnose` error kind it targets and about how many frames are at stake. Afterwards, check with `diagnose` that most of the gain comes from that kind. A gain that shows up mostly elsewhere is a side effect: report it, but do not accept it as a fix for the targeted kind.
+Find faults and tune on `tune`. Use `test` only to report results at the end of a round. A fault noticed in a test piece may still be fixed, but the fix is judged on `tune`.
 
-   Record rejected and masked ideas in the commit message or report.
-5. **Sweep the weights.** Once the rules settle, run a one-at-a-time sweep on `tune`, then combine the best settings. Turn down any gain that comes mostly from one repertoire at the expense of others.
-6. **Report on `test` once,** at the end of the round, and update the results above.
+### 1. Survey the errors
+
+Run `harmo diagnose --set tune --set agreement-tune`. It assigns each wrong frame on `tune` to one error kind (key, root, quality, inversion, a label the engine cannot produce, and so on) and ranks the kinds by frames lost, for each corpus.
+
+Treat the frames where the two analysts in `agreement-tune` disagree separately:
+- The top reading counts as right if it matches either analyst, and the goal is to offer both readings.
+- Classify the disagreements, for example cadential six-four as I64 or V, or tonicization against modulation.
+- For each class, check whether the second reading is missing from the vocabulary, ranked too low, or pushed out of the beam.
+
+Only `agreement-tune` has two analysts, so elsewhere ambiguity and error cannot be told apart.
+
+### 2. Compare with the experts
+
+For the largest error kinds, read weak passages in the score beside `harmo inspect` and the rule traces from `analyze --json`. Find what the expert hears that the engine does not, and trace it to a rule, a missing rule or a weight.
+
+### 3. Check the ground truth
+
+A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation, not in the engine.
+
+### 4. Make one change at a time
+
+Each change is a cited rule, a vocabulary entry or a weight. Before benching it, write down which `diagnose` error kind it targets and about how many frames are at stake.
+
+Keep a change only if it passes all four checks:
+
+| check | passes when |
+|---|---|
+| **Accuracy** | RN on `tune` improves and its 95% interval excludes zero, or the interval of the layer measure the change targets does |
+| **No corpus harmed** | no corpus loses more than about 1 RN point |
+| **Coverage** | how often both readings are offered where analysts disagree does not fall, in either the RN or the chord column |
+| **Mechanism** | `diagnose` shows most of the gain coming from the targeted error kind |
+
+Record rejected and masked ideas in the commit message or the round report.
+
+**Intervals.** `bench --compare` resamples the pieces of each set with replacement, 1000 times and paired by piece, and prints a 95% interval for every change. This includes the change in coverage for each set with two analyses.
+
+**Coverage.**
+- Compare coverage at an equal mean number of readings offered. On `agreement-tune`, coverage rises about 5 points for each extra reading offered, so otherwise a change could win or lose coverage only by offering more or fewer readings. When the means differ, rerun the side that offers more with a smaller `--offer-margin` until they agree within about 0.02, or interpolate between two such reruns.
+- Check the chord column on its own, because a change can keep RN coverage by offering more keys for the same chord while offering fewer chords.
+- Coverage counts as fallen only when the 95% interval of its change lies entirely below zero.
+- A change that raises `offered` without raising the mean number offered also counts in its favor, as long as it passes the RN checks.
+
+**Masked changes.** RN needs the key and the chord both right, so a chord-layer change shows only where the key is right, and a key-layer change only where the chord is right. Judge each change on its own layer's measure as well. A chord-layer change that clearly improves `chord` and `RN|key` but leaves RN flat is recorded as **masked** rather than rejected, and tried again once key accuracy improves.
+
+**Side effects.** A gain that shows up mostly outside the targeted error kind is a side effect. Report it, but do not accept the change as a fix for that kind.
+
+### 5. Sweep the weights
+
+Once the rules settle, run a one-at-a-time sweep on `tune`, then combine the best settings. Turn down any gain that comes mostly from one repertoire at the expense of others.
+
+### 6. Report on `test`
+
+At the end of the round, run `test` once and update the results above.
 
 ## Development
 
