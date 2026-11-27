@@ -11,7 +11,7 @@ use super::model::{NONE, Node, Reading, Segment};
 use super::rule::{CloseContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
-use crate::theory::key::{Key, keys_for_spellings};
+use crate::theory::key::{Key, all_keys};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -47,9 +47,8 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut arena: Vec<Node> = Vec::new();
     let mut beam: Vec<u32> = Vec::new();
     let mut snapshots = Vec::new();
-    let keys = keys_for_slices(slices);
     for index in 0..slices.len() {
-        let pending = step(&keys, slices, index, &arena, &beam, rules, config);
+        let pending = step(all_keys(), slices, index, &arena, &beam, rules, config);
         let kept = prune(pending, &arena, config);
         beam = commit(&mut arena, kept);
         if config.record_snapshots {
@@ -58,14 +57,6 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     }
     let ranking = rank_final(slices, &arena, &beam, rules);
     Analysis { arena, ranking, snapshots }
-}
-
-/// Returns the keys to consider for a score, given the pitches its slices spell.
-fn keys_for_slices(slices: &[Slice]) -> Vec<Key> {
-    let mut spelled: Vec<_> = slices.iter().flat_map(|s| s.notes.iter().map(|n| n.tpc)).collect();
-    spelled.sort();
-    spelled.dedup();
-    keys_for_spellings(&spelled)
 }
 
 fn step(
