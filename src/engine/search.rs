@@ -6,7 +6,7 @@
 //! Hypotheses that differ only in where their recent segments begin compete for one place in the beam,
 //! so that the beam holds more distinct interpretations.
 
-use super::bass::{Bass, BassNote, is_downbeat};
+use super::bass::{Bass, BassNote, is_accented};
 use super::model::{NONE, Node, Reading, Segment};
 use super::rule::{CloseContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
@@ -175,15 +175,16 @@ fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice) ->
 
 fn extend(mut segment: Segment, slice: &Slice) -> Segment {
     let lowest = slice.bass().map(|n| n.midi);
+    let is_accented_slice = is_accented(slice.metric_level, segment.duration == 0.0);
     segment.duration += slice.duration;
     for note in &slice.notes {
         let Some(member) = segment.reading.chord.member_index(note.tpc) else {
             continue;
         };
         segment.members_heard |= 1 << member;
-        let is_downbeat_bass = is_downbeat(slice.metric_level) && lowest == Some(note.midi);
+        let is_accented_bass = is_accented_slice && lowest == Some(note.midi);
         segment.bass =
-            segment.bass.hear(&BassNote { midi: note.midi, tpc: note.tpc, member, is_downbeat_bass });
+            segment.bass.hear(&BassNote { midi: note.midi, tpc: note.tpc, member, is_accented_bass });
     }
     segment
 }
