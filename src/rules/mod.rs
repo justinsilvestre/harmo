@@ -4,6 +4,7 @@ pub mod chord_completeness;
 pub mod chord_fit;
 pub mod chord_proposal;
 pub mod chord_rhythm;
+pub mod chord_seventh_sonority;
 pub mod function_progression;
 pub mod function_seventh_style;
 pub mod function_six_four;
@@ -24,6 +25,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_fit::RULES,
         chord_rhythm::RULES,
         chord_completeness::RULES,
+        chord_seventh_sonority::RULES,
         key_profile::RULES,
         key_context::RULES,
         key_modulation::RULES,
