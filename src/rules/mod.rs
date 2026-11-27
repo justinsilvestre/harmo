@@ -11,6 +11,7 @@ pub mod function_vocabulary;
 pub mod key_cadence;
 pub mod key_context;
 pub mod key_modulation;
+pub mod key_phrase_close;
 pub mod key_profile;
 pub mod sources;
 
@@ -27,6 +28,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_context::RULES,
         key_modulation::RULES,
         key_cadence::RULES,
+        key_phrase_close::RULES,
         function_vocabulary::RULES,
         function_progression::RULES,
         function_seventh_style::RULES,
