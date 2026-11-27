@@ -19,7 +19,7 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 180 (the first chord should be a tonic or a dominant triad)",
         },
     ],
-    default_weight: 1.0,
+    default_weight: 1.25,
     hook: Hook::Transition(opening_tonic),
 }];
 

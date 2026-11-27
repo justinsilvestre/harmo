@@ -15,7 +15,7 @@ pub const RULES: &[Rule] = &[Rule {
         source: KOSTKA_PAYNE_ALMEN_2023,
         locator: "pp. 298–299 (evidence that convinces the listener of a modulation)",
     }],
-    default_weight: 0.75,
+    default_weight: 0.375,
     hook: Hook::Transition(cadential_confirmation),
 }];
 

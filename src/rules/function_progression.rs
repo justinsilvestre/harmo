@@ -31,7 +31,7 @@ pub const RULES: &[Rule] = &[
             source: KOSTKA_PAYNE_ALMEN_2023,
             locator: "pp. 256–260, 273–276 (secondary functions in context)",
         }],
-        default_weight: 1.0,
+        default_weight: 0.75,
         hook: Hook::Transition(applied_resolution),
     },
     Rule {

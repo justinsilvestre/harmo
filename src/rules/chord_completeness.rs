@@ -21,7 +21,7 @@ pub const RULES: &[Rule] = &[
                 locator: "pp. 121–122 (incomplete triads in first inversion)",
             },
         ],
-        default_weight: 1.0,
+        default_weight: 1.5,
         hook: Hook::Close(completeness),
     },
     Rule {

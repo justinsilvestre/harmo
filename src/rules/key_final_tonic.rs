@@ -28,7 +28,7 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 368 (pieces usually begin and end in the same key, the main key)",
         },
     ],
-    default_weight: 0.05,
+    default_weight: 0.0625,
     hook: Hook::Slice(final_tonic),
 }];
 

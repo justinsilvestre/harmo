@@ -25,7 +25,7 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 256 (a secondary function belongs more closely to another key)",
         },
     ],
-    default_weight: 0.5,
+    default_weight: 0.375,
     hook: Hook::Slice(profile_fit),
 }];
 
