@@ -42,10 +42,16 @@ cargo build --release
 ./target/release/harmo inspect k282-3             # ground truth beside the engine's reading
 ./target/release/harmo bench --set tune --label my-change
 ./target/release/harmo bench --set test --set agreement --label my-change
+./target/release/harmo diagnose --set tune --set agreement-tune   # wrong frames by kind, ranked
 ./target/release/harmo sweep sweeps/key-area.json
 ```
 
 `bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
+
+`diagnose` runs the same evaluation and assigns every frame the top reading gets wrong to exactly one kind, ranked by frames lost, for each set and its subsets:
+- **Where the analysts agree, or there is only one:** key errors by relation (relative, dominant, subdominant, parallel, tonicization against modulation, other), each sustained or brief; then, in the right key, a root a third, fifth or step away, a function (applied or not), a seventh added or missing, or an inversion. Labels the engine cannot produce at all are counted apart, by reason, using the rule set's own proposers and vocabulary. A label that is right but shifted by up to a quarter note counts as timing.
+- **Where they disagree:** frames are classified by what the analysts differ on (cadential six-four as I64 or V, tonicization against modulation, seventh against triad, and so on). For each class it reports how often the top reading matches either analyst and how often both readings are offered, matching the `disagreements` lines of `bench`, and why a missing reading is missing: the engine cannot produce it, it was in the beam below the offer cut-off, or it was not in the beam at all.
+- It also prints chord changes per bar, how many distinct readings the beam holds at each slice, and the longest wrong spans with their measure numbers. `--json` writes everything, including the common label pairs of each kind.
 
 ## Benchmarks
 
@@ -72,7 +78,7 @@ Tune on `tune`, and report on `test`.
 
 Each round of work follows the same loop.
 
-1. **Survey the errors.** Break the wrong frames on `tune` down by kind (key, root, quality, inversion, labels the engine cannot produce) and by corpus, and rank the kinds by frames lost.
+1. **Survey the errors.** Run `harmo diagnose --set tune --set agreement-tune`. It breaks the wrong frames on `tune` down by kind (key, root, quality, inversion, labels the engine cannot produce) and by corpus, and ranks the kinds by frames lost.
    - Report frames where the analysts in `agreement-tune` disagree separately. There, the top reading is right if it matches either analyst, and the goal is to offer both readings.
    - Classify these disagreements (for example, cadential six-four as I64 or V, or tonicization against modulation), and check whether the second reading is missing from the vocabulary, ranked too low, or pushed out of the beam.
    - Only `agreement-tune` has two analysts, so elsewhere ambiguity and error cannot be told apart.

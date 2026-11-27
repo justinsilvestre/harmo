@@ -1,6 +1,6 @@
 //! Loads benchmark pieces once and evaluates rule sets on them in parallel.
 
-use super::frames::{FRAME, frame_labels};
+use super::frames::{FRAME, frame_labels, frame_slices};
 use super::groundtruth::load_labels;
 use super::manifest::{Manifest, ManifestPiece};
 use super::metrics::{Accuracy, Agreement};
@@ -8,6 +8,7 @@ use crate::engine::history::segment_at;
 use crate::engine::path::segments_of;
 use crate::engine::ruleset::RuleSet;
 use crate::engine::search::{Analysis, Config, analyze};
+use crate::score::model::Measure;
 use crate::score::musicxml::read_score;
 use crate::score::slicing::{Slice, slice_score};
 use crate::theory::label::Label;
@@ -20,6 +21,7 @@ pub struct BenchPiece {
     pub id: String,
     pub sets: Vec<String>,
     pub slices: Vec<Slice>,
+    pub measures: Vec<Measure>,
     pub analyses: Vec<(String, Vec<Option<Label>>)>,
 }
 
@@ -80,7 +82,13 @@ fn load_piece(manifest: &Manifest, entry: &ManifestPiece) -> Result<BenchPiece, 
     if analyses.first().is_none_or(|(analyst, _)| analyst != "main") {
         return Err("no main analysis".into());
     }
-    Ok(BenchPiece { id: entry.id.clone(), sets: entry.sets.clone(), slices: slice_score(&score), analyses })
+    Ok(BenchPiece {
+        id: entry.id.clone(),
+        sets: entry.sets.clone(),
+        slices: slice_score(&score),
+        measures: score.measures,
+        analyses,
+    })
 }
 
 pub fn evaluate(pieces: &[BenchPiece], rules: &RuleSet, config: &EvalConfig) -> Vec<PieceResult> {
@@ -92,10 +100,7 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let needs_snapshots = piece.analyses.len() >= 2;
     let engine = Config { record_snapshots: needs_snapshots, ..config.engine.clone() };
     let analysis = analyze(&piece.slices, rules, &engine);
-    let frame_count = piece.analyses[0].1.len();
-    let top =
-        analysis.ranking.first().map(|&(node, _)| hypothesis_frames(&analysis, piece, node, frame_count));
-    let top = top.unwrap_or_else(|| vec![None; frame_count]);
+    let top = top_frames(&analysis, piece);
     let mut accuracy = Accuracy::default();
     for (predicted, truth) in top.iter().zip(&piece.analyses[0].1) {
         if let Some(truth) = truth {
@@ -111,6 +116,13 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
         accuracy,
         agreement,
     }
+}
+
+/// Returns the label of the best final hypothesis at each frame of the piece.
+pub fn top_frames(analysis: &Analysis, piece: &BenchPiece) -> Vec<Option<Label>> {
+    let count = piece.analyses[0].1.len();
+    let top = analysis.ranking.first().map(|&(node, _)| hypothesis_frames(analysis, piece, node, count));
+    top.unwrap_or_else(|| vec![None; count])
 }
 
 fn hypothesis_frames(analysis: &Analysis, piece: &BenchPiece, node: u32, count: usize) -> Vec<Option<Label>> {
@@ -144,7 +156,7 @@ fn agreement(
 
 /// Returns, for each frame, the distinct readings of its slice held by the leading hypotheses of the
 /// beam a short time later (see `EvalConfig::offer_lag`).
-fn offered_frames(
+pub fn offered_frames(
     analysis: &Analysis,
     piece: &BenchPiece,
     count: usize,
@@ -153,21 +165,20 @@ fn offered_frames(
     let slices = &piece.slices;
     let per_slice: Vec<Vec<Label>> =
         (0..slices.len()).map(|i| offered_at(analysis, slices, i, config)).collect();
-    let mut slice = 0;
-    let mut frame_offers = |frame: usize| {
-        let time = frame as f64 * FRAME + 1e-6;
-        while slice + 1 < slices.len() && slices[slice + 1].start <= time {
-            slice += 1;
-        }
-        per_slice.get(slice).cloned().unwrap_or_default()
-    };
-    (0..count).map(&mut frame_offers).collect()
+    let offers_at = |slice: usize| per_slice.get(slice).cloned().unwrap_or_default();
+    frame_slices(slices, count).into_iter().map(offers_at).collect()
+}
+
+/// Returns the beam as it stood `lag` quarter notes after the slice `at` began, best first.
+/// Requires an analysis run with `Config::record_snapshots`.
+pub fn lagged_beam<'a>(analysis: &'a Analysis, slices: &[Slice], at: usize, lag: f64) -> Option<&'a [u32]> {
+    let horizon = slices[at].start + lag;
+    let later = slices[at..].partition_point(|s| s.start <= horizon + 1e-6);
+    analysis.snapshots.get(at + later.saturating_sub(1)).map(Vec::as_slice)
 }
 
 fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> Vec<Label> {
-    let horizon = slices[at].start + config.offer_lag;
-    let later = slices[at..].partition_point(|s| s.start <= horizon + 1e-6);
-    let Some(beam) = analysis.snapshots.get(at + later.saturating_sub(1)) else {
+    let Some(beam) = lagged_beam(analysis, slices, at, config.offer_lag) else {
         return vec![];
     };
     let Some(&best) = beam.first() else {

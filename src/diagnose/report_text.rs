@@ -1,0 +1,60 @@
+//! Prints a compact text report of set diagnoses.
+
+use super::report_text_detail::print_detail;
+use super::summary::SetDiagnosis;
+
+/// Error groups in the order of the overview table, with short column names.
+const GROUPS: [(&str, &str); 9] = [
+    ("key", "key"),
+    ("root", "root"),
+    ("quality", "qual"),
+    ("inversion", "inv"),
+    ("function", "func"),
+    ("unproducible", "unprod"),
+    ("timing", "timing"),
+    ("disagreement", "disagr"),
+    ("no reading", "none"),
+];
+
+/// Prints an overview of every set, then the details of each set that is not a subset of another.
+pub fn print_report(sets: &[SetDiagnosis]) {
+    print_overview(sets);
+    for set in sets.iter().filter(|s| !is_subset(&s.name, sets)) {
+        print_detail(set);
+    }
+}
+
+fn print_overview(sets: &[SetDiagnosis]) {
+    println!("\nframes lost, by group (% of frames)");
+    let columns: String = GROUPS.iter().map(|(_, short)| format!("{short:>7}")).collect();
+    println!("{:<28} {:>8} {:>6}{columns}", "set", "frames", "rn");
+    for set in sets {
+        let shares: String =
+            GROUPS.iter().map(|(group, _)| format!("{:>7.1}", group_share(set, group))).collect();
+        println!("{:<28} {:>8} {:>6.1}{shares}", set.name, set.frames, percent(set.correct, set.frames));
+    }
+    println!("\nlargest kinds by set (% of frames)");
+    for set in sets {
+        let top: Vec<String> = set
+            .kinds
+            .iter()
+            .take(4)
+            .map(|(name, k)| format!("{name} {:.1}", percent(k.frames, set.frames)))
+            .collect();
+        println!("{:<28} {}", set.name, top.join(" · "));
+    }
+}
+
+fn group_share(set: &SetDiagnosis, group: &str) -> f64 {
+    let frames = set.groups.iter().find(|(name, _)| name == group).map_or(0, |(_, frames)| *frames);
+    percent(frames, set.frames)
+}
+
+/// Reports whether the set is a per-corpus subset of another listed set, such as "tune-wir" of "tune".
+fn is_subset(name: &str, sets: &[SetDiagnosis]) -> bool {
+    sets.iter().any(|s| name.strip_prefix(s.name.as_str()).is_some_and(|rest| rest.starts_with('-')))
+}
+
+pub fn percent(part: u64, whole: u64) -> f64 {
+    if whole == 0 { 0.0 } else { 100.0 * part as f64 / whole as f64 }
+}

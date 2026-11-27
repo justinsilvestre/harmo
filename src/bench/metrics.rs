@@ -17,6 +17,11 @@ pub fn feature_matches(a: &Label, b: &Label) -> [bool; 6] {
     [key, degree, quality, inversion, root, key && degree && quality && inversion && root]
 }
 
+/// Reports whether two labels agree on the full Roman numeral, the benchmark's "rn" feature.
+pub fn is_rn_match(a: &Label, b: &Label) -> bool {
+    feature_matches(a, b)[5]
+}
+
 fn add_where(counts: &mut FeatureCounts, flags: [bool; 6]) {
     for (count, flag) in counts.iter_mut().zip(flags) {
         *count += flag as u64;
