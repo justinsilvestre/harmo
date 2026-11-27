@@ -1,7 +1,7 @@
 //! Scores how well the music around a slice fits the key of a reading.
 
 use super::key_profile::profile_logs;
-use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
+use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001};
 use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
@@ -14,7 +14,8 @@ pub const RULES: &[Rule] = &[Rule {
               scores the key profile against the pitch classes sounding within six quarter-note \
               measures to either side, weighted by duration and by nearness, times the slice's \
               duration. A chord that briefly sounds like a tonic is then heard within its \
-              surroundings.",
+              surroundings. The window stops at a fermata, which ends a phrase in a chorale, so \
+              that each phrase is heard in the key it cadences in.",
     citations: &[
         Citation {
             source: TEMPERLEY_2001,
@@ -23,6 +24,10 @@ pub const RULES: &[Rule] = &[Rule {
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
             locator: "p. 299 (time spent in the new key and consistent accidentals as evidence of modulation)",
+        },
+        Citation {
+            source: SCHULTZ_ET_AL_2018,
+            locator: "p. 69 (a phrase of a Bach chorale ends where the voices reach a fermata)",
         },
     ],
     default_weight: 1.0,
@@ -66,12 +71,15 @@ fn cached_window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
     weights
 }
 
-/// Sums the sounding duration of each pitch class near a slice, tapering with distance.
+/// Sums the sounding duration of each pitch class near a slice and in its phrase, tapering with
+/// distance.
 fn window_weights(slices: &[Slice], index: usize) -> [f32; 12] {
     let slice = &slices[index];
     let (from, to) = (slice.start - REACH, slice.start + slice.duration + REACH);
-    let before = slices[..index].iter().rev().take_while(|s| s.start + s.duration > from);
-    let after = slices[index..].iter().take_while(|s| s.start < to);
+    let in_phrase = |other: &&Slice| other.phrase == slice.phrase;
+    let before =
+        slices[..index].iter().rev().take_while(in_phrase).take_while(|s| s.start + s.duration > from);
+    let after = slices[index..].iter().take_while(in_phrase).take_while(|s| s.start < to);
     let mut weights = [0.0; 12];
     for other in before.chain(after) {
         let middle = other.start + other.duration / 2.0;
@@ -104,7 +112,7 @@ mod tests {
                 onset_level: 0,
             })
             .collect();
-        Slice { start, duration: 4.0, notes, measure: start as usize / 4, metric_level: 0 }
+        Slice { start, duration: 4.0, notes, measure: start as usize / 4, metric_level: 0, phrase: 0 }
     }
 
     /// A C major passage, I–IV–V–I–IV–V–I, with an F major chord in the middle.
@@ -140,6 +148,14 @@ mod tests {
     fn subdominant_chord_in_context_fits_the_home_key_better_than_its_own() {
         let slices = passage();
         assert!(fit(&slices, 4, "C") > fit(&slices, 4, "F"));
+    }
+
+    #[test]
+    fn window_weights_stop_at_the_end_of_the_phrase() {
+        let mut slices = [slice(0.0, &["C"]), slice(4.0, &["D"])];
+        slices[1].phrase = 1;
+        let weights = window_weights(&slices, 0);
+        assert_eq!(weights[pitch_class(tpc_from_name("D").unwrap()) as usize], 0.0);
     }
 
     #[test]

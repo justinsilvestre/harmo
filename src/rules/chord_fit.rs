@@ -105,7 +105,7 @@ mod tests {
     }
 
     fn slice(notes: Vec<SliceNote>, metric_level: u8) -> Slice {
-        Slice { start: 0.0, duration: 1.0, notes, measure: 0, metric_level }
+        Slice { start: 0.0, duration: 1.0, notes, measure: 0, metric_level, phrase: 0 }
     }
 
     #[test]

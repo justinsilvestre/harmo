@@ -15,6 +15,7 @@ pub struct Note {
     pub part: u16,
     /// True when the note continues a tied note, so it is not a new attack.
     pub tied_from_previous: bool,
+    pub has_fermata: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -38,6 +39,8 @@ impl Measure {
 pub struct Score {
     pub notes: Vec<Note>,
     pub measures: Vec<Measure>,
+    /// The times at which a note under a fermata ends, in order and without repeats.
+    pub fermata_ends: Vec<Offset>,
 }
 
 impl Score {

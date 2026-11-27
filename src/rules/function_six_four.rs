@@ -72,6 +72,7 @@ mod tests {
             notes: notes.iter().map(note).collect(),
             measure: 0,
             metric_level: 4,
+            phrase: 0,
         }
     }
 

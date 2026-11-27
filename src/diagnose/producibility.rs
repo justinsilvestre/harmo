@@ -95,7 +95,7 @@ mod tests {
             onset_level: 0,
         };
         let notes = names.iter().enumerate().map(note).collect();
-        Slice { start: 0.0, duration: 1.0, notes, measure: 0, metric_level: 0 }
+        Slice { start: 0.0, duration: 1.0, notes, measure: 0, metric_level: 0, phrase: 0 }
     }
 
     fn label(target: Option<&str>, root: &str, quality: Quality) -> Label {

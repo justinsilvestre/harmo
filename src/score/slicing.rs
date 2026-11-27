@@ -25,6 +25,9 @@ pub struct Slice {
     pub notes: Vec<SliceNote>,
     pub measure: usize,
     pub metric_level: u8,
+    /// The number of fermatas that end at or before the slice's start, which numbers the phrases
+    /// of music that marks its phrase endings with fermatas, such as chorales.
+    pub phrase: usize,
 }
 
 impl Slice {
@@ -83,7 +86,9 @@ fn make_slice(score: &Score, annotated: &[SliceNote], active: &[usize], window: 
         .collect();
     notes.sort_by_key(|n| n.midi);
     let measure = measure_at(&score.measures, start);
-    Slice { start, duration: end - start, notes, measure, metric_level: level_at(&score.measures, start) }
+    let metric_level = level_at(&score.measures, start);
+    let phrase = score.fermata_ends.partition_point(|&t| t <= start + EPSILON);
+    Slice { start, duration: end - start, notes, measure, metric_level, phrase }
 }
 
 fn level_at(measures: &[Measure], time: Offset) -> u8 {
@@ -102,12 +107,12 @@ mod tests {
     use crate::score::model::Measure;
 
     fn note(onset: f64, duration: f64, midi: i32) -> Note {
-        Note { onset, duration, tpc: 0, midi, part: 0, tied_from_previous: false }
+        Note { onset, duration, tpc: 0, midi, part: 0, tied_from_previous: false, has_fermata: false }
     }
 
     fn score(notes: Vec<Note>) -> Score {
         let measure = Measure { number: "1".into(), start: 0.0, duration: 4.0, beats: 4, beat_type: 4 };
-        Score { notes, measures: vec![measure] }
+        Score { notes, measures: vec![measure], fermata_ends: vec![] }
     }
 
     #[test]
@@ -126,6 +131,12 @@ mod tests {
     fn held_notes_keep_their_onset_level() {
         let slices = slice_score(&score(vec![note(1.0, 3.0, 60), note(2.0, 2.0, 64)]));
         assert_eq!(slices[1].notes[0].onset_level, 2);
+    }
+
+    #[test]
+    fn slices_after_a_fermata_begin_a_new_phrase() {
+        let score = Score { fermata_ends: vec![2.0], ..score(vec![note(0.0, 2.0, 60), note(2.0, 2.0, 62)]) };
+        assert_eq!(slice_score(&score)[1].phrase, 1);
     }
 
     #[test]

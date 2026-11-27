@@ -74,8 +74,18 @@ pub fn parse_musicxml(text: &str) -> Result<Score, String> {
     }
     let readings: Vec<PartReading> = parts.iter().enumerate().map(|(i, p)| read_part(*p, i as u16)).collect();
     let measures = merge_measures(&readings);
-    let notes = readings.into_iter().flat_map(|r| realign_notes(r, &measures)).collect();
-    Ok(Score { notes, measures })
+    let notes: Vec<Note> = readings.into_iter().flat_map(|r| realign_notes(r, &measures)).collect();
+    let fermata_ends = fermata_ends(&notes);
+    Ok(Score { notes, measures, fermata_ends })
+}
+
+/// Returns the distinct end times of notes marked with a fermata.
+fn fermata_ends(notes: &[Note]) -> Vec<Offset> {
+    let mut ends: Vec<Offset> =
+        notes.iter().filter(|n| n.has_fermata).map(|n| n.onset + n.duration).collect();
+    ends.sort_by(f64::total_cmp);
+    ends.dedup_by(|a, b| (*a - *b).abs() < EPSILON);
+    ends
 }
 
 struct PartReading {
@@ -195,7 +205,10 @@ fn read_note(note: Node, state: &mut PartState) {
     }
     if let Some((tpc, midi)) = child(note, "pitch").and_then(|p| sounding_pitch(p, state.transposition)) {
         let ties_back = note.children().any(|n| n.has_tag_name("tie") && n.attribute("type") == Some("stop"));
-        add_note(state, Note { onset, duration, tpc, midi, part: state.part, tied_from_previous: ties_back });
+        let has_fermata = note.descendants().any(|n| n.has_tag_name("fermata"));
+        let note =
+            Note { onset, duration, tpc, midi, part: state.part, tied_from_previous: ties_back, has_fermata };
+        add_note(state, note);
     }
 }
 
@@ -207,6 +220,7 @@ fn add_note(state: &mut PartState, note: Note) {
         let previous = &mut state.notes[index];
         if (previous.onset + previous.duration - note.onset).abs() < EPSILON {
             previous.duration += note.duration;
+            previous.has_fermata |= note.has_fermata;
             return;
         }
     }
@@ -253,4 +267,21 @@ fn child_text<'a>(node: Node<'a, 'a>, name: &str) -> Option<&'a str> {
 
 fn child_number(node: Node, name: &str) -> Option<f64> {
     child_text(node, name).and_then(|t| t.trim().parse().ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FERMATA_SCORE: &str = r#"<score-partwise><part id="P1"><measure number="1">
+        <attributes><divisions>1</divisions></attributes>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration></note>
+        <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration>
+            <notations><fermata/></notations></note>
+        </measure></part></score-partwise>"#;
+
+    #[test]
+    fn fermata_ends_are_read_from_notations() {
+        assert_eq!(parse_musicxml(FERMATA_SCORE).unwrap().fermata_ends, vec![4.0]);
+    }
 }

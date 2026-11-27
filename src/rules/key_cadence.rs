@@ -72,7 +72,8 @@ mod tests {
             bass,
         };
         let note = SliceNote { tpc: tpc(tonic_bass), midi: 48, attacked: true, onset_level: metric_level };
-        let slice = Slice { start: 1.0, duration: 1.0, notes: vec![note], measure: 0, metric_level };
+        let slice =
+            Slice { start: 1.0, duration: 1.0, notes: vec![note], measure: 0, metric_level, phrase: 0 };
         let next = reading("C", Quality::Major);
         let history = History { arena: &[], last: NONE };
         cadential_confirmation(&TransitionContext {

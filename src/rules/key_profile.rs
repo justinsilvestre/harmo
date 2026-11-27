@@ -94,7 +94,14 @@ mod tests {
             attacked: true,
             onset_level: 0,
         });
-        let slice = Slice { start: 0.0, duration: 1.0, notes: notes.to_vec(), measure: 0, metric_level: 0 };
+        let slice = Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: notes.to_vec(),
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+        };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
         let reading =
             Reading { key: Key::new(tpc("C"), Mode::Major), chord, tonicized, category: Category::Applied };
