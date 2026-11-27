@@ -73,7 +73,7 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (RN %):** WiR 59.6 (AugmentedNet 56.4), ABC 46.4 (44.5), MPS 61.2, WTC 47.7 (46.2), HaydnSun 47.1 (48.6), TAVERN 55.4 (42.6), BPS 55.8 (45.4). Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. Where analysts disagree, both readings are offered for 21.9% of frames, with 3.6 readings offered on average. On 18 cores, a full test run takes about 1.5 s and a `tune` run about 5 s.
+**Current results, test split (RN %):** WiR 61.2 (AugmentedNet 56.4), ABC 47.7 (44.5), MPS 63.0, WTC 48.0 (46.2), HaydnSun 47.7 (48.6), TAVERN 55.6 (42.6), BPS 57.0 (45.4). Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. In the moment (RN now), the engine scores 3 to 5 points lower on most of these (WiR 57.8, ABC 43.3, MPS 58.3, HaydnSun 44.3, TAVERN 52.9, BPS 51.8), but about the same on WTC (47.4), whose preludes rarely revise an earlier hearing. Where analysts disagree, both readings are offered for 21.7% of frames, with 3.4 readings offered on average. On 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
 
 ## Improving the engine
 
