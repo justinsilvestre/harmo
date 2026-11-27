@@ -90,7 +90,21 @@ fn pair_name(kind: ErrorKind, expert: &Label, engine: Option<&Label>) -> Option<
         }
         ErrorKind::Inversion => Some(format!("{} vs {}", expert.figure(), engine.figure())),
         ErrorKind::Unproducible(_) => Some(expert.figure()),
+        ErrorKind::Key { .. } => Some(format!(
+            "{}{} vs {}{}",
+            mode_mark(expert),
+            root_position_figure(expert),
+            mode_mark(engine),
+            root_position_figure(engine)
+        )),
         _ => None,
+    }
+}
+
+fn mode_mark(label: &Label) -> &'static str {
+    match label.key.mode {
+        crate::theory::key::Mode::Major => "M:",
+        crate::theory::key::Mode::Minor => "m:",
     }
 }
 
