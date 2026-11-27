@@ -30,7 +30,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { beam_width: 48, candidate_limit: 96, distinct_depth: 3, record_snapshots: false }
+        Config { beam_width: 80, candidate_limit: 48, distinct_depth: 4, record_snapshots: false }
     }
 }
 
