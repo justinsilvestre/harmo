@@ -1,10 +1,12 @@
-//! Command-line entry point: `harmo analyze | bench | sweep | rules`.
+//! Command-line entry point: `harmo analyze | bench | diagnose | sweep | inspect | rules`.
 
 use harmo::bench::manifest::Manifest;
 use harmo::bench::report::{self, RunRecord};
 use harmo::bench::runner::{EvalConfig, evaluate, load_pieces};
 use harmo::bench::sweep::{SweepSpec, run_sweep};
 use harmo::cli_args::Args;
+use harmo::diagnose::report_text::print_report;
+use harmo::diagnose::summary as diagnosis;
 use harmo::engine::ruleset::{RuleSet, Weights};
 use harmo::engine::search::Config;
 use harmo::rules::default_rules;
@@ -14,6 +16,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 const USAGE: &str = "usage:
   harmo analyze <score.mxl|musicxml> [--weights FILE] [--json]
   harmo bench [--set NAME]... [--weights FILE] [--label TEXT] [--compare RUN.json] [--limit N]
+  harmo diagnose [--set NAME]... [--weights FILE] [--json] [--limit N]
   harmo sweep <sweep.json> [--limit N]
   harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
   harmo rules
@@ -36,6 +39,7 @@ fn main() {
     let result = match args.command() {
         Some("analyze") => harmo::cli_analyze::run(&args),
         Some("bench") => bench(&args),
+        Some("diagnose") => diagnose(&args),
         Some("sweep") => sweep(&args),
         Some("inspect") => {
             load_weights(args.value("weights")).and_then(|w| harmo::cli_inspect::run(&args, &w))
@@ -85,6 +89,21 @@ fn bench(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+fn diagnose(args: &Args) -> Result<(), String> {
+    let sets = expand_sets(&args.values("set"), &["tune"]);
+    let rules = RuleSet::new(default_rules(), &load_weights(args.value("weights"))?)?;
+    let config = eval_config(args)?;
+    let pieces = load(args, &sets)?;
+    let diagnoses = diagnosis::diagnose_pieces(&pieces, &rules, &config);
+    let summaries = diagnosis::summarize(&diagnoses, &sets);
+    if args.has("json") {
+        println!("{}", serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())?);
+    } else {
+        print_report(&summaries);
+    }
+    Ok(())
+}
+
 fn sweep(args: &Args) -> Result<(), String> {
     let spec_path = args.positional(0).ok_or(USAGE)?;
     let text = std::fs::read_to_string(spec_path).map_err(|e| format!("{spec_path}: {e}"))?;
@@ -121,7 +140,7 @@ fn load(args: &Args, sets: &[String]) -> Result<Vec<harmo::bench::runner::BenchP
     for (id, error) in &errors {
         eprintln!("could not load {id}: {error}");
     }
-    println!(
+    eprintln!(
         "loaded {} pieces in {:.2}s ({} failed)",
         pieces.len(),
         started.elapsed().as_secs_f64(),
