@@ -38,7 +38,7 @@ impl Default for Config {
         Config {
             beam_width: 80,
             candidate_limit: 48,
-            distinct_depth: 4,
+            distinct_depth: 0,
             record_snapshots: false,
             record_pruning: false,
         }
@@ -354,12 +354,17 @@ mod tests {
 
     #[test]
     fn prune_keeps_only_the_best_of_hypotheses_with_the_same_recent_readings() {
-        assert_eq!(kept_starts(&arena("C", "C"), &Config::default()), [2]);
+        assert_eq!(kept_starts(&arena("C", "C"), &merging()), [2]);
     }
 
     #[test]
     fn prune_keeps_hypotheses_whose_earlier_readings_differ() {
-        assert_eq!(kept_starts(&arena("C", "F"), &Config::default()), [2, 1]);
+        assert_eq!(kept_starts(&arena("C", "F"), &merging()), [2, 1]);
+    }
+
+    /// The search with merging turned on, at the depth used before round 8.
+    fn merging() -> Config {
+        Config { distinct_depth: 4, ..Config::default() }
     }
 
     #[test]
@@ -389,7 +394,7 @@ mod tests {
     #[test]
     fn prune_records_the_hypothesis_kept_in_place_of_a_merged_one() {
         let arena = arena("C", "C");
-        assert_eq!(dropped_causes(&arena, &Config::default()), [PruneCause::Merged { keeper: 2 }]);
+        assert_eq!(dropped_causes(&arena, &merging()), [PruneCause::Merged { keeper: 2 }]);
     }
 
     #[test]
