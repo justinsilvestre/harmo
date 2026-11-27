@@ -29,7 +29,7 @@ const STEP: i32 = 2;
 
 fn six_four(context: &CloseContext) -> f32 {
     let segment = context.segment;
-    let Some((midi, tpc)) = segment.bass.filter(|_| is_six_four(segment)) else {
+    let Some((midi, tpc)) = segment.bass_note().filter(|_| is_six_four(segment)) else {
         return 0.0;
     };
     let next_bass = context.next_slice.and_then(Slice::bass);
@@ -54,6 +54,7 @@ fn is_six_four(segment: &Segment) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
@@ -81,7 +82,7 @@ mod tests {
         let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let bass = Some((55, tpc_from_name("G").unwrap()));
+        let bass = Bass { lowest: Some((55, tpc_from_name("G").unwrap())), ..Bass::default() };
         let segment =
             Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass };
         let slices = [slice(&[(55, "G"), (60, "C"), (64, "E")])];

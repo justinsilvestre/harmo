@@ -43,6 +43,7 @@ fn is_root_position_dominant(segment: &Segment) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
@@ -61,7 +62,7 @@ mod tests {
 
     /// Scores G7, with the given bass, moving to C major on a slice with the given bass and metric level.
     fn cadence(dominant_bass: &str, tonic_bass: &str, metric_level: u8) -> f32 {
-        let bass = Some((43, tpc(dominant_bass)));
+        let bass = Bass { lowest: Some((43, tpc(dominant_bass))), ..Bass::default() };
         let dominant = reading("G", Quality::DominantSeventh);
         let previous = Segment {
             reading: dominant,

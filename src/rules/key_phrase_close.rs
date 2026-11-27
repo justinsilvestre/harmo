@@ -49,6 +49,7 @@ fn phrase_close(context: &CloseContext) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -64,8 +65,14 @@ mod tests {
         let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 1.0,
+            members_heard: 0b111,
+            bass: Bass::default(),
+        };
         let next = next_phrase.map(slice);
         phrase_close(&CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() })
     }

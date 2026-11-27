@@ -58,6 +58,7 @@ fn is_judged(quality: Quality) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
@@ -86,8 +87,14 @@ mod tests {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 2.0, members_heard: 0b1111, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 2.0,
+            members_heard: 0b1111,
+            bass: Bass::default(),
+        };
         seventh_sonority(&CloseContext { segment: &segment, slices, next_slice: None })
     }
 

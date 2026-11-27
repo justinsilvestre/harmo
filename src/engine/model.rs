@@ -1,5 +1,6 @@
 //! The engine's state: readings, open chord segments and the hypothesis arena.
 
+use super::bass::Bass;
 use crate::pitch::Tpc;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -40,8 +41,7 @@ pub struct Segment {
     pub duration: f64,
     /// Bit i is set once chord member i (root, third, fifth, seventh) has sounded.
     pub members_heard: u8,
-    /// The lowest chord tone heard so far, as (MIDI number, spelling).
-    pub bass: Option<(i32, Tpc)>,
+    pub bass: Bass,
 }
 
 /// A hypothesis: the reading of every slice up to and including `slice`.
@@ -54,8 +54,13 @@ pub struct Node {
 }
 
 impl Segment {
+    /// Returns the bass note that gives the segment's inversion, as (MIDI number, spelling).
+    pub fn bass_note(&self) -> Option<(i32, Tpc)> {
+        self.bass.note(self.reading.chord)
+    }
+
     pub fn bass_tpc(&self) -> Tpc {
-        self.bass.map_or(self.reading.chord.root, |(_, tpc)| tpc)
+        self.bass_note().map_or(self.reading.chord.root, |(_, tpc)| tpc)
     }
 
     pub fn has_heard_member(&self, index: usize) -> bool {

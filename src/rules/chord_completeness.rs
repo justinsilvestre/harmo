@@ -84,6 +84,7 @@ fn completeness(context: &CloseContext) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
@@ -107,8 +108,14 @@ mod tests {
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::DominantSeventh);
         let key = Key::parse("C", "major").unwrap();
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 4.0, members_heard: 0b1011, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 4.0,
+            members_heard: 0b1011,
+            bass: Bass::default(),
+        };
         seventh_evidence(&CloseContext { segment: &segment, slices: &slices, next_slice: None })
     }
 

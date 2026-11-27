@@ -74,6 +74,7 @@ fn holds_until_next_beat(following: &[Slice], chord: Chord, member: usize) -> bo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Quality;
@@ -91,8 +92,14 @@ mod tests {
         let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 1.0,
+            members_heard: 0,
+            bass: Bass::default(),
+        };
         bass_change(&CloseContext { segment: &segment, slices, next_slice: None })
     }
 
