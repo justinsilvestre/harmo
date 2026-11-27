@@ -4,7 +4,7 @@ Rules-based harmonic analysis of MusicXML scores that offers **several competing
 
 ## How it works
 
-The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment, so no rule may use music more than two quarter notes past the slice it scores, the same lag allowed to offered readings below, and no rule may use statistics of the whole score. The reading reported for each moment is the best final hypothesis traced back, so later music can still decide between hypotheses that were each scored this way, as a listener revises an earlier hearing. When the beam is pruned, hypotheses that give their last four segments the same readings and differ only in where those segments begin keep just the best of them, so that the beam's places go to distinct interpretations (`--distinct-depth`, 0 to turn this off).
+The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment, so no rule may use music more than two quarter notes past the slice it scores, the same lag allowed to offered readings below, and no rule may use statistics of the whole score. The reading reported for each moment is the best final hypothesis traced back, so later music can still decide between hypotheses that were each scored this way, as a listener revises an earlier hearing. [Search](#search) describes the search step by step, with its settings and where each value came from.
 
 The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at seven points:
 
@@ -31,6 +31,40 @@ Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a 
 - `tools/prepare_corpus.py` is the only Python. It runs once, offline, to download the corpora and convert the RomanText analyses to JSON with music21. `tools/prepare_corpus_anet.py` adds the AugmentedNet corpora that When in Rome has no MusicXML for, converting Humdrum scores to MusicXML.
 
 The code avoids trait objects and macros: rules are plain structs holding function pointers, and hypotheses live in an index-linked arena. This keeps a TypeScript port straightforward.
+
+## Search
+
+The search follows the dynamic-programming method that Temperley uses for his preference-rule models: it reads the piece left to right and, at each segment, keeps the best analysis so far ending in each possible state, so that the best final analysis can be traced back and an earlier choice can be revised when later music favors another (Temperley 2001, pp. 15–19; for harmony and key, pp. 157–159 and 189; on revision, pp. 206–207). Temperley's states are few, such as one per key in his key model, so he keeps one analysis for each of them and finds the best analysis exactly. Here a state would be a whole reading together with the segments before it, far too many to keep, so the engine keeps only a fixed number of the best hypotheses. This is a beam search, which keeps several analyses at once and limits their number by pruning (Temperley 2001, p. 29). It may lose the best analysis if that analysis falls out of the beam early on.
+
+### What happens at each slice
+
+1. **Extend.** Every hypothesis in the beam extends its current segment by the slice, and its score gains the slice rules' score of its reading on the slice.
+2. **Propose.** The proposers suggest chords for the slice. Each chord is read in each of the 44 keys (tonics B𝄫 to B♯, major and minor) in every way the interpreters allow. Each reading is scored by the slice rules as the opening slice of a segment, and the best 48 are kept.
+3. **Open.** Each kept reading opens a new segment after the hypothesis in the beam that leads into it best. That hypothesis's score is added to the close rules' score of its last segment, then to the transition score of moving to the new reading (departure scores count only if the key changes), and the hypothesis with the highest total becomes the parent. Admit rules can rule a parent out. A reading opened on a slice therefore appears once, with its best history, which is the step that Temperley's method takes for every state.
+4. **Prune.** The extended and opened hypotheses are sorted by score, best first, and kept in that order until the beam holds 80. A hypothesis is skipped if a better one already kept gives its last four segments the same readings, differing only in where those segments begin. Ties keep the order of creation: extended hypotheses first, in beam order, then opened ones, best fit first.
+
+A hypothesis's score is the sum of every weighted rule score along its path, higher being better. The scores are not divided by length, because every hypothesis in the beam covers the same slices.
+
+### Readings reported
+
+- **The retrospective reading** comes from the end of the piece. Each final hypothesis's last segment is scored by the close rules, the hypotheses are ranked, and the best one is traced back through its segments' links to the segments before them.
+- **The reading at the moment,** which the bench scores as `key now` and `rn now`, is the reading that the best hypothesis gives the slice in the beam two quarter notes later: the beam after the last slice that starts no more than two quarter notes after the slice in question starts.
+- **Offered readings** come from that same beam: up to four distinct labels for the slice, taken from hypotheses within 4.0 of its best score, in rank order.
+- **Alternatives in `analyze`** come from the eight next-best final hypotheses. A segment is marked interpretive (`?`) when one of them reads its first slice differently and scores within 4.0 of the best.
+- **Traces** are not stored. Rules are pure, so `analyze --json` rebuilds each segment's trace by evaluating every rule again along the path.
+- **Rank histories** follow a reading through the beam after every later slice, recording each slice where its rank changes.
+
+### Settings
+
+The first six settings can be changed on the command line of `bench`, `diagnose`, `results` and `sweep`; `analyze` and `inspect` use the defaults. Where a value was measured, the commit that set it gives the figures.
+- **Beam width, 80** (`--beam`): the number of hypotheses kept after each slice. It was 48 from the first commit (4e0fbe2) until round 4, when commit 254ad4c raised it to 80 along with the next two settings: fewer candidates made each slice cheaper, and the time saved paid for a wider beam. Against the round 4 baseline that combination gained 0.16 RN on `tune` and 4.2 points of both readings offered on `agreement-tune`, at the same CPU time.
+- **Candidate readings per slice, 48** (`--candidates`): how many new readings are proposed per slice, ranked by their fit to the opening slice. It was 96 from the first commit until 254ad4c. More candidates mostly added close variants of one chord in neighboring keys, which pushed older interpretations out of the beam.
+- **Distinct depth, 4** (`--distinct-depth`, 0 to turn it off): how many recent segments' readings must differ between two hypotheses for both to be kept. Commit 77533ec added it in round 2 with a depth of 3, after measuring that about 12 of the 48 beam places went to hypotheses that differed only in where their segments begin. 254ad4c raised it to 4. It is a heuristic: close rules and some transition rules read segment lengths, which differ between the hypotheses it merges.
+- **Offer count, 4** (`--offer-count`): the most readings offered for a moment. Commit 5c6be83 set it in round 2. Readings had been taken from the eight best hypotheses, which mostly shared one reading, so about 1.9 were offered although the beam held about four distinct readings. No count other than four has been measured. Coverage rises with the number offered, so the bench reports the mean number offered beside it.
+- **Offer margin, 4.0** (`--offer-margin`): how far below the best score an offered reading's hypothesis may fall. Temperley treats a passage as ambiguous when its best analyses score about equally, and leaves open how close they must be (2001, pp. 219–220). The value 4.0 dates from the first commit (4e0fbe2) and was not chosen by measurement. In round 5, commit ccea563 found that it rarely limits what is offered (removing it raised the mean offered on `agreement-tune` only from 3.57 to 3.63), and step 4 now uses a smaller margin to compare coverage at an equal mean number offered.
+- **Offer lag, 2 quarter notes** (`--offer-lag`): how long after a moment the beam is read for offered readings and the reading at the moment, as a listener who has heard a little further. It dates from the first commit and was not chosen by measurement. It also bounds how far ahead any rule may look.
+- **Keys, all 44**: every slice considers every key from B𝄫 to B♯. Commit f8acf4e set this in round 4, so that the keys available never depend on music not yet heard; it cost 0.02 RN on `tune` against admitting only the keys a piece spells.
+- **`analyze` alternatives, 8, and interpretive margin, 4.0**: fixed in the code since the first commit, and not measured.
 
 ## Usage
 
