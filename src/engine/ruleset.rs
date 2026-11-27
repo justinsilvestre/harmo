@@ -1,8 +1,9 @@
 //! A set of rules with weights, split by hook so the engine can call each group directly.
 
+use super::model::Segment;
 use super::rule::{
-    AdmitFn, CloseContext, CloseFn, DepartureContext, DepartureFn, Hook, InterpretFn, ProposeFn,
-    ProposeKeysFn, Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
+    AdmitFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
+    ProposeFn, ProposeKeysFn, Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
 };
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -35,6 +36,7 @@ pub struct RuleSet {
     pub transition_rules: Vec<Scorer<TransitionScorer>>,
     pub close_rules: Vec<Scorer<CloseFn>>,
     pub admit_rules: Vec<AdmitFn>,
+    pub distinguish_rules: Vec<(DistinguishFn, Box<[f64]>)>,
 }
 
 impl RuleSet {
@@ -64,6 +66,7 @@ impl RuleSet {
             transition_rules: vec![],
             close_rules: vec![],
             admit_rules: vec![],
+            distinguish_rules: vec![],
         };
         set.group_hooks();
         Ok(set)
@@ -88,6 +91,7 @@ impl RuleSet {
                 }
                 Hook::Close(f) => self.close_rules.push((f, weight, params)),
                 Hook::Admit(f) => self.admit_rules.push(f),
+                Hook::Distinguish(f) => self.distinguish_rules.push((f, params)),
             }
         }
     }
@@ -149,6 +153,11 @@ impl RuleSet {
 
     pub fn admits(&self, context: &TransitionContext) -> bool {
         self.admit_rules.iter().all(|f| f(context))
+    }
+
+    /// Appends each distinguish hook's value for the segment, in rule order.
+    pub fn distinguish(&self, segment: &Segment, values: &mut Vec<u64>) {
+        values.extend(self.distinguish_rules.iter().map(|(f, params)| f(segment, params)));
     }
 }
 

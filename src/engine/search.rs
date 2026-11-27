@@ -3,8 +3,8 @@
 //!
 //! The beam at each slice is the set of interpretations a listener might hold at that moment.
 //! Hypotheses that open the same reading at the same slice are merged, keeping the best history.
-//! Hypotheses that differ only in where their recent segments begin compete for one place in the beam,
-//! so that the beam holds more distinct interpretations.
+//! Hypotheses whose recent segments the rules count as the same interpretation compete for one place
+//! in the beam, so that the beam holds more distinct interpretations.
 
 use super::bass::{Bass, BassNote, is_accented};
 use super::model::{NONE, Node, Reading, Segment};
@@ -22,9 +22,9 @@ pub struct Config {
     pub beam_width: usize,
     /// Number of new readings, ranked by their fit to the opening slice, considered per slice.
     pub candidate_limit: usize,
-    /// Number of recent segments whose readings identify a hypothesis when the beam is pruned.
-    /// Of the hypotheses that give their last `distinct_depth` segments the same readings, differing
-    /// only in where those segments begin, only the best is kept. Zero keeps them all.
+    /// Number of recent segments that identify a hypothesis when the beam is pruned.
+    /// Of the hypotheses whose last `distinct_depth` segments the rules' distinguish hooks count as
+    /// the same, only the best is kept. Zero, or a rule set without distinguish hooks, keeps them all.
     pub distinct_depth: usize,
     /// Keeps the beam of every slice, for tracing how readings rise and fall in the ranking.
     pub record_snapshots: bool,
@@ -64,7 +64,7 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     for index in 0..slices.len() {
         let keys = rules.propose_keys(&slices[index]);
         let pending = step(&keys, slices, index, &arena, &beam, rules, config);
-        let (kept, dropped) = prune(pending, &arena, config);
+        let (kept, dropped) = prune(pending, &arena, rules, config);
         beam = commit(&mut arena, kept);
         if config.record_snapshots {
             snapshots.push(beam.clone());
@@ -231,13 +231,19 @@ fn close_score(slices: &[Slice], node: &Node, next_slice: Option<&Slice>, rules:
     rules.score_close(&CloseContext { segment: &node.segment, slices: span, next_slice })
 }
 
-/// Keeps the best hypotheses, skipping any whose recent readings repeat those of a better one
-/// (see `Config::distinct_depth`). The sort is stable, so ties are broken by insertion order.
-/// Also returns the dropped hypotheses when `Config::record_pruning` is set.
-fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> (Vec<Node>, Vec<Pruned>) {
+/// Keeps the best hypotheses, skipping any whose recent segments the rules count as the same as
+/// those of a better one (see `Config::distinct_depth`). The sort is stable, so ties are broken by
+/// insertion order. Also returns the dropped hypotheses when `Config::record_pruning` is set.
+fn prune(
+    mut pending: Vec<Node>,
+    arena: &[Node],
+    rules: &RuleSet,
+    config: &Config,
+) -> (Vec<Node>, Vec<Pruned>) {
     pending.sort_by(|a, b| b.score.total_cmp(&a.score));
     let first = arena.len() as u32;
-    let mut seen: HashMap<Vec<Reading>, u32> = HashMap::new();
+    let merges = config.distinct_depth > 0 && !rules.distinguish_rules.is_empty();
+    let mut seen: HashMap<Vec<u64>, u32> = HashMap::new();
     let mut kept = Vec::with_capacity(config.beam_width);
     let mut dropped = Vec::new();
     for (rank, node) in pending.into_iter().enumerate() {
@@ -246,11 +252,11 @@ fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> (Vec<Node>,
                 break;
             }
             PruneCause::Width
-        } else if config.distinct_depth == 0 {
+        } else if !merges {
             kept.push(node);
             continue;
         } else {
-            match seen.entry(recent_readings(&node.segment, arena, config.distinct_depth)) {
+            match seen.entry(signature(&node.segment, arena, rules, config.distinct_depth)) {
                 Entry::Vacant(entry) => {
                     entry.insert(first + kept.len() as u32);
                     kept.push(node);
@@ -266,17 +272,19 @@ fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> (Vec<Node>,
     (kept, dropped)
 }
 
-/// Returns the readings of a segment and of up to `depth - 1` segments before it, most recent first.
-fn recent_readings(segment: &Segment, arena: &[Node], depth: usize) -> Vec<Reading> {
-    let mut readings = Vec::with_capacity(depth);
+/// Returns the distinguish hooks' values for a segment and for up to `depth - 1` segments before it,
+/// most recent first.
+fn signature(segment: &Segment, arena: &[Node], rules: &RuleSet, depth: usize) -> Vec<u64> {
+    let mut values = Vec::with_capacity(depth * rules.distinguish_rules.len());
     let mut current = segment;
-    loop {
-        readings.push(current.reading);
-        if readings.len() == depth || current.previous == NONE {
-            return readings;
+    for count in 1.. {
+        rules.distinguish(current, &mut values);
+        if count == depth || current.previous == NONE {
+            break;
         }
         current = &arena[current.previous as usize].segment;
     }
+    values
 }
 
 fn commit(arena: &mut Vec<Node>, nodes: Vec<Node>) -> Vec<u32> {
@@ -328,8 +336,14 @@ mod tests {
         vec![node("G", 1, 0, -2.0), node("G", 2, 1, -1.0)]
     }
 
+    /// A rule set whose only rule counts segments with equal readings as the same.
+    fn distinguishing_rules() -> RuleSet {
+        let rules = crate::rules::function_distinct_readings::RULES.to_vec();
+        RuleSet::new(rules, &Default::default()).unwrap()
+    }
+
     fn kept_starts(arena: &[Node], config: &Config) -> Vec<u32> {
-        prune(pending(), arena, config).0.iter().map(|n| n.segment.start).collect()
+        prune(pending(), arena, &distinguishing_rules(), config).0.iter().map(|n| n.segment.start).collect()
     }
 
     #[test]
@@ -349,6 +363,13 @@ mod tests {
     }
 
     #[test]
+    fn prune_keeps_every_boundary_variant_without_distinguish_rules() {
+        let rules = RuleSet::new(vec![], &Default::default()).unwrap();
+        let kept = prune(pending(), &arena("C", "C"), &rules, &Config::default()).0;
+        assert_eq!(kept.iter().map(|n| n.segment.start).collect::<Vec<_>>(), [2, 1]);
+    }
+
+    #[test]
     fn prune_looks_back_no_further_than_distinct_depth() {
         let config = Config { distinct_depth: 1, ..Config::default() };
         assert_eq!(kept_starts(&arena("C", "F"), &config), [2]);
@@ -356,7 +377,7 @@ mod tests {
 
     fn dropped_causes(arena: &[Node], config: &Config) -> Vec<PruneCause> {
         let config = Config { record_pruning: true, ..config.clone() };
-        prune(pending(), arena, &config).1.iter().map(|p| p.cause).collect()
+        prune(pending(), arena, &distinguishing_rules(), &config).1.iter().map(|p| p.cause).collect()
     }
 
     #[test]
