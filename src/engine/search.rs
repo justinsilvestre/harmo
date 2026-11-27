@@ -10,7 +10,7 @@ use super::model::{NONE, Node, Reading, Segment};
 use super::rule::{CloseContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
-use crate::theory::key::all_keys;
+use crate::theory::key::{Key, keys_for_spellings};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -46,8 +46,9 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut arena: Vec<Node> = Vec::new();
     let mut beam: Vec<u32> = Vec::new();
     let mut snapshots = Vec::new();
+    let keys = keys_for_slices(slices);
     for index in 0..slices.len() {
-        let pending = step(slices, index, &arena, &beam, rules, config);
+        let pending = step(&keys, slices, index, &arena, &beam, rules, config);
         let kept = prune(pending, &arena, config);
         beam = commit(&mut arena, kept);
         if config.record_snapshots {
@@ -58,7 +59,16 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     Analysis { arena, ranking, snapshots }
 }
 
+/// Returns the keys to consider for a score, given the pitches its slices spell.
+fn keys_for_slices(slices: &[Slice]) -> Vec<Key> {
+    let mut spelled: Vec<_> = slices.iter().flat_map(|s| s.notes.iter().map(|n| n.tpc)).collect();
+    spelled.sort();
+    spelled.dedup();
+    keys_for_spellings(&spelled)
+}
+
 fn step(
+    keys: &[Key],
     slices: &[Slice],
     index: usize,
     arena: &[Node],
@@ -70,7 +80,7 @@ fn step(
     let mut pending = continuations(slices, index, arena, beam, rules);
     let closes: Vec<f32> =
         beam.iter().map(|&b| close_score(slices, &arena[b as usize], Some(slice), rules)).collect();
-    for (reading, opening_score) in openings(slices, index, rules, config.candidate_limit) {
+    for (reading, opening_score) in openings(keys, slices, index, rules, config.candidate_limit) {
         let best = best_predecessor(&reading, slice, arena, beam, &closes, rules);
         if let Some((parent, previous_score)) = best {
             let segment = open_segment(reading, index, parent, slice);
@@ -99,14 +109,20 @@ fn continuations(slices: &[Slice], index: usize, arena: &[Node], beam: &[u32], r
 }
 
 /// Proposes new readings for a segment opening on this slice, best-fitting first.
-fn openings(slices: &[Slice], index: usize, rules: &RuleSet, limit: usize) -> Vec<(Reading, f32)> {
+fn openings(
+    keys: &[Key],
+    slices: &[Slice],
+    index: usize,
+    rules: &RuleSet,
+    limit: usize,
+) -> Vec<(Reading, f32)> {
     let (slice, next_slice) = (&slices[index], slices.get(index + 1));
     let mut chords: Vec<_> = rules.proposers.iter().flat_map(|propose| propose(slice)).collect();
     chords.sort();
     chords.dedup();
     let mut readings: Vec<Reading> = Vec::new();
     for &chord in &chords {
-        for &key in all_keys() {
+        for &key in keys {
             for interpret in &rules.interpreters {
                 let interpretations = interpret(key, chord).into_iter();
                 readings.extend(interpretations.map(|(tonicized, category)| Reading {

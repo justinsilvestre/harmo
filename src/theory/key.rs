@@ -78,6 +78,16 @@ impl Key {
         degree.alteration == 0
             || (self.mode == Mode::Minor && degree.alteration == 1 && matches!(degree.number, 6 | 7))
     }
+
+    /// Reports whether the key has a key signature, of at most seven sharps or flats.
+    fn has_signature(self) -> bool {
+        let sharps = if self.mode == Mode::Major { self.tonic } else { self.tonic - 3 };
+        sharps.abs() <= 7
+    }
+
+    fn triad(self) -> [Tpc; 3] {
+        [self.tonic, self.tpc_of(Degree { number: 3, alteration: 0 }), self.tonic + 1]
+    }
 }
 
 impl Degree {
@@ -88,14 +98,25 @@ impl Degree {
 }
 
 static ALL_KEYS: std::sync::LazyLock<Vec<Key>> = std::sync::LazyLock::new(|| {
-    let majors = (-7..=7).map(|tonic| Key::new(tonic, Mode::Major));
-    let minors = (-4..=10).map(|tonic| Key::new(tonic, Mode::Minor));
+    let majors = (-9..=12).map(|tonic| Key::new(tonic, Mode::Major));
+    let minors = (-9..=12).map(|tonic| Key::new(tonic, Mode::Minor));
     majors.chain(minors).collect()
 });
 
-/// Returns the keys considered by the engine: major tonics Cb to C# and minor tonics ab to a#.
+/// Returns every key the engine can consider: tonics Bbb to B# in both modes.
 pub fn all_keys() -> &'static [Key] {
     &ALL_KEYS
+}
+
+/// Returns the keys the engine considers for a score that spells the given pitches: every key
+/// with a key signature of up to seven sharps or flats, and any other key whose tonic triad the
+/// score spells, since such keys are written with double sharps or double flats.
+pub fn keys_for_spellings(spelled: &[Tpc]) -> Vec<Key> {
+    all_keys()
+        .iter()
+        .copied()
+        .filter(|key| key.has_signature() || key.triad().iter().all(|t| spelled.contains(t)))
+        .collect()
 }
 
 #[cfg(test)]
@@ -131,7 +152,13 @@ mod tests {
     }
 
     #[test]
-    fn engine_considers_thirty_keys() {
-        assert_eq!(all_keys().len(), 30);
+    fn scores_without_unusual_spellings_get_the_thirty_keys_with_signatures() {
+        assert_eq!(keys_for_spellings(&[]).len(), 30);
+    }
+
+    #[test]
+    fn spelling_the_tonic_triad_admits_a_key_without_a_signature() {
+        let spelled = ["D#", "F##", "A#"].map(|name| tpc_from_name(name).unwrap());
+        assert!(keys_for_spellings(&spelled).contains(&key("D#", "major")));
     }
 }
