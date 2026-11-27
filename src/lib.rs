@@ -8,6 +8,7 @@ pub mod diagnose;
 pub mod engine;
 pub mod output;
 pub mod pitch;
+pub mod results;
 pub mod rules;
 pub mod score;
 pub mod theory;

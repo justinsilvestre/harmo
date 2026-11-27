@@ -45,6 +45,7 @@ cargo build --release
 ./target/release/harmo bench --set test --set agreement --label my-change
 ./target/release/harmo diagnose --set tune --set agreement-tune   # wrong frames by kind, ranked
 ./target/release/harmo sweep sweeps/key-area.json
+./target/release/harmo results                    # regenerate RESULTS.md
 ```
 
 `bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
@@ -64,7 +65,7 @@ cargo build --release
 - `tune` has every piece outside the test split: 975 pieces, against 45 in `dev`. Its subsets are `tune-<module>` for the training and validation pieces of each module, and `tune-<category>` for When in Rome categories outside AugmentedNet, such as `tune-early_choral`, `tune-openscore-liedercorpus` and `tune-textbooks`.
 - `agreement` has the 150 When in Rome pieces with two or more expert analyses: 100 Bach chorales and the Mozart sonatas. `agreement-tune` leaves out its pieces in the test split. TAVERN's two analyses per piece are reported under `tune-tavern` but are not part of `agreement`.
 
-**Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
+**Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped. Four test pieces have corrected labels (`KEY_CORRECTIONS` and `MEASURE_SHIFTS`), which adds about 1 point of RN to WiR and 2 to ABC; two of the corrections change labels that AugmentedNet's published figures were scored against.
 
 **Accuracy** scores the engine against one analysis of each piece, as AugmentedNet does. Labels are compared at every thirty-second note (a frame), and each column gives the share of frames that are right:
 - **Key, degree, quality, inversion, root:** AugmentedNet's five features. Degree includes the secondary degree, such as the "/V" of V7/V.
@@ -83,57 +84,7 @@ Tune on `tune`, and report on `test`.
 
 ### Current results
 
-These figures come from the test run at the end of round 5 (`bench --set test --set agreement`). The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
-
-**Accuracy on the test split.** Each figure is the percentage of the music, counted in thirty-second-note frames, on which the engine's top reading matches the expert's label in that respect. For example, a key of 79.0 for WiR means that the engine names the expert's key for 79% of the WiR test pieces. AugmentedNet's published figures are in brackets; it publishes none for MPS.
-
-| corpus | key | degree | quality | inversion | root | RN |
-|---|---|---|---|---|---|---|
-| WiR | 79.0 (81.8) | 71.7 (69.2) | 83.4 (85.9) | 87.8 (90.3) | 89.7 (90.3) | 61.2 (56.4) |
-| ABC | 80.9 (83.6) | 63.4 (65.6) | 72.2 (78.0) | 70.9 (76.9) | 75.9 (78.9) | 47.7 (44.5) |
-| MPS | 89.1 | 75.7 | 77.7 | 79.4 | 82.2 | 63.0 |
-| WTC | 78.6 (77.2) | 63.5 (69.7) | 67.1 (75.0) | 72.9 (74.4) | 78.4 (82.7) | 48.0 (46.2) |
-| HaydnSun | 74.6 (81.2) | 61.7 (62.9) | 74.7 (80.2) | 79.0 (82.7) | 82.6 (86.5) | 47.7 (48.6) |
-| TAVERN | 84.3 (88.7) | 68.4 (60.0) | 77.0 (77.4) | 76.6 (78.8) | 80.0 (81.5) | 55.6 (42.6) |
-| BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) |
-| all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 |
-
-The engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of the engine's labels is one chord in one key, so a label that is right is right on every feature at once. AugmentedNet predicts each feature separately, so its features are more often right one at a time but less often right together.
-
-**Further measures on the test split.** AugmentedNet publishes nothing comparable to these.
-- **Chord:** the expert's chord (root, quality and inversion), whatever the key.
-- **RN given key:** RN, counting only the music where the key is right.
-- **Key now, RN now:** key and RN for the reading the engine holds two quarter notes after each moment, rather than after hearing the whole piece.
-- **Offered:** the expert's RN is among the readings the engine offers. "Per frame" is how many it offers on average.
-
-| corpus | chord | RN given key | key now | RN now | offered | per frame |
-|---|---|---|---|---|---|---|
-| WiR | 78.0 | 77.4 | 75.9 | 57.8 | 75.1 | 3.5 |
-| ABC | 57.3 | 59.0 | 76.8 | 43.3 | 61.7 | 3.6 |
-| MPS | 69.1 | 70.8 | 84.5 | 58.3 | 76.0 | 3.5 |
-| WTC | 59.3 | 61.0 | 78.4 | 47.4 | 65.6 | 3.5 |
-| HaydnSun | 64.5 | 64.0 | 70.6 | 44.3 | 59.6 | 3.2 |
-| TAVERN | 65.7 | 66.0 | 82.3 | 52.9 | 65.9 | 3.1 |
-| BPS | 68.1 | 68.5 | 77.5 | 51.8 | 71.6 | 3.6 |
-| all seven | 65.5 | 66.4 | 78.2 | 50.5 | 68.2 | 3.5 |
-
-RN now is 3 to 5 points below RN on most corpora, which is what the engine gains by revising earlier readings once it has heard more. WTC, whose preludes rarely call for such revision, loses almost nothing.
-
-**Agreement with two experts.** The `agreement` set has the 150 pieces with two analyses: 100 Bach chorales and the Mozart piano sonatas, some of them outside the test split. Each row is a percentage of frames.
-
-| | key | degree | quality | inversion | root | chord | RN |
-|---|---|---|---|---|---|---|---|
-| The two analysts give the same label | 93.6 | 89.6 | 92.0 | 91.9 | 94.0 | 86.8 | 81.7 |
-| Where they agree, the engine's top reading matches them | 92.4 | 80.9 | 84.7 | 85.4 | 87.2 | 78.7 | 73.5 |
-| Target: how often a third expert would be expected to match them | 96.8 | 94.7 | 95.9 | 95.9 | 96.9 | 93.2 | 90.4 |
-| Where they disagree, the top reading matches one of them | 87.8 | 73.4 | 79.8 | 84.7 | 80.8 | 67.5 | 60.7 |
-| Where they disagree, both readings are among those offered | 52.8 | 40.1 | 41.7 | 39.3 | 34.2 | 19.2 | 21.7 |
-
-The target is the square root of the analysts' agreement rate: if each expert matched an ideal analysis at rate *p*, two experts would agree at about *p*², and a third would match their consensus at about *p*. The engine offers 3.4 readings per frame on average here.
-
-**Notes.**
-- Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point of RN to WiR and 2 to ABC. Two of the corrections change labels that AugmentedNet's published figures were scored against.
-- On 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
+**[`RESULTS.md`](RESULTS.md)** has every figure that `bench` and `diagnose` compute on the standard sets, with notes on how to read them. Regenerate it with `harmo results` rather than editing it by hand.
 
 ## Improving the engine
 
@@ -193,7 +144,7 @@ Once the rules settle, run a one-at-a-time sweep on `tune`, then combine the bes
 
 ### 6. Report on `test`
 
-At the end of the round, run `test` once and update the results above.
+At the end of the round, regenerate `RESULTS.md` with `harmo results`.
 
 ## Development
 
