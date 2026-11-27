@@ -41,6 +41,7 @@ cargo build --release
 ./target/release/harmo analyze score.mxl          # readings, with "?" marking interpretive spans
 ./target/release/harmo analyze score.mxl --json   # full document: traces, alternatives, rank histories
 ./target/release/harmo inspect k282-3             # ground truth beside the engine's reading
+./target/release/harmo labelfit                   # check every analysis's labels against the notes
 ./target/release/harmo bench --set tune --label my-change
 ./target/release/harmo bench --set test --set agreement --label my-change
 ./target/release/harmo diagnose --set tune --set agreement-tune   # wrong frames by kind, ranked
@@ -110,6 +111,13 @@ For the largest error kinds, read weak passages in the score beside `harmo inspe
 ### 3. Check the ground truth
 
 A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation, not in the engine.
+
+`harmo labelfit` checks the labels against the notes, independently of the engine. A label's **fit** is the share of the notes' sounding time, summed over voices, that belongs to its chord tones. The command reports the fit by set and lists, ranked by frames at stake times the gain in fit:
+- **Moves in time:** runs of labels that fit markedly better a beat or one to eight bars earlier or later, as when an analysis numbers a pickup as m1 or leaves out an ending.
+- **Other keys:** runs of labels whose figures fit markedly better read in another key, as when an analysis names the wrong key or leaves out a change of key.
+- **Meters:** analyses that place labels past the end of their bar, as when the analysis and the score disagree on the meter.
+
+`--piece TEXT` prints the fit of each key span and measure of the matching pieces, with each measure's fit when its labels move by up to two bars, and `--measures FIRST-LAST` prints each label there beside the pitch classes that sound. Many candidates are not errors: a unison passage, a pedal or a repeated phrase can fit better elsewhere by chance, so check each against the score before correcting it. To test a correction, write the ground truth into a copy of `data/` with `uv run tools/prepare_corpus.py --data DIR` and pass `--data DIR` to `labelfit` and `bench`.
 
 ### 4. Make one change at a time
 

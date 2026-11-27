@@ -11,7 +11,9 @@ This script is the only part of the project that uses Python. It runs once, offl
 - data/groundtruth/<piece>/<analyst>.json: one harmony list per analysis file.
 - data/manifest.json: every piece with its score, its analyses and the benchmark sets it belongs to.
 
-Usage: uv run tools/prepare_corpus.py [--jobs N] [--manifest PATH]
+Usage: uv run tools/prepare_corpus.py [--jobs N] [--data DIR] [--manifest PATH]
+
+--data writes into another data directory, such as a copy of data/ whose sources are already downloaded.
 """
 
 import argparse
@@ -23,6 +25,7 @@ import subprocess
 import unicodedata
 from pathlib import Path
 
+import prepare_corpus_anet
 from prepare_corpus_anet import discover_anet_pieces, load_anet_module
 
 SOURCES = {
@@ -75,7 +78,9 @@ MEASURE_SHIFTS = {
     # The main analysis has m174a and m174b; this one writes the repeat as "m175-194 = m1-20" without them.
     ("piano-sonatas-mozart-wolfgang-amadeus-k310-3", "DT"): [(175, 1)],
     # The score numbers its first full bar 0; the analysis calls it m1.
-    ("openscore-liedercorpus-schumann-robert-dichterliebe-op-48-10-hor-ich-das-liedchen-klingen", "main"): [(1, -1)],
+    ("openscore-liedercorpus-schumann-robert-dichterliebe-op-48-10-hor-ich-das-liedchen-klingen", "main"): [
+        (1, -1)
+    ],
 }
 # Corrections to the RomanText of analyses, by piece and analyst: each replaces text that occurs once.
 KEY_CORRECTIONS = {
@@ -108,15 +113,17 @@ DATA = ROOT / "data"
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--jobs", type=int, default=os.cpu_count())
-    parser.add_argument("--manifest", type=Path, default=DATA / "manifest.json")
+    parser.add_argument("--data", type=Path, default=DATA)
+    parser.add_argument("--manifest", type=Path)
     args = parser.parse_args()
+    use_data_directory(args.data.resolve())
     fetch_sources()
     wir_pieces = discover_pieces()
     attach_anet_splits(wir_pieces)
     anet_pieces = discover_anet_pieces()
     for piece in anet_pieces:
         piece["id"] = slugify(piece["wir_path"])
-    with multiprocessing.Pool(args.jobs) as pool:
+    with multiprocessing.Pool(args.jobs, initializer=use_data_directory, initargs=(DATA,)) as pool:
         wir_results = pool.map(convert_piece, wir_pieces, chunksize=4)
         anet_results = pool.map(convert_piece, anet_pieces, chunksize=4)
     # The agreement set predates the TAVERN pieces and keeps to When in Rome's own scores.
@@ -125,8 +132,15 @@ def main():
             piece["sets"].append("agreement")
     manifest = [piece for piece in wir_results + anet_results if piece["analyses"]]
     attach_tune_sets(manifest)
-    write_manifest(manifest, args.manifest)
+    write_manifest(manifest, args.manifest or DATA / "manifest.json")
     print_summary(manifest)
+
+
+def use_data_directory(path):
+    """Reads and writes the corpus in `path` instead of data/, in this process and in the module it uses."""
+    global DATA
+    DATA = path
+    prepare_corpus_anet.use_data_directory(path)
 
 
 def fetch_sources():

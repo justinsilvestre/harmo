@@ -1,4 +1,4 @@
-//! Command-line entry point: `harmo analyze | bench | diagnose | results | sweep | inspect | rules`.
+//! Command-line entry point: `harmo analyze | bench | diagnose | results | sweep | inspect | labelfit | rules`.
 
 use harmo::bench::manifest::Manifest;
 use harmo::bench::report::{self, RunRecord};
@@ -23,6 +23,7 @@ const USAGE: &str = "usage:
   harmo results [--out FILE] [--weights FILE] [--limit N]
   harmo sweep <sweep.json> [--limit N]
   harmo inspect <piece-id> [--analyst NAME] [--weights FILE]
+  harmo labelfit [--set NAME]... [--piece TEXT [--measures A-B]] [--min-gain FRAMES] [--top N] [--json]
   harmo rules
 common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
@@ -53,6 +54,7 @@ fn main() {
         Some("inspect") => {
             load_weights(args.value("weights")).and_then(|w| harmo::cli_inspect::run(&args, &w))
         }
+        Some("labelfit") => harmo::cli_labelfit::run(&args, &expand_sets(&args.values("set"), &[])),
         Some("rules") => {
             harmo::cli_analyze::print_rules();
             Ok(())
