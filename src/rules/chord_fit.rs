@@ -31,7 +31,7 @@ pub const RULES: &[Rule] = &[
                 locator: "p. 195 (suspensions almost always fall on accented beats)",
             },
         ],
-        default_weight: 2.0,
+        default_weight: 2.75,
         hook: Hook::Slice(ornamental_dissonance),
     },
 ];
