@@ -1,10 +1,11 @@
 //! Scores the set of pitch classes heard in a slice's measure against the key of a reading.
 
 use super::key_profile::{TONICIZED_SHARE, profile_proportions};
-use super::sources::{TEMPERLEY_2001, TEMPERLEY_2007};
+use super::sources::{CAPLIN_2024, TEMPERLEY_2001, TEMPERLEY_2007};
 use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
+use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
 use std::cell::Cell;
 
@@ -18,7 +19,10 @@ pub const RULES: &[Rule] = &[Rule {
               the log profile value of each pitch class present and the log of one minus it for each \
               one absent. The score is taken relative to the average over all 24 keys and multiplied \
               by the slice's duration over a four-quarter-note measure. An applied chord is scored \
-              half against the key it tonicizes.",
+              half against the key it tonicizes. When the chord is a major triad or dominant seventh \
+              on the fifth degree of the key it is scored against, an absent tonic costs nothing, \
+              since a dominant chord does not contain the tonic: a measure that holds only the \
+              dominant chord fits its key as well as it fits the key of the dominant.",
     citations: &[
         Citation {
             source: TEMPERLEY_2001,
@@ -28,6 +32,18 @@ pub const RULES: &[Rule] = &[Rule {
         Citation {
             source: TEMPERLEY_2007,
             locator: "p. 87 (equation 6.3: the pitch classes present and absent both score)",
+        },
+        Citation {
+            source: TEMPERLEY_2001,
+            locator: "p. 188 (a measure in G major considered in isolation outlines a V chord in a C major section)",
+        },
+        Citation {
+            source: CAPLIN_2024,
+            locator: "p. 22 (the dominant, like the tonic, may be prolonged, for instance over a pedal point)",
+        },
+        Citation {
+            source: CAPLIN_2024,
+            locator: "p. 38 (after a half cadence, a standing on the dominant prolongs dominant harmony)",
         },
     ],
     default_weight: 0.25,
@@ -42,13 +58,27 @@ const LOOK_AHEAD: f64 = 2.0;
 const SEGMENT: f64 = 4.0;
 
 fn segment_fit(context: &SliceContext) -> f32 {
-    let scores = cached_key_scores(context.slices, context.index);
-    let home = key_score(&scores, context.reading.key);
+    let (present, scores) = cached_key_scores(context.slices, context.index);
+    let chord = context.reading.chord;
+    let fit_in = |key| key_score(&scores, key) + dominant_allowance(&present, key, chord);
+    let home = fit_in(context.reading.key);
     let fit = match context.reading.tonicized {
-        Some(local) => TONICIZED_SHARE * key_score(&scores, local) + (1.0 - TONICIZED_SHARE) * home,
+        Some(local) => TONICIZED_SHARE * fit_in(local) + (1.0 - TONICIZED_SHARE) * home,
         None => home,
     };
     fit * (context.slice.duration / SEGMENT) as f32
+}
+
+/// Returns the charge for an absent tonic that a dominant chord of the key is spared. The amount
+/// is the charge in a major key for either mode, so that it does not by itself favor one of the
+/// two keys that share a dominant.
+fn dominant_allowance(present: &[bool; 12], key: Key, chord: Chord) -> f32 {
+    let is_dominant =
+        chord.root == key.tonic + 1 && matches!(chord.quality, Quality::Major | Quality::DominantSeventh);
+    if !is_dominant || present[pitch_class(key.tonic) as usize] {
+        return 0.0;
+    }
+    -(1.0 - profile_proportions(Mode::Major)[0]).ln()
 }
 
 /// Looks up a key in scores listed by tonic pitch class, major keys first.
@@ -64,18 +94,21 @@ type SliceIdentity = (usize, usize, usize, usize);
 thread_local! {
     /// The scores of the most recent slice. The engine scores many readings of one slice in a
     /// row, so one entry avoids nearly all recomputation without changing any result.
-    static LAST_SCORES: Cell<(SliceIdentity, [f32; 24])> = const { Cell::new(((0, 0, 0, usize::MAX), [0.0; 24])) };
+    static LAST_SCORES: Cell<(SliceIdentity, [bool; 12], [f32; 24])> =
+        const { Cell::new(((0, 0, 0, usize::MAX), [false; 12], [0.0; 24])) };
 }
 
-fn cached_key_scores(slices: &[Slice], index: usize) -> [f32; 24] {
+/// Returns the pitch classes of the slice's measure and the score of each key for them.
+fn cached_key_scores(slices: &[Slice], index: usize) -> ([bool; 12], [f32; 24]) {
     let identity = (slices.as_ptr() as usize, slices[index].notes.as_ptr() as usize, slices.len(), index);
-    let (cached_identity, scores) = LAST_SCORES.get();
+    let (cached_identity, present, scores) = LAST_SCORES.get();
     if cached_identity == identity {
-        return scores;
+        return (present, scores);
     }
-    let scores = key_scores(&measure_pitch_classes(slices, index));
-    LAST_SCORES.set((identity, scores));
-    scores
+    let present = measure_pitch_classes(slices, index);
+    let scores = key_scores(&present);
+    LAST_SCORES.set((identity, present, scores));
+    (present, scores)
 }
 
 /// Returns the log probability of a pitch-class set under each key, relative to the mean over the
@@ -120,7 +153,6 @@ mod tests {
     use crate::engine::model::{Category, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
-    use crate::theory::chord::{Chord, Quality};
 
     fn tpc(name: &str) -> i32 {
         tpc_from_name(name).unwrap()
@@ -215,6 +247,53 @@ mod tests {
             is_opening: true,
         };
         segment_fit(&context)
+    }
+
+    /// Scores a bar holding only the given notes against a key, read as a chord on the given root.
+    fn bar_fit(names: &[&str], key: Key, root: &str, quality: Quality) -> f32 {
+        let slices = [slice(0.0, 4.0, names)];
+        let chord = Chord::new(tpc(root), quality);
+        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let context = SliceContext {
+            slice: &slices[0],
+            next_slice: None,
+            slices: &slices,
+            index: 0,
+            reading: &reading,
+            is_opening: true,
+        };
+        segment_fit(&context)
+    }
+
+    fn major(name: &str) -> Key {
+        Key::new(tpc(name), Mode::Major)
+    }
+
+    #[test]
+    fn a_dominant_bar_read_as_v_is_spared_the_charge_for_the_absent_tonic() {
+        let triad = ["G", "B", "D"];
+        let charged = key_score(&key_scores(&set(&triad)), major("C"));
+        assert!(bar_fit(&triad, major("C"), "G", Quality::Major) > charged);
+    }
+
+    #[test]
+    fn a_chord_that_is_not_the_dominant_gets_no_allowance() {
+        let chord = Chord::new(tpc("D"), Quality::Minor);
+        assert_eq!(dominant_allowance(&set(&["D", "F", "A"]), major("C"), chord), 0.0);
+    }
+
+    #[test]
+    fn the_allowance_is_the_same_in_major_and_minor() {
+        let present = set(&["G", "B", "D"]);
+        let chord = Chord::new(tpc("G"), Quality::Major);
+        let minor = dominant_allowance(&present, Key::new(tpc("C"), Mode::Minor), chord);
+        assert_eq!(minor, dominant_allowance(&present, major("C"), chord));
+    }
+
+    #[test]
+    fn a_dominant_chord_with_the_tonic_present_gets_no_allowance() {
+        let chord = Chord::new(tpc("G"), Quality::DominantSeventh);
+        assert_eq!(dominant_allowance(&set(&["G", "B", "D", "F", "C"]), major("C"), chord), 0.0);
     }
 
     #[test]

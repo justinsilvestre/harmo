@@ -13,6 +13,7 @@ pub const TEMPERLEY_2007: &str = "temperley2007";
 pub const KOSTKA_PAYNE_ALMEN_2023: &str = "kostka2023";
 pub const SCHULTZ_ET_AL_2018: &str = "schultz2018";
 pub const BURSTEIN_STRAUS_2016: &str = "burstein2016";
+pub const CAPLIN_2024: &str = "caplin2024";
 
 pub const SOURCES: &[Source] = &[
     Source {
@@ -34,5 +35,9 @@ pub const SOURCES: &[Source] = &[
     Source {
         id: BURSTEIN_STRAUS_2016,
         reference: "Burstein, L. Poundie, and Joseph N. Straus. 2016. Concise Introduction to Tonal Harmony. New York: W. W. Norton.",
+    },
+    Source {
+        id: CAPLIN_2024,
+        reference: "Caplin, William E. 2024. Cadence: A Study of Closure in Tonal Music. New York: Oxford University Press.",
     },
 ];
