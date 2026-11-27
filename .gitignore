@@ -4,3 +4,4 @@ runs/
 .DS_Store
 references
 __pycache__/
+.claude/worktrees/
