@@ -2,6 +2,7 @@
 
 use super::equivalence::EQUIVALENCES;
 use super::metrics::{Accuracy, Agreement, AgreementSummary, FEATURES, MATCHED_FEATURES};
+use super::offer_delay::{DELAY_LAYERS, DelaySummary, OfferDelays};
 use super::runner::PieceResult;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -35,6 +36,9 @@ pub struct SetRecord {
     /// does not, by the equivalence's name. Older runs lack it.
     #[serde(default)]
     pub equivalence_credits: Option<BTreeMap<String, u64>>,
+    /// How soon each expert reading is offered, for each of `DELAY_LAYERS`, when it was measured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offer_delays: Option<Vec<DelaySummary>>,
 }
 
 /// The column names of the expert-agreement figures: the matched features, then "rn eq".
@@ -90,7 +94,12 @@ fn summarize_set(results: &[PieceResult], name: &str) -> SetRecord {
         results.iter().filter(|r| name == "all" || r.sets.iter().any(|s| s == name)).collect();
     let mut accuracy = Accuracy::default();
     let mut agreement: Option<Agreement> = None;
+    let mut delays: Option<OfferDelays> = None;
     for result in &members {
+        if let Some(piece_delays) = &result.offer_delays {
+            let merged = delays.get_or_insert_with(Default::default);
+            merged.iter_mut().zip(piece_delays).for_each(|(set, piece)| set.merge(piece));
+        }
         accuracy.merge(&result.accuracy);
         if let Some(piece_agreement) = &result.agreement {
             agreement.get_or_insert_with(Agreement::default).merge(piece_agreement);
@@ -104,6 +113,8 @@ fn summarize_set(results: &[PieceResult], name: &str) -> SetRecord {
         mean_offered: Some(accuracy.mean_offered()),
         agreement: agreement.map(|a| a.summary()),
         equivalence_credits: Some(credits_by_name(&accuracy)),
+        offer_delays: delays
+            .map(|d| d.iter().zip(DELAY_LAYERS).map(|(l, (name, _))| l.summary(name)).collect()),
     }
 }
 

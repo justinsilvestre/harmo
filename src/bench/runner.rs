@@ -5,6 +5,7 @@ use super::frames::{FRAME, frame_labels, frame_slices};
 use super::groundtruth::load_labels;
 use super::manifest::{Manifest, ManifestPiece};
 use super::metrics::{Accuracy, Agreement, EquivalentMatches};
+use super::offer_delay::{OfferDelays, offer_delays};
 use crate::engine::history::segment_at;
 use crate::engine::path::segments_of;
 use crate::engine::ruleset::RuleSet;
@@ -56,6 +57,8 @@ pub struct EvalConfig {
     /// The equivalents measure counts a label as right when it matches the expert's within this
     /// many quarter notes.
     pub timing_tolerance: f64,
+    /// Whether to measure how soon each expert reading is offered (see `offer_delay`).
+    pub measure_offer_delays: bool,
 }
 
 /// The default timing tolerance of the equivalents measure, an eighth note.
@@ -71,6 +74,7 @@ impl Default for EvalConfig {
             offer_margin: 4.0,
             offer_lag: 2.0,
             timing_tolerance: TIMING_TOLERANCE,
+            measure_offer_delays: false,
         }
     }
 }
@@ -83,6 +87,9 @@ pub struct PieceResult {
     pub seconds: f64,
     pub accuracy: Accuracy,
     pub agreement: Option<Agreement>,
+    /// How soon each expert reading was offered, when measured.
+    #[serde(skip)]
+    pub offer_delays: Option<OfferDelays>,
 }
 
 /// Loads pieces in parallel, returning the loaded pieces and (piece id, error) pairs for failures.
@@ -150,6 +157,7 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     }
     let agreement =
         (piece.analyses.len() >= 2).then(|| agreement(piece, (&top, &offered), config.timing_tolerance));
+    let offer_delays = config.measure_offer_delays.then(|| offer_delays(&analysis, piece, config));
     PieceResult {
         id: piece.id.clone(),
         sets: piece.sets.clone(),
@@ -157,6 +165,7 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
         seconds: started.elapsed().as_secs_f64(),
         accuracy,
         agreement,
+        offer_delays,
     }
 }
 
@@ -254,6 +263,11 @@ fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalCon
     let Some(beam) = lagged_beam(analysis, slices, at, config.offer_lag) else {
         return vec![];
     };
+    offered_from(analysis, beam, at, config)
+}
+
+/// Returns the distinct readings of slice `at` that `beam` offers under the offer count and margin.
+pub fn offered_from(analysis: &Analysis, beam: &[u32], at: usize, config: &EvalConfig) -> Vec<Label> {
     let Some(&best) = beam.first() else {
         return vec![];
     };

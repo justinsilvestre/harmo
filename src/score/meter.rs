@@ -33,6 +33,11 @@ fn is_compound(measure: &Measure) -> bool {
     measure.beat_type >= 8 && measure.beats.is_multiple_of(3) && measure.beats > 3
 }
 
+/// Returns the length of the measure's beat in quarter notes: a dotted quarter in 6/8, for example.
+pub fn beat_length(measure: &Measure) -> Offset {
+    beat_unit(measure).0
+}
+
 /// Returns the beat length in quarter notes and the number of beats per measure.
 fn beat_unit(measure: &Measure) -> (Offset, u32) {
     let unit = 4.0 / measure.beat_type as f64;

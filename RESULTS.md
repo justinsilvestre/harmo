@@ -6,10 +6,10 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `b0ee029` plus uncommitted changes, with weights from the defaults
-- **Generated:** 2026-11-27 22:47 UTC
+- **Engine:** commit `c44e656`, with weights from the defaults
+- **Generated:** 2026-11-27 23:16 UTC
 - **Search settings:** beam width 80, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, RN eq timing tolerance in quarter notes 0.5
-- **Runtime:** 12.5 s in all on 18 threads: 6.6 s for the benchmark and 5.8 s for the diagnosis
+- **Runtime:** 28.5 s in all on 18 threads: 11.7 s for the benchmark and 16.6 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
 
 ## Accuracy on the test split
@@ -264,6 +264,41 @@ The engine offers 3.4 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 65.4 | 44.3 | 49.9 | 38.2 | 33.0 | 22.3 | 27.0 | 35.3 |
 
 The engine offers 3.5 readings per frame on average here.
+
+## How soon readings are offered
+
+Offered readings, and the readings behind **key now** and **RN now**, are read from the beam two quarter notes after each moment. These tables show how soon each expert label's reading is first offered. Each label counts once, from its first frame to its last, and every analyst's labels count, so a piece with two analyses counts twice.
+
+The beam after each slice is read with the usual offer count and margin, for the label's first slice and for the latest slice of the label heard so far. The **delay** is the time from the label's onset to the start of the first slice whose beam offers the reading, and 0 when the beam of the slice where the label begins already offers it. The search stops two bars after the onset or at the end of the label, whichever is later, and **not offered** is the share of labels whose reading is not offered by then.
+- **Median delay** is in quarter notes, over the labels whose reading is offered.
+- **Within a beat, a bar, two bars** are shares of all labels, measured by the time signature at the label's onset (a beat of 6/8 is a dotted quarter). Each includes the ones before it.
+
+### RN
+
+| set | labels | median delay | within a beat | within a bar | within two bars | not offered |
+|---|---:|---:|---:|---:|---:|---:|
+| all of test | 14573 | 0.00 | 76.1 | 80.6 | 81.1 | 18.8 |
+| all of tune | 122231 | 0.00 | 79.3 | 82.8 | 83.2 | 16.7 |
+| agreement | 35315 | 0.00 | 84.9 | 87.7 | 88.0 | 12.0 |
+| agreement-tune | 31492 | 0.00 | 85.2 | 87.8 | 88.0 | 12.0 |
+
+### Key
+
+| set | labels | median delay | within a beat | within a bar | within two bars | not offered |
+|---|---:|---:|---:|---:|---:|---:|
+| all of test | 670 | 0.50 | 67.6 | 86.4 | 94.5 | 0.6 |
+| all of tune | 7682 | 0.00 | 78.8 | 91.7 | 95.4 | 2.1 |
+| agreement | 2014 | 0.00 | 83.8 | 95.2 | 97.9 | 0.6 |
+| agreement-tune | 1847 | 0.00 | 85.2 | 95.9 | 98.1 | 0.6 |
+
+### Chord (root, quality and inversion, whatever the key)
+
+| set | labels | median delay | within a beat | within a bar | within two bars | not offered |
+|---|---:|---:|---:|---:|---:|---:|
+| all of test | 14550 | 0.00 | 85.8 | 89.2 | 89.5 | 10.4 |
+| all of tune | 121892 | 0.00 | 88.6 | 90.9 | 91.1 | 8.9 |
+| agreement | 35261 | 0.00 | 90.7 | 92.5 | 92.6 | 7.4 |
+| agreement-tune | 31444 | 0.00 | 91.0 | 92.6 | 92.7 | 7.3 |
 
 ## Where the errors are
 
