@@ -154,3 +154,47 @@ fn a_held_bass_under_a_single_label_is_not_a_pedal() {
     let fixture = Fixture::new(&[(label(V7, "D"), 8)], "C", &["C", "D", "F", "G", "B"]);
     assert_eq!(fixture.credit(label(V7, "G"), 1, 0), None);
 }
+
+/// I6, then I over the same chord as the bass moves down to the root.
+fn tonic_relabelled() -> Fixture {
+    Fixture::new(&[(label(I, "E"), 4), (label(I, "C"), 4)], "C", &["C", "E", "G"])
+}
+
+#[test]
+fn the_other_inversion_counts_over_a_relabelled_chord() {
+    assert_eq!(tonic_relabelled().credit(label(I, "C"), 1, 0), Some(Credit::Inversion));
+}
+
+#[test]
+fn an_inversion_the_expert_does_not_write_does_not_count() {
+    assert_eq!(tonic_relabelled().credit(label(I, "G"), 1, 0), None);
+}
+
+#[test]
+fn an_inversion_does_not_count_against_another_chord() {
+    let fixture = Fixture::new(&[(label(I, "E"), 4), (label(V, "G"), 4)], "G", &["G", "B", "D"]);
+    assert_eq!(fixture.credit(label(I, "E"), 5, 0), None);
+}
+
+/// I, IV64 and I again over a held C.
+fn pedal_six_four() -> Fixture {
+    let spans = [(label(I, "C"), 4), (label(IV, "C"), 4), (label(I, "C"), 4)];
+    Fixture::new(&spans, "C", &["C", "F", "A"])
+}
+
+#[test]
+fn the_outer_chord_counts_over_a_pedal_six_four() {
+    assert_eq!(pedal_six_four().credit(label(I, "C"), 5, 0), Some(Credit::Pedal));
+}
+
+#[test]
+fn the_six_four_does_not_count_in_root_position() {
+    assert_eq!(pedal_six_four().credit(label(IV, "F"), 5, 0), None);
+}
+
+#[test]
+fn a_cadential_six_four_between_dominants_is_not_a_pedal() {
+    let spans = [(label(V, "G"), 4), (label(I, "G"), 4), (label(V, "G"), 4)];
+    let fixture = Fixture::new(&spans, "G", &["G", "C", "E"]);
+    assert_eq!(fixture.credit(label(V, "G"), 5, 0), None);
+}

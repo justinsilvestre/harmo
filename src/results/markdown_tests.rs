@@ -113,7 +113,7 @@ fn ranks_error_kinds_with_their_share_and_pairs() {
 
 #[test]
 fn gives_the_share_of_frames_each_equivalence_credits() {
-    assert!(document().contains("| WiR (test) | 50.0 | 50.0 | 0.0 | 0.0 | 0.0 | 0.0 | 25.0 |"));
+    assert!(document().contains("| WiR (test) | 50.0 | 50.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 25.0 |"));
 }
 
 #[test]

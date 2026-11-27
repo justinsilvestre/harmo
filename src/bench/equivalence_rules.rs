@@ -15,25 +15,28 @@ pub fn is_triad_and_its_seventh(a: &Label, b: &Label) -> bool {
     same_chord_place && (is_pair(a, b) || is_pair(b, a)) && pitch_class(a.bass()) == pitch_class(b.bass())
 }
 
-/// Reports whether an applied chord X/Y in one key names the same chord as the other label in the
-/// key that Y stands for, such as V/V in C and V in G.
-/// At least one of the labels must be applied, so two plain labels in different keys never match.
+/// Reports whether an applied chord X/Y in one key names the same chord as the other label, which
+/// is X in the key that Y stands for, such as V/V in C and V in G.
+/// Exactly one of the labels must be applied: two plain labels in different keys never match, and
+/// neither do the same chord applied from two keys (V/V in C against V/IV in D), which are readings
+/// in different keys.
 /// A label applied to its own tonic in the other mode, such as VI/i in a major key, is how some
 /// analysts write mixture, and matching it would credit a reading in the parallel key, so it is
 /// left out.
 pub fn is_applied_in_other_key(a: &Label, b: &Label) -> bool {
     let is_applied = |l: &Label| l.tonicized.is_some_and(|t| t.tonic != l.key.tonic);
-    let is_applied = (is_applied(a) || is_applied(b)) && !is_parallel_mixture(a) && !is_parallel_mixture(b);
+    let is_applied = (is_applied(a) != is_applied(b)) && !is_parallel_mixture(a) && !is_parallel_mixture(b);
     let same_chord = a.root == b.root && a.quality == b.quality && a.inversion == b.inversion;
     is_applied && same_chord && a.reference_key() == b.reference_key()
 }
 
-/// Reports whether one label is a dominant seventh on the fifth degree and the other a leading-tone
-/// chord of the same key and tonicization, while the dominant's root is not sounding (`sounding`
+/// Reports whether one label is a dominant seventh on the fifth degree and the other the leading-tone
+/// triad of the same key and tonicization, while the dominant's root is not sounding (`sounding`
 /// holds one bit per pitch class). The two must share a bass, unless the dominant seventh is
 /// written in root position: with its root silent, that figure names the implied root rather than
 /// a sounding bass.
-/// With the root absent, the two name the same sounding pitches.
+/// With the root absent, the two name the same sounding pitches. A leading-tone seventh chord adds
+/// the dominant's ninth, so it names another chord and is not matched.
 pub fn is_rootless_dominant(a: &Label, b: &Label, sounding: u16) -> bool {
     let (dominant, leading) = match (is_dominant_seventh(a), is_dominant_seventh(b)) {
         (true, false) => (a, b),
@@ -56,14 +59,10 @@ fn is_dominant_seventh(label: &Label) -> bool {
     label.quality == Quality::DominantSeventh && label.root == label.reference_key().tonic + 1
 }
 
-/// Reports whether the label is viio, viio7 or viiø7: a diminished chord on the leading tone, which
-/// lies five fifths above the tonic in either mode.
+/// Reports whether the label is viio: a diminished triad on the leading tone, which lies five
+/// fifths above the tonic in either mode.
 fn is_leading_tone_chord(label: &Label) -> bool {
-    let is_diminished = matches!(
-        label.quality,
-        Quality::Diminished | Quality::DiminishedSeventh | Quality::HalfDiminishedSeventh
-    );
-    is_diminished && label.root == label.reference_key().tonic + 5
+    label.quality == Quality::Diminished && label.root == label.reference_key().tonic + 5
 }
 
 /// Reports whether two labels agree on everything but the inversion.
@@ -150,9 +149,9 @@ mod tests {
     }
 
     #[test]
-    fn the_same_applied_chord_from_two_keys_matches() {
+    fn the_same_applied_chord_from_two_keys_does_not_match() {
         let d = ("D", Quality::Major);
-        assert!(is_applied_in_other_key(&label("C", Some("G"), d, "D"), &label("D", Some("G"), d, "D")));
+        assert!(!is_applied_in_other_key(&label("C", Some("G"), d, "D"), &label("D", Some("G"), d, "D")));
     }
 
     #[test]
@@ -197,10 +196,16 @@ mod tests {
     }
 
     #[test]
-    fn a_rootless_dominant_matches_a_diminished_seventh_in_minor() {
+    fn a_dominant_seventh_does_not_match_a_diminished_seventh() {
         let (v7, viio7) = (V7, ("B", Quality::DiminishedSeventh));
         let sounding = pitch_classes(&["B", "D", "F", "A-"]);
-        assert!(is_rootless_dominant(&label("c", None, v7, "B"), &label("c", None, viio7, "B"), sounding));
+        assert!(!is_rootless_dominant(&label("c", None, v7, "B"), &label("c", None, viio7, "B"), sounding));
+    }
+
+    #[test]
+    fn a_rootless_dominant_matches_the_leading_tone_triad_in_minor() {
+        let sounding = pitch_classes(&["B", "D", "F"]);
+        assert!(is_rootless_dominant(&label("c", None, V7, "B"), &label("c", None, VIIO, "B"), sounding));
     }
 
     #[test]

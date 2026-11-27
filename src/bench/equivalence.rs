@@ -5,7 +5,9 @@
 //! another, except that the timing tolerance also applies the other equivalences to nearby frames.
 
 use super::equivalence_pedal::{Pedal, find_pedals};
-use super::equivalence_rules::{is_applied_in_other_key, is_rootless_dominant, is_triad_and_its_seventh};
+use super::equivalence_rules::{
+    is_applied_in_other_key, is_rootless_dominant, is_same_but_inversion, is_triad_and_its_seventh,
+};
 use super::frames::label_runs;
 use super::metrics::is_rn_match;
 use crate::pitch::pitch_class;
@@ -21,6 +23,9 @@ pub enum Credit {
     /// either label anywhere in the pair. Whether a seventh that enters partway through a chord
     /// makes a new chord is a matter of analytical judgment (Kostka, Payne and Almén 2023, ch. 15).
     Seventh,
+    /// The expert relabels one chord with another inversion as its bass moves, such as I6 then I,
+    /// and the engine gives either label anywhere over the pair. The two labels name the same chord.
+    Inversion,
     /// An applied chord X/Y against X in the key that Y stands for (Kostka, Payne and Almén 2023,
     /// ch. 16, on tonicization against modulation).
     Applied,
@@ -36,14 +41,15 @@ pub enum Credit {
 }
 
 /// The equivalences that credit a frame the exact measure does not, in the order they are tried.
-pub const EQUIVALENCES: [Credit; 5] =
-    [Credit::Seventh, Credit::Applied, Credit::Rootless, Credit::Pedal, Credit::Timing];
+pub const EQUIVALENCES: [Credit; 6] =
+    [Credit::Seventh, Credit::Inversion, Credit::Applied, Credit::Rootless, Credit::Pedal, Credit::Timing];
 
 impl Credit {
     pub fn name(self) -> &'static str {
         match self {
             Credit::Exact => "exact",
             Credit::Seventh => "seventh",
+            Credit::Inversion => "inversion",
             Credit::Applied => "applied",
             Credit::Rootless => "rootless",
             Credit::Pedal => "pedal",
@@ -82,6 +88,8 @@ pub struct ExpertEquivalents {
     run_of: Vec<u32>,
     /// For each run, the labels of the neighboring runs that pair with it as a triad and its seventh.
     partners: Vec<[Option<Label>; 2]>,
+    /// For each run, the labels of the neighboring runs that name the same chord in another inversion.
+    inversions: Vec<[Option<Label>; 2]>,
     /// For each frame, the index into `pedals` of the pedal it lies over, if any.
     pedal_of: Vec<u32>,
     pedals: Vec<Pedal>,
@@ -95,7 +103,13 @@ impl ExpertEquivalents {
             run_of[start..end].fill(index as u32);
         }
         let (pedal_of, pedals) = find_pedals(labels, &sounds.lowest);
-        ExpertEquivalents { run_of, partners: seventh_partners(labels, &runs), pedal_of, pedals }
+        ExpertEquivalents {
+            run_of,
+            partners: neighbor_partners(labels, &runs, is_triad_and_its_seventh),
+            inversions: neighbor_partners(labels, &runs, is_same_but_inversion),
+            pedal_of,
+            pedals,
+        }
     }
 }
 
@@ -131,9 +145,14 @@ impl ExpertView<'_> {
     fn equivalent_at(&self, label: &Label, expert: usize, heard: usize) -> Option<Credit> {
         let truth = self.labels[expert]?;
         let equivalents = self.equivalents;
-        let partners = &equivalents.partners[equivalents.run_of[expert] as usize];
-        if partners.iter().flatten().any(|p| is_rn_match(label, p)) {
+        let run = equivalents.run_of[expert] as usize;
+        let is_partner =
+            |partners: &[Option<Label>; 2]| partners.iter().flatten().any(|p| is_rn_match(label, p));
+        if is_partner(&equivalents.partners[run]) {
             return Some(Credit::Seventh);
+        }
+        if is_partner(&equivalents.inversions[run]) {
+            return Some(Credit::Inversion);
         }
         if is_applied_in_other_key(label, &truth) {
             return Some(Credit::Applied);
@@ -146,12 +165,15 @@ impl ExpertView<'_> {
     }
 }
 
-/// Returns, for each run of equal labels, the neighboring runs' labels that pair with it as a
-/// triad and its seventh chord.
-fn seventh_partners(labels: &[Option<Label>], runs: &[(usize, usize)]) -> Vec<[Option<Label>; 2]> {
+/// Returns, for each run of equal labels, the neighboring runs' labels that pair with it by `pairs`.
+fn neighbor_partners(
+    labels: &[Option<Label>],
+    runs: &[(usize, usize)],
+    pairs: fn(&Label, &Label) -> bool,
+) -> Vec<[Option<Label>; 2]> {
     let label_of = |run: Option<&(usize, usize)>| run.and_then(|&(start, _)| labels[start]);
     let partner = |own: Option<Label>, other: Option<Label>| {
-        other.filter(|o| own.is_some_and(|own| is_triad_and_its_seventh(&own, o)))
+        other.filter(|o| own.is_some_and(|own| own != *o && pairs(&own, o)))
     };
     let pair = |index: usize| {
         let own = label_of(runs.get(index));
