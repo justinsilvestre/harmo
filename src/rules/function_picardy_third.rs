@@ -39,6 +39,7 @@ fn is_major_tonic_in_minor(reading: &Reading) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -59,8 +60,14 @@ mod tests {
             tonicized: None,
             category: Category::Mixture,
         };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 1.0,
+            members_heard: 0b111,
+            bass: Bass::default(),
+        };
         let next = next_phrase.map(slice);
         picardy_third(&CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() })
     }

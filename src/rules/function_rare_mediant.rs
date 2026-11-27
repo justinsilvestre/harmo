@@ -41,6 +41,7 @@ fn rare_mediant(context: &CloseContext) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
@@ -51,8 +52,14 @@ mod tests {
         let key = Key::parse(tonic, mode).unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 1.0,
+            members_heard: 0b111,
+            bass: Bass::default(),
+        };
         rare_mediant(&CloseContext { segment: &segment, slices: &[], next_slice: None })
     }
 

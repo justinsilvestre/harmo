@@ -34,6 +34,7 @@ fn is_tonic(reading: &Reading) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Segment};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
@@ -73,7 +74,7 @@ mod tests {
             previous: NONE,
             duration: 1.0,
             members_heard: 0b111,
-            bass: None,
+            bass: Bass::default(),
         };
         assert_eq!(transition(Some(&previous), "C"), 0.0);
     }

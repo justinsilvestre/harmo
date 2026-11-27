@@ -165,8 +165,14 @@ mod tests {
             tonicized: None,
             category: Category::Diatonic,
         };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 4.0, members_heard: 0b1011, bass: None };
+        let segment = Segment {
+            reading,
+            start: 0,
+            previous: NONE,
+            duration: 4.0,
+            members_heard: 0b1011,
+            bass: Bass::default(),
+        };
         seventh_evidence(&CloseContext { segment: &segment, slices: &slices, next_slice: Some(&next) })
     }
 
