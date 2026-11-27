@@ -2,6 +2,7 @@
 
 pub mod chord_bass;
 pub mod chord_bass_note;
+pub mod chord_cadential_dominant;
 pub mod chord_completeness;
 pub mod chord_fit;
 pub mod chord_implied_harmony;
@@ -39,6 +40,7 @@ use crate::engine::rule::Rule;
 pub fn default_rules() -> Vec<Rule> {
     [
         chord_proposal::RULES,
+        chord_cadential_dominant::RULES,
         chord_fit::RULES,
         chord_implied_harmony::RULES,
         chord_rhythm::RULES,

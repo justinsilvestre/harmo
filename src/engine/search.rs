@@ -154,7 +154,17 @@ fn openings(
     };
     let mut scored: Vec<(Reading, f32)> = readings.into_iter().map(|r| (r, score(&r))).collect();
     scored.sort_by(|a, b| b.1.total_cmp(&a.1));
-    scored.truncate(limit);
+    let rest = scored.split_off(limit.min(scored.len()));
+    let mut rivals: Vec<Reading> = Vec::new();
+    for (reading, _) in &scored {
+        for (rival_of, params) in &rules.rival_candidate_rules {
+            rivals.extend(rival_of(reading, slice, params));
+        }
+    }
+    let is_rival = |r: &Reading| {
+        rivals.iter().any(|v| v.key == r.key && v.chord == r.chord && v.tonicized == r.tonicized)
+    };
+    scored.extend(rest.into_iter().filter(|(reading, _)| is_rival(reading)));
     scored
 }
 

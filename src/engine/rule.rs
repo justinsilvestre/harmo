@@ -85,6 +85,8 @@ pub type BassFn = fn(Bass, &BassNote, &[f64]) -> Bass;
 pub type DistinguishFn = fn(&Segment, &[f64]) -> u64;
 /// Returns the rival group of a hypothesis's last segment, or `None` if it has no rival reading.
 pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<u64>;
+/// Returns a rival reading of a slice for a candidate reading of it, or `None`.
+pub type RivalCandidateFn = fn(&Reading, &Slice, &[f64]) -> Option<Reading>;
 
 #[derive(Clone, Copy)]
 pub enum Hook {
@@ -118,6 +120,10 @@ pub enum Hook {
     /// best hypothesis whose last segment has the same group but another reading opens the new
     /// segment as well, so that the rival reading stays in the search as a hypothesis of its own.
     Rival(RivalFn),
+    /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
+    /// When the proposers and interpreters produce the rival reading but its fit to the slice falls
+    /// below the candidate limit, it is kept as a candidate as well.
+    RivalCandidate(RivalCandidateFn),
 }
 
 impl Hook {
@@ -134,6 +140,7 @@ impl Hook {
             Hook::Distinguish(_) => "distinguish",
             Hook::Bass(_) => "bass",
             Hook::Rival(_) => "rival",
+            Hook::RivalCandidate(_) => "rival_candidate",
         }
     }
 }

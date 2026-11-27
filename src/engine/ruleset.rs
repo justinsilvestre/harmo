@@ -4,8 +4,8 @@ use super::bass::{Bass, BassNote};
 use super::model::Segment;
 use super::rule::{
     AdmitFn, BassFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
-    ProposeFn, ProposeKeysFn, RivalContext, RivalFn, Rule, SliceContext, SliceFn, TransitionContext,
-    TransitionFn,
+    ProposeFn, ProposeKeysFn, RivalCandidateFn, RivalContext, RivalFn, Rule, SliceContext, SliceFn,
+    TransitionContext, TransitionFn,
 };
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -41,6 +41,7 @@ pub struct RuleSet {
     pub distinguish_rules: Vec<(DistinguishFn, Box<[f64]>)>,
     pub bass_rules: Vec<(BassFn, Box<[f64]>)>,
     pub rival_rules: Vec<(RivalFn, Box<[f64]>)>,
+    pub rival_candidate_rules: Vec<(RivalCandidateFn, Box<[f64]>)>,
 }
 
 impl RuleSet {
@@ -73,6 +74,7 @@ impl RuleSet {
             distinguish_rules: vec![],
             bass_rules: vec![],
             rival_rules: vec![],
+            rival_candidate_rules: vec![],
         };
         set.group_hooks();
         Ok(set)
@@ -100,6 +102,7 @@ impl RuleSet {
                 Hook::Distinguish(f) => self.distinguish_rules.push((f, params)),
                 Hook::Bass(f) => self.bass_rules.push((f, params)),
                 Hook::Rival(f) => self.rival_rules.push((f, params)),
+                Hook::RivalCandidate(f) => self.rival_candidate_rules.push((f, params)),
             }
         }
     }
