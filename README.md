@@ -74,7 +74,24 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (RN %):** WiR 61.2 (AugmentedNet 56.4), ABC 47.7 (44.5), MPS 63.0, WTC 48.0 (46.2), HaydnSun 47.7 (48.6), TAVERN 55.6 (42.6), BPS 57.0 (45.4). Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. In the moment (RN now), the engine scores 3 to 5 points lower on most of these (WiR 57.8, ABC 43.3, MPS 58.3, HaydnSun 44.3, TAVERN 52.9, BPS 51.8), but about the same on WTC (47.4), whose preludes rarely revise an earlier hearing. Where analysts disagree, both readings are offered for 21.7% of frames, with 3.4 readings offered on average. On 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
+**Current results, test split (%).** AugmentedNet's published numbers are in brackets. It reports no chord or in-the-moment figures and none for MPS.
+
+| corpus | key | degree | quality | inversion | root | RN | chord | RN now |
+|---|---|---|---|---|---|---|---|---|
+| WiR | 79.0 (81.8) | 71.7 (69.2) | 83.4 (85.9) | 87.8 (90.3) | 89.7 (90.3) | 61.2 (56.4) | 78.0 | 57.8 |
+| ABC | 80.9 (83.6) | 63.4 (65.6) | 72.2 (78.0) | 70.9 (76.9) | 75.9 (78.9) | 47.7 (44.5) | 57.3 | 43.3 |
+| MPS | 89.1 | 75.7 | 77.7 | 79.4 | 82.2 | 63.0 | 69.1 | 58.3 |
+| WTC | 78.6 (77.2) | 63.5 (69.7) | 67.1 (75.0) | 72.9 (74.4) | 78.4 (82.7) | 48.0 (46.2) | 59.3 | 47.4 |
+| HaydnSun | 74.6 (81.2) | 61.7 (62.9) | 74.7 (80.2) | 79.0 (82.7) | 82.6 (86.5) | 47.7 (48.6) | 64.5 | 44.3 |
+| TAVERN | 84.3 (88.7) | 68.4 (60.0) | 77.0 (77.4) | 76.6 (78.8) | 80.0 (81.5) | 55.6 (42.6) | 65.7 | 52.9 |
+| BPS | 83.2 (85.0) | 72.9 (73.4) | 81.1 (79.0) | 79.1 (73.4) | 84.7 (84.4) | 57.0 (45.4) | 68.1 | 51.8 |
+| all seven | 82.3 | 68.9 | 77.0 | 77.3 | 81.5 | 54.6 | 65.5 | 50.5 |
+
+- **RN against single features:** the engine beats AugmentedNet on RN everywhere except HaydnSun, but trails it on most single features. Each of its labels is one chord in one key, so a right label is right on every feature at once, while AugmentedNet predicts each feature separately.
+- **In the moment:** RN now is 3 to 5 points lower on most corpora, but about the same on WTC, whose preludes rarely revise an earlier hearing.
+- **Expert agreement** (`agreement`, 150 pieces): where the analysts agree, the top reading matches them for 73.5% of frames (target 90.4). Where they disagree, both readings are offered for 21.7% of frames (19.2% for the chord alone), with 3.4 readings offered on average.
+- **Corrected labels:** four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. Two of the corrections change labels that AugmentedNet's published numbers were scored against.
+- **Speed:** on 18 cores, a full test run takes about 1.7 s and a `tune` run about 5 s.
 
 ## Improving the engine
 
