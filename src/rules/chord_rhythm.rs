@@ -52,7 +52,7 @@ const MAX_DISTANCE: Param = Param {
     name: "max_distance",
     default: 6.0,
     unit: "fifths",
-    provenance: "chosen: 4e0fbe2, round 1 (a tritone; Temperley 2001, p. 152, gives no cap; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (a tritone; Temperley 2001, p. 152, gives no cap); measured: sweeps/round7-constants.json, round 7 (3 / 4 / 9 / 12: tune RN -0.02 / +0.02 / -0.02 / -0.02; kept)",
 };
 /// The most pitch classes a slice may sound for its texture to count as thin.
 const THIN_PITCH_CLASSES: Param = Param {
@@ -60,7 +60,7 @@ const THIN_PITCH_CLASSES: Param = Param {
     name: "thin_pitch_classes",
     default: 2.0,
     unit: "pitch classes",
-    provenance: "chosen: 222f9f0, round 4 (a single line, octaves or two voices; not swept)",
+    provenance: "chosen: 222f9f0, round 4 (a single line, octaves or two voices); measured: sweeps/round7-constants.json, round 7 (1 / 3: tune RN -0.06 / -0.20; kept)",
 };
 /// The strongest metric level at which a change in a thin texture costs anything (a beat subdivision).
 /// A change at that level costs 1 / (level + 1) of one at level 0.
@@ -69,7 +69,7 @@ const SUBDIVISION_LEVEL: Param = Param {
     name: "subdivision_level",
     default: 1.0,
     unit: "metric level",
-    provenance: "measured: 222f9f0, round 4 (the strong-beat curve on every level instead: tune RN +0.1 with wir -0.2 to -0.4)",
+    provenance: "measured: 222f9f0, round 4 (the strong-beat curve on every level instead: tune RN +0.1 with wir -0.2 to -0.4); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0 / 2 / 3: tune RN -0.12 / +0.10 / +0.11; 2 gives +0.10 [+0.01, +0.20] but agreement-tune both offered -0.35 [-0.76, +0.04] while offering 0.014 more readings; kept)",
 };
 
 fn strong_beat(context: &TransitionContext, _: &[f64]) -> f32 {

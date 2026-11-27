@@ -39,7 +39,7 @@ const ESTABLISHED_AREA: Param = Param {
     name: "established_area",
     default: 16.0,
     unit: "quarter notes",
-    provenance: "chosen: 4e0fbe2, round 1 (four measures of common time; Kostka, Payne and Almen 2023, p. 299, name the time spent in the new key as evidence but give no length; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (four measures of common time; Kostka, Payne and Almen 2023, p. 299, name the time spent in the new key as evidence but give no length); measured: sweeps/round7-constants.json, round 7 (4 / 8 / 12 / 24 / 32: tune RN -0.03 / -0.03 / +0.01 / -0.00 / +0.02; kept)",
 };
 
 fn modulation(context: &TransitionContext, _: &[f64]) -> f32 {

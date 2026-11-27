@@ -59,7 +59,7 @@ const MISSING_THIRD: Param = Param {
     name: "missing_third",
     default: 0.5,
     unit: "ratio to a missing root",
-    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 82, rank the third's omission after the fifth's and the root's; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 82, rank the third's omission after the fifth's and the root's); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN -0.16 / -0.02 / -0.15 / -0.35; kept)",
 };
 /// Share of the segment's duration at which the seventh costs nothing.
 const SEVENTH_SHARE_TARGET: Param = Param {
@@ -67,7 +67,7 @@ const SEVENTH_SHARE_TARGET: Param = Param {
     name: "share_target",
     default: 0.5,
     unit: "share of the segment",
-    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 247, let relative duration decide but give no share; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 247, let relative duration decide but give no share); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0.25 / 0.375 / 0.625 / 0.75 / 1: tune RN -0.25 / +0.01 / +0.17 / +0.12 / +0.08; 0.625 and 0.75 lower agreement-tune both offered by 1.0; kept)",
 };
 /// The share of the cost charged for a brief seventh left by leap. Such a seventh fits neither the
 /// suspension nor the passing figure it originated as, but may still be an escape tone.
@@ -76,7 +76,7 @@ const LEAPING_SEVENTH_FACTOR: Param = Param {
     name: "leaping_seventh_factor",
     default: 0.5,
     unit: "ratio",
-    provenance: "measured: a3b7bff, round 3 (0: tune RN +0.10 but both offered -0.14; 0.5: +0.06, both offered +0.01)",
+    provenance: "measured: a3b7bff, round 3 (0: tune RN +0.10 but both offered -0.14; 0.5: +0.06, both offered +0.01); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.375 / 0.75 / 1: tune RN -0.03 / +0.01 / +0.01 / -0.03 / -0.07; kept)",
 };
 
 fn seventh_evidence(context: &CloseContext, params: &[f64]) -> f32 {

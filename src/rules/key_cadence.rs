@@ -26,7 +26,7 @@ const STRONG_BEAT: Param = Param {
     name: "strong_beat",
     default: 3.0,
     unit: "metric level",
-    provenance: "chosen: 15273b4, round 2 (Kostka, Payne and Almen 2023, p. 149: the last chord of a cadence usually falls on a stronger beat than the one before it, but no level is given; not swept)",
+    provenance: "chosen: 15273b4, round 2 (Kostka, Payne and Almen 2023, p. 149: the last chord of a cadence usually falls on a stronger beat than the one before it, but no level is given); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN -0.05 / -0.08; kept)",
 };
 
 fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {

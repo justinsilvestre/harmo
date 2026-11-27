@@ -38,7 +38,7 @@ const LOOK_AHEAD: Param = Param {
     name: "look_ahead",
     default: 2.0,
     unit: "quarter notes",
-    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); measured: 7e35101, round 6 (no waiver: tune RN +0.09 against +0.11 at weight 0.5)",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); measured: 7e35101, round 6 (no waiver: tune RN +0.09 against +0.11 at weight 0.5); measured: sweeps/round7-constants.json, round 7 (0 / 1: tune RN -0.01 / -0.00; kept)",
 };
 
 const EPSILON: f64 = 1e-6;

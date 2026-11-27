@@ -74,7 +74,7 @@ const LOOK_AHEAD: Param = Param {
     name: "look_ahead",
     default: 2.0,
     unit: "quarter notes",
-    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); 14ea08d, round 4, also tried no look-ahead",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); 14ea08d, round 4, also tried no look-ahead; measured: sweeps/round7-constants.json, round 7 (0 / 1: tune RN -0.04 / -0.07; kept)",
 };
 /// The distance back at which a slice's weight halves.
 const HALF_LIFE: Param = Param {
@@ -82,7 +82,7 @@ const HALF_LIFE: Param = Param {
     name: "half_life",
     default: 16.0,
     unit: "quarter notes",
-    provenance: "measured: 14ea08d, round 4 (6 / 10 / 16 at weight 1: tune RN -0.59 / -0.32 / -0.26; 12 / 16 / 20 at weight 0.5: -0.14 / -0.03 / -0.04)",
+    provenance: "measured: 14ea08d, round 4 (6 / 10 / 16 at weight 1: tune RN -0.59 / -0.32 / -0.26; 12 / 16 / 20 at weight 0.5: -0.14 / -0.03 / -0.04); measured: sweeps/round7-constants.json, round 7 (8 / 12 / 24 / 32: tune RN -0.33 / -0.08 / -0.07 / -0.16; kept)",
 };
 /// How far back the window reaches.
 const REACH: Param = Param {
@@ -90,7 +90,7 @@ const REACH: Param = Param {
     name: "reach",
     default: 64.0,
     unit: "quarter notes",
-    provenance: "chosen: 14ea08d, round 4 (four half-lives, where weights have fallen to a sixteenth; not swept)",
+    provenance: "chosen: 14ea08d, round 4 (four half-lives, where weights have fallen to a sixteenth); measured: sweeps/round7-constants.json, round 7 (32 / 48 / 96 / 128: tune RN -0.20 / -0.06 / -0.02 / -0.02; kept)",
 };
 /// How far back a minor key's raised leading tone must be absent for the natural minor profile to apply.
 const MODAL_LOOK_BACK: Param = Param {
@@ -98,7 +98,7 @@ const MODAL_LOOK_BACK: Param = Param {
     name: "modal_look_back",
     default: 64.0,
     unit: "quarter notes",
-    provenance: "measured: 6083e2a, round 5 (32 / 48 / 64 / 96: tune RN +0.03 / +0.04 / +0.03 / +0.03, both offered 21.02 / 21.07 / 21.10 / 21.09)",
+    provenance: "measured: 6083e2a, round 5 (32 / 48 / 64 / 96: tune RN +0.03 / +0.04 / +0.03 / +0.03, both offered 21.02 / 21.07 / 21.10 / 21.09); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (8 / 16 / 24 / 32 / 48 / 96 / 128: tune RN +0.07 / +0.07 / +0.05 / +0.03 / +0.01 / +0.01 / -0.00; 16 gives +0.07 [-0.03, +0.20] and tune both offered -0.15 [-0.29, -0.05]; kept)",
 };
 
 /// The extent of the window around a slice, in quarter notes.

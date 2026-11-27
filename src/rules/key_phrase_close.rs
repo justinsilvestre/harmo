@@ -32,7 +32,7 @@ const HALF_CADENCE: Param = Param {
     name: "half_cadence",
     default: 0.5,
     unit: "ratio to the tonic",
-    provenance: "measured: e332070, round 2 (0 and 1 gained less tune RN than 0.5)",
+    provenance: "measured: e332070, round 2 (0 and 1 gained less tune RN than 0.5); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN +0.00 / -0.01 / -0.04 / -0.07; kept)",
 };
 
 fn phrase_close(context: &CloseContext, params: &[f64]) -> f32 {

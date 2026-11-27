@@ -1,0 +1,198 @@
+{
+ "sets": [
+  "tune",
+  "agreement-tune"
+ ],
+ "objective_set": "tune",
+ "objective_feature": "rn",
+ "one_at_a_time": true,
+ "base": {},
+ "grid": {
+  "chord.full_attack.full_attack_notes": [
+   2,
+   4
+  ],
+  "chord.bass_change.beat_level": [
+   1,
+   3
+  ],
+  "chord.bass_change.bass_register": [
+   7,
+   9,
+   19,
+   24
+  ],
+  "chord.bass_change.full_texture_notes": [
+   3,
+   5
+  ],
+  "chord.completeness.missing_third": [
+   0.25,
+   0.375,
+   0.75,
+   1.0
+  ],
+  "chord.seventh_evidence.share_target": [
+   0.25,
+   0.375,
+   0.75,
+   1.0
+  ],
+  "chord.seventh_evidence.leaping_seventh_factor": [
+   0.0,
+   0.25,
+   0.375,
+   0.75,
+   1.0
+  ],
+  "chord.compatibility.third_value": [
+   0.6,
+   0.7,
+   0.85
+  ],
+  "chord.compatibility.fifth_value": [
+   0.85,
+   0.95,
+   1.0
+  ],
+  "chord.compatibility.seventh_value": [
+   0.25,
+   0.375,
+   0.625,
+   0.75
+  ],
+  "chord.compatibility.enharmonic_share": [
+   0.0,
+   0.25,
+   0.75,
+   1.0
+  ],
+  "chord.ornamental_dissonance.step_resolution": [
+   0.15,
+   0.225,
+   0.45,
+   0.6
+  ],
+  "chord.ornamental_dissonance.accent": [
+   1.0,
+   1.25,
+   2.0,
+   3.0
+  ],
+  "chord.harmonic_variance.max_distance": [
+   3,
+   4,
+   9,
+   12
+  ],
+  "chord.thin_texture_rhythm.thin_pitch_classes": [
+   1,
+   3
+  ],
+  "chord.thin_texture_rhythm.subdivision_level": [
+   0,
+   2
+  ],
+  "chord.seventh_arrival.full_texture_notes": [
+   3,
+   5
+  ],
+  "chord.seventh_arrival.seventh_chord_factor": [
+   0.25,
+   0.375,
+   0.75
+  ],
+  "chord.seventh_sonority.share_target": [
+   0.25,
+   0.375,
+   0.625,
+   0.75
+  ],
+  "function.diatonic_preference.lowered_sixth_mixture": [
+   0.25,
+   0.375,
+   0.75,
+   1.0
+  ],
+  "function.diatonic_preference.continued_tonicization": [
+   0.5,
+   0.625,
+   0.875,
+   1.0
+  ],
+  "function.applied_resolution.unresolved_cost": [
+   0.5,
+   0.75,
+   1.5,
+   2.0
+  ],
+  "key.cadential_confirmation.strong_beat": [
+   2,
+   4
+  ],
+  "key.unconfirmed_departure.strong_beat": [
+   2,
+   4
+  ],
+  "key.six_four_tonicization.strong_beat": [
+   2,
+   4
+  ],
+  "key.context_profile.look_ahead": [
+   0,
+   1
+  ],
+  "key.context_profile.half_life": [
+   8,
+   12,
+   24,
+   32
+  ],
+  "key.context_profile.reach": [
+   32,
+   48,
+   96,
+   128
+  ],
+  "key.context_profile.modal_look_back": [
+   16,
+   32,
+   48,
+   96,
+   128
+  ],
+  "key.area_duration.established_area": [
+   4,
+   8,
+   12,
+   24,
+   32
+  ],
+  "key.phrase_close.half_cadence": [
+   0.25,
+   0.375,
+   0.75,
+   1.0
+  ],
+  "key.raised_fourth.look_ahead": [
+   0,
+   1
+  ],
+  "key.segment_profile.look_ahead": [
+   0,
+   1
+  ],
+  "key.segment_profile.tonicized_share": [
+   0.0,
+   0.25,
+   0.75,
+   1.0
+  ],
+  "key.segment_profile.dominant_allowance": [
+   0.5,
+   0.75,
+   1.25,
+   1.5
+  ]
+ }
+}

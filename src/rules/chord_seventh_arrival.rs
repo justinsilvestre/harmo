@@ -49,7 +49,7 @@ const FULL_TEXTURE_NOTES: Param = Param {
     name: "full_texture_notes",
     default: 4.0,
     unit: "notes",
-    provenance: "measured: 8feac94, round 5 (four notes sounding against four struck together: tune RN +0.08 against +0.05)",
+    provenance: "measured: 8feac94, round 5 (four notes sounding against four struck together: tune RN +0.08 against +0.05); measured: sweeps/round7-constants.json, round 7 (3 / 5: tune RN -0.00 / -0.08; kept)",
 };
 /// The minor seventh above the root, in fifths.
 const MINOR_SEVENTH: i32 = -2;
@@ -60,7 +60,7 @@ const SEVENTH_CHORD_FACTOR: Param = Param {
     name: "seventh_chord_factor",
     default: 0.5,
     unit: "ratio",
-    provenance: "measured: 8feac94, round 5 (0 / 0.25 / 0.5 / 0.75 / 1: tune RN +0.08 / +0.08 / +0.08 / +0.22 / +0.22, both offered 20.67 / 20.77 / 20.80 / 20.04 / 20.01)",
+    provenance: "measured: 8feac94, round 5 (0 / 0.25 / 0.5 / 0.75 / 1: tune RN +0.08 / +0.08 / +0.08 / +0.22 / +0.22, both offered 20.67 / 20.77 / 20.80 / 20.04 / 20.01); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75: tune RN -0.00 / -0.00 / +0.14; 0.75 lowers agreement-tune both offered by 0.76; kept)",
 };
 
 /// Returns minus the cost of a segment inside which the seventh arrives, or 0 when it arrives where

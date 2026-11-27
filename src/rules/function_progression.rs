@@ -94,7 +94,7 @@ const LOWERED_SIXTH_MIXTURE: Param = Param {
     name: "lowered_sixth_mixture",
     default: 0.5,
     unit: "ratio",
-    provenance: "chosen: b557b0a, round 1 (Kostka, Payne and Almen 2023, p. 361, name these the most frequent borrowed chords but give no rate; only 0.5 tried: RN +0.1)",
+    provenance: "chosen: b557b0a, round 1 (Kostka, Payne and Almen 2023, p. 361, name these the most frequent borrowed chords but give no rate; only 0.5 tried: RN +0.1); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN -0.02 / -0.03 / -0.07 / -0.10; kept)",
 };
 /// The cost of an applied chord that continues a tonicization, against 1 for one that begins it.
 const CONTINUED_TONICIZATION: Param = Param {
@@ -102,7 +102,7 @@ const CONTINUED_TONICIZATION: Param = Param {
     name: "continued_tonicization",
     default: 0.75,
     unit: "ratio",
-    provenance: "measured: de9d21b, round 5 (0 / 0.25 / 0.5 / 0.625 / 0.75 / 0.875: tune RN -0.26 / -0.09 / +0.03 / +0.04 / +0.06 / +0.04)",
+    provenance: "measured: de9d21b, round 5 (0 / 0.25 / 0.5 / 0.625 / 0.75 / 0.875: tune RN -0.26 / -0.09 / +0.03 / +0.04 / +0.06 / +0.04); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.625 / 0.875 / 1: tune RN -0.02 / -0.00 / +0.01 / -0.04; kept)",
 };
 /// The cost of an applied chord not followed by the chord it tonicizes, against a credit of 1 for
 /// one that is.
@@ -111,7 +111,7 @@ const UNRESOLVED_COST: Param = Param {
     name: "unresolved_cost",
     default: 1.0,
     unit: "ratio to the credit",
-    provenance: "chosen: 4e0fbe2, round 1 (not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (not swept); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.5 / 2: tune RN -0.00 / +0.02 / -0.08 / -0.21; kept)",
 };
 
 fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {

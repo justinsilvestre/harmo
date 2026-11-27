@@ -35,7 +35,7 @@ const STRONG_BEAT: Param = Param {
     name: "strong_beat",
     default: 3.0,
     unit: "metric level",
-    provenance: "chosen: 1a69a17, round 4 (as in key.cadential_confirmation; not swept)",
+    provenance: "chosen: 1a69a17, round 4 (as in key.cadential_confirmation); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN +0.01 / -0.05; kept)",
 };
 
 fn unconfirmed_departure(context: &DepartureContext, params: &[f64]) -> f32 {

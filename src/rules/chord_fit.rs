@@ -45,21 +45,21 @@ const THIRD_VALUE: Param = Param {
     name: "third_value",
     default: 0.8,
     unit: "ratio to the root",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.6 / 0.7 / 0.85: tune RN -0.37 / -0.17 / -0.00; kept)",
 };
 const FIFTH_VALUE: Param = Param {
     index: 1,
     name: "fifth_value",
     default: 0.9,
     unit: "ratio to the root",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.85 / 0.95 / 1: tune RN -0.02 / -0.01 / -0.08; kept)",
 };
 const SEVENTH_VALUE: Param = Param {
     index: 2,
     name: "seventh_value",
     default: 0.5,
     unit: "ratio to the root",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.625 / 0.75: tune RN -0.09 / -0.06 / -0.09 / -0.20; kept)",
 };
 /// The share of a chord tone's value earned by a note that matches it only enharmonically, since the
 /// spelling disagrees.
@@ -68,7 +68,7 @@ const ENHARMONIC_SHARE: Param = Param {
     name: "enharmonic_share",
     default: 0.5,
     unit: "ratio",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, scores spelled pitches; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, scores spelled pitches); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.75 / 1: tune RN +0.01 / +0.02 / -0.02 / -0.03; kept)",
 };
 
 fn compatibility(context: &SliceContext, params: &[f64]) -> f32 {
@@ -112,7 +112,7 @@ const STEP_RESOLUTION: Param = Param {
     name: "step_resolution",
     default: 0.3,
     unit: "ratio",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 153, prefers ornamental tones followed by a step but gives no value; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 153, prefers ornamental tones followed by a step but gives no value); measured: sweeps/round7-constants.json, round 7 (0.15 / 0.225 / 0.45 / 0.6: tune RN -0.05 / -0.07 / -0.19 / -0.37; kept)",
 };
 /// Cost factor for a nonchord tone on a beat.
 const ACCENT: Param = Param {
@@ -120,7 +120,7 @@ const ACCENT: Param = Param {
     name: "accent",
     default: 1.5,
     unit: "ratio",
-    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 154, prefers metrically weak ornamental tones but gives no value; not swept)",
+    provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 154, prefers metrically weak ornamental tones but gives no value); measured: sweeps/round7-constants.json, round 7 (1 / 1.25 / 2 / 3: tune RN -0.31 / -0.13 / -0.06 / -0.27; kept)",
 };
 
 fn dissonance_cost(note: &SliceNote, slice: &Slice, next: Option<&Slice>, params: &[f64]) -> f32 {

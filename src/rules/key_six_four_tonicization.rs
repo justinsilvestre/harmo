@@ -35,7 +35,7 @@ const STRONG_BEAT: Param = Param {
     name: "strong_beat",
     default: 3.0,
     unit: "metric level",
-    provenance: "measured: b52a2e8, round 6 (any stronger beat / level 3 / level 4, each at weight 0.5: tune RN 57.99 / 57.98 / 57.97)",
+    provenance: "measured: b52a2e8, round 6 (any stronger beat / level 3 / level 4, each at weight 0.5: tune RN 57.99 / 57.98 / 57.97); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN +0.02 / -0.00; kept)",
 };
 
 fn six_four_tonicization(context: &TransitionContext, params: &[f64]) -> f32 {

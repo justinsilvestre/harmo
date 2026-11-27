@@ -32,7 +32,7 @@ const FULL_ATTACK_NOTES: Param = Param {
     name: "full_attack_notes",
     default: 3.0,
     unit: "notes",
-    provenance: "measured: b00871a, round 4 (3 or 4 notes; 3 gave tune RN +0.6 with the bass change, 4 gave +0.5)",
+    provenance: "measured: b00871a, round 4 (3 or 4 notes; 3 gave tune RN +0.6 with the bass change, 4 gave +0.5); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN -0.15 / -0.14; kept)",
 };
 
 fn full_attack(context: &TransitionContext, params: &[f64]) -> f32 {

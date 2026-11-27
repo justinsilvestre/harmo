@@ -58,7 +58,7 @@ const LOOK_AHEAD: Param = Param {
     name: "look_ahead",
     default: 2.0,
     unit: "quarter notes",
-    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); chosen: db6832e, round 4 (not swept)",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); chosen: db6832e, round 4 (not swept); measured: sweeps/round7-constants.json, round 7 (0 / 1: tune RN -0.19 / -0.10; kept)",
 };
 /// How much of an applied chord's score comes from the key it tonicizes rather than the main key.
 const TONICIZED_SHARE: Param = Param {
@@ -66,7 +66,7 @@ const TONICIZED_SHARE: Param = Param {
     name: "tonicized_share",
     default: 0.5,
     unit: "share",
-    provenance: "measured: db6832e, round 4 (0.5 / 0.75: tune RN +0.48 / +0.47, textbooks -1.3 at 0.75); d272bb6, round 1, in key.profile (1: less than 0.5 on WTC and chorales)",
+    provenance: "measured: db6832e, round 4 (0.5 / 0.75: tune RN +0.48 / +0.47, textbooks -1.3 at 0.75); d272bb6, round 1, in key.profile (1: less than 0.5 on WTC and chorales); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.75 / 1: tune RN -0.18 / -0.10 / -0.03 / -0.21; kept)",
 };
 /// The share of the major-key charge for an absent tonic that a dominant chord of the key is spared.
 const DOMINANT_ALLOWANCE: Param = Param {
@@ -74,7 +74,7 @@ const DOMINANT_ALLOWANCE: Param = Param {
     name: "dominant_allowance",
     default: 1.0,
     unit: "ratio",
-    provenance: "measured: 7cdd769, round 5 (0.5 / 1 / 1.5 / 2 of the key's own mode share, main key only: tune RN +0.03 / +0.08 / +0.06 / -0.03; the major share taken: +0.12)",
+    provenance: "measured: 7cdd769, round 5 (0.5 / 1 / 1.5 / 2 of the key's own mode share, main key only: tune RN +0.03 / +0.08 / +0.06 / -0.03; the major share taken: +0.12); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.25 / 1.5: tune RN -0.08 / -0.00 / -0.03 / +0.00; kept)",
 };
 
 /// The length of a segment in quarter notes, a measure of common time. Its score scales with the

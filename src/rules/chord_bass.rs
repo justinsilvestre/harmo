@@ -41,7 +41,7 @@ const BEAT_LEVEL: Param = Param {
     name: "beat_level",
     default: 2.0,
     unit: "metric level",
-    provenance: "measured: 9d7b407, round 2 (beat: tune RN +0.67; beat subdivision: -0.0, TAVERN -1.9; half bar: +0.2)",
+    provenance: "measured: 9d7b407, round 2 (beat: tune RN +0.67; beat subdivision: -0.0, TAVERN -1.9; half bar: +0.2); measured: sweeps/round7-constants.json, round 7 (1 / 3: tune RN -0.48 / -0.13; kept)",
 };
 /// The largest upward leap that still counts as the same bass voice.
 const BASS_REGISTER: Param = Param {
@@ -49,7 +49,7 @@ const BASS_REGISTER: Param = Param {
     name: "bass_register",
     default: 12.0,
     unit: "semitones",
-    provenance: "chosen: 9d7b407, round 2 (an octave, after Kostka, Payne and Almen 2023, p. 134: the real bass depends on register; not swept)",
+    provenance: "chosen: 9d7b407, round 2 (an octave, after Kostka, Payne and Almen 2023, p. 134: the real bass depends on register); measured: sweeps/round7-constants.json, round 7 (7 / 9 / 19 / 24: tune RN -0.02 / -0.01 / -0.10 / -0.12; kept)",
 };
 /// The fewest voices struck together on a beat for a bass move at the half beat after it to count.
 const FULL_TEXTURE_NOTES: Param = Param {
@@ -57,7 +57,7 @@ const FULL_TEXTURE_NOTES: Param = Param {
     name: "full_texture_notes",
     default: 4.0,
     unit: "notes",
-    provenance: "measured: b00871a, round 4 (three voices: tune RN +0.13; four: +0.20, at lower cost outside chorales)",
+    provenance: "measured: b00871a, round 4 (three voices: tune RN +0.13; four: +0.20, at lower cost outside chorales); measured: sweeps/round7-constants.json, round 7 (3 / 5: tune RN -0.04 / -0.21; kept)",
 };
 /// The metric level of a full-texture beat, and of the subdivision after it.
 const BEAT: u8 = 2;
