@@ -12,8 +12,8 @@ use serde::Serialize;
 pub enum PruneCause {
     /// The beam was already full of better hypotheses.
     Width,
-    /// A better hypothesis that gives the same readings to the last `Config::distinct_depth`
-    /// segments, differing only in where they begin, was kept instead. `keeper` is its arena index.
+    /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
+    /// as the same was kept instead. `keeper` is its arena index.
     Merged { keeper: u32 },
 }
 

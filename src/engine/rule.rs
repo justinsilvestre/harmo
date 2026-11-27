@@ -77,6 +77,8 @@ pub type TransitionFn = fn(&TransitionContext, &[f64]) -> f32;
 pub type DepartureFn = fn(&DepartureContext, &[f64]) -> f32;
 pub type CloseFn = fn(&CloseContext, &[f64]) -> f32;
 pub type AdmitFn = fn(&TransitionContext) -> bool;
+/// Returns an opaque value for a segment; the engine only compares values for equality.
+pub type DistinguishFn = fn(&Segment, &[f64]) -> u64;
 
 #[derive(Clone, Copy)]
 pub enum Hook {
@@ -96,6 +98,10 @@ pub enum Hook {
     Close(CloseFn),
     /// Rejects transitions outright (a hard constraint).
     Admit(AdmitFn),
+    /// Says which segments count as the same interpretation when the beam is pruned. Of the
+    /// hypotheses whose last `Config::distinct_depth` segments get the same values from every
+    /// distinguish hook, only the best is kept.
+    Distinguish(DistinguishFn),
 }
 
 impl Hook {
@@ -108,6 +114,7 @@ impl Hook {
             Hook::Departure(_) => "departure",
             Hook::Close(_) => "close",
             Hook::Admit(_) => "admit",
+            Hook::Distinguish(_) => "distinguish",
         }
     }
 }
