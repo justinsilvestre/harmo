@@ -1,0 +1,124 @@
+{
+ "sets": [
+  "tune",
+  "agreement-tune"
+ ],
+ "objective_set": "tune",
+ "objective_feature": "rn",
+ "one_at_a_time": true,
+ "base": {},
+ "grid": {
+  "chord.compatibility": [
+   0.75,
+   1.25
+  ],
+  "chord.ornamental_dissonance": [
+   2.0625,
+   3.4375
+  ],
+  "chord.strong_beat": [
+   0.375,
+   0.625
+  ],
+  "chord.harmonic_variance": [
+   0.1875,
+   0.3125
+  ],
+  "chord.thin_texture_rhythm": [
+   0.375,
+   0.625
+  ],
+  "chord.full_attack": [
+   0.1875,
+   0.3125
+  ],
+  "chord.completeness": [
+   1.125,
+   1.875
+  ],
+  "chord.seventh_evidence": [
+   0.75,
+   1.25
+  ],
+  "chord.bass_change": [
+   0.375,
+   0.625
+  ],
+  "chord.seventh_sonority": [
+   0.75,
+   1.25
+  ],
+  "chord.seventh_arrival": [
+   0.375,
+   0.625
+  ],
+  "key.context_profile": [
+   0.375,
+   0.625
+  ],
+  "key.segment_profile": [
+   0.1875,
+   0.3125
+  ],
+  "key.signature": [
+   0.075,
+   0.125
+  ],
+  "key.modulation": [
+   0.75,
+   1.25
+  ],
+  "key.area_duration": [
+   0.1875,
+   0.3125
+  ],
+  "key.cadential_confirmation": [
+   0.28125,
+   0.46875
+  ],
+  "key.unconfirmed_departure": [
+   0.375,
+   0.625
+  ],
+  "key.phrase_close": [
+   0.75,
+   1.25
+  ],
+  "key.opening_tonic": [
+   0.9375,
+   1.5625
+  ],
+  "function.diatonic_preference": [
+   0.75,
+   1.25
+  ],
+  "function.applied_resolution": [
+   0.5625,
+   0.9375
+  ],
+  "function.dominant_resolution": [
+   0.5625,
+   0.9375
+  ],
+  "function.augmented_sixth_bass": [
+   0.75,
+   1.25
+  ],
+  "function.picardy_third": [
+   0.75,
+   1.25
+  ],
+  "function.rare_seventh": [
+   1.125,
+   1.875
+  ],
+  "function.rare_mediant": [
+   0.75,
+   1.25
+  ],
+  "function.six_four": [
+   0.375,
+   0.625
+  ]
+ }
+}

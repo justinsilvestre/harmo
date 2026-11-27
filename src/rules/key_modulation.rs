@@ -26,7 +26,7 @@ pub const RULES: &[Rule] = &[
             source: KOSTKA_PAYNE_ALMEN_2023,
             locator: "p. 299 (the length of time spent in the new key area as evidence of modulation)",
         }],
-        default_weight: 0.25,
+        default_weight: 0.1875,
         hook: Hook::Departure(area_duration),
     },
 ];

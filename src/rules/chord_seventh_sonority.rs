@@ -22,7 +22,7 @@ pub const RULES: &[Rule] = &[Rule {
             locator: "p. 247 (a 7th approached as a passing tone may be an NCT; relative duration decides)",
         },
     ],
-    default_weight: 1.0,
+    default_weight: 1.25,
     hook: Hook::Close(seventh_sonority),
 }];
 

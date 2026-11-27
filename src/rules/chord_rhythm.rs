@@ -23,7 +23,7 @@ pub const RULES: &[Rule] = &[
             source: TEMPERLEY_2001,
             locator: "pp. 152, 157–158 (HPR 3, Harmonic Variance Rule)",
         }],
-        default_weight: 0.25,
+        default_weight: 0.1875,
         hook: Hook::Transition(harmonic_variance),
     },
     Rule {
