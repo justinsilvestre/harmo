@@ -7,6 +7,7 @@ pub mod chord_fit;
 pub mod chord_proposal;
 pub mod chord_rhythm;
 pub mod chord_seventh_arrival;
+pub mod chord_seventh_delay;
 pub mod chord_seventh_sonority;
 pub mod function_picardy_third;
 pub mod function_progression;
@@ -42,6 +43,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_bass::RULES,
         chord_seventh_sonority::RULES,
         chord_seventh_arrival::RULES,
+        chord_seventh_delay::RULES,
         key_profile::RULES,
         key_context::RULES,
         key_segment_profile::RULES,
