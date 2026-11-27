@@ -84,7 +84,7 @@ mod tests {
         let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let bass = Bass { lowest: Some((55, tpc_from_name("G").unwrap())), ..Bass::default() };
+        let bass = Bass { note: Some((55, tpc_from_name("G").unwrap())), ..Bass::default() };
         let segment =
             Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass };
         let slices = [slice(&[(55, "G"), (60, "C"), (64, "E")])];

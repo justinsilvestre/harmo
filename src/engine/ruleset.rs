@@ -1,8 +1,9 @@
 //! A set of rules with weights, split by hook so the engine can call each group directly.
 
+use super::bass::{Bass, BassNote};
 use super::model::Segment;
 use super::rule::{
-    AdmitFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
+    AdmitFn, BassFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
     ProposeFn, ProposeKeysFn, Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
 };
 use crate::score::slicing::Slice;
@@ -37,6 +38,7 @@ pub struct RuleSet {
     pub close_rules: Vec<Scorer<CloseFn>>,
     pub admit_rules: Vec<AdmitFn>,
     pub distinguish_rules: Vec<(DistinguishFn, Box<[f64]>)>,
+    pub bass_rules: Vec<(BassFn, Box<[f64]>)>,
 }
 
 impl RuleSet {
@@ -67,6 +69,7 @@ impl RuleSet {
             close_rules: vec![],
             admit_rules: vec![],
             distinguish_rules: vec![],
+            bass_rules: vec![],
         };
         set.group_hooks();
         Ok(set)
@@ -92,6 +95,7 @@ impl RuleSet {
                 Hook::Close(f) => self.close_rules.push((f, weight, params)),
                 Hook::Admit(f) => self.admit_rules.push(f),
                 Hook::Distinguish(f) => self.distinguish_rules.push((f, params)),
+                Hook::Bass(f) => self.bass_rules.push((f, params)),
             }
         }
     }
@@ -153,6 +157,11 @@ impl RuleSet {
 
     pub fn admits(&self, context: &TransitionContext) -> bool {
         self.admit_rules.iter().all(|f| f(context))
+    }
+
+    /// Returns a segment's bass evidence after the bass hooks hear one more chord tone.
+    pub fn hear_bass(&self, bass: Bass, note: &BassNote) -> Bass {
+        self.bass_rules.iter().fold(bass, |bass, (f, params)| f(bass, note, params))
     }
 
     /// Appends each distinguish hook's value for the segment, in rule order.

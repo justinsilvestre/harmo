@@ -6,7 +6,7 @@ Rules-based harmonic analysis of MusicXML scores that offers **several competing
 
 The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment, so no rule may use music more than two quarter notes past the slice it scores, the same lag allowed to offered readings below, and no rule may use statistics of the whole score. The reading reported for each moment is the best final hypothesis traced back, so later music can still decide between hypotheses that were each scored this way, as a listener revises an earlier hearing. [Search](#search) describes the search step by step, with its settings and where each value came from.
 
-The engine represents the music and the readings (slices, chords, keys, functions and the bass), runs the search, and records traces and rankings. It makes no musical judgments of its own. Every judgment, from which readings to propose and allow to how well a reading fits and which competing readings count as different, is made by a **rule**, so that it shows in the traces and carries a citation. Rules hook into the engine at eight points:
+The engine represents the music and the readings (slices, chords, keys, functions and the bass), runs the search, and records traces and rankings. It makes no musical judgments of its own. Every judgment, from which readings to propose and allow to how well a reading fits and which competing readings count as different, is made by a **rule**, so that it shows in the traces and carries a citation. Rules hook into the engine at nine points:
 
 | hook | what it does | example |
 |---|---|---|
@@ -19,6 +19,7 @@ The engine represents the music and the readings (slices, chords, keys, function
 | `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `function.six_four` |
 | `Admit` | rejects transitions outright | (none yet) |
 | `Distinguish` | gives a segment an opaque value; pruning counts hypotheses whose recent segments get equal values as the same interpretation | `function.distinct_readings` |
+| `Bass` | decides a segment's bass note, and so its inversion, as the segment hears each chord tone (with no bass rule, every chord is in root position) | `chord.bass_note` |
 
 ### What the engine represents
 
@@ -33,7 +34,7 @@ These choices define what a reading can be, not which reading is right, so they 
 - **The score as written.** The MusicXML reader takes notes at sounding pitch and pools every voice and part. It drops grace notes, which notation gives no duration, cue notes, which are not played, and unpitched notes. It merges tied notes into one, reads ornaments and repeats as written rather than realizing them (the ground truth is placed by measure number), takes key signatures from the first part without their often unreliable mode, and records where fermatas end; rules that read a fermata as a phrase ending, such as `key.phrase_close`, cite their source.
 - **The search and its reports.** The beam, the number of candidate readings and the offered readings' count, margin and lag (see [Settings](#settings)) decide how much of the analysis is kept and shown, not how the music is heard. Every score that orders hypotheses comes from rules.
 
-One judgment still sits in the engine and is to be moved into a rule: the bass note that gives a segment its inversion (`src/engine/bass.rs`: which notes count as accented, the downbeat level and the octave within which a root holds the bass over a lower fifth). Which readings count as the same when the beam is pruned is decided by `Distinguish` rules.
+Which readings count as the same when the beam is pruned is decided by `Distinguish` rules, and which note is a segment's bass, and so its inversion, by `Bass` rules: the engine hands them each chord tone with whether it is its slice's lowest note, the slice's metric level and whether the slice opens the segment.
 
 Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a summary and citations. A rule may also declare **parameters**: the thresholds, durations and ratios inside it, each with a default, a unit and its provenance (the source that gives the value, or the measurement that set it). The engine passes a scoring hook its rule's parameter values. Because rules are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
 

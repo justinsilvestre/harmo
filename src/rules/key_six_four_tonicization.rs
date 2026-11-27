@@ -108,7 +108,7 @@ mod tests {
         let c_major = Key::new(tpc("C"), Mode::Major);
         let chord = Chord::new(tpc("G"), Quality::Major);
         let six_four = Reading { key: c_major, chord, tonicized: None, category: Category::Diatonic };
-        let bass = Bass { lowest: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
+        let bass = Bass { note: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
         let previous = Segment {
             reading: six_four,
             start: 0,

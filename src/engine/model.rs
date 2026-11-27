@@ -56,7 +56,7 @@ pub struct Node {
 impl Segment {
     /// Returns the bass note that gives the segment's inversion, as (MIDI number, spelling).
     pub fn bass_note(&self) -> Option<(i32, Tpc)> {
-        self.bass.note(self.reading.chord)
+        self.bass.note()
     }
 
     pub fn bass_tpc(&self) -> Tpc {
