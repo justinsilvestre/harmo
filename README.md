@@ -66,7 +66,13 @@ cargo build --release
 
 **Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
 
-**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match. Two further columns separate chord errors from key errors. **Chord** counts a frame as correct when root, quality and inversion all match, whatever the key. **RN|key** is the RN accuracy over only the frames whose key is correct. **Offered** is the share of frames whose full Roman numeral, compared as for RN, is among the readings the engine offers (defined under expert agreement below). It is computed on every set against the main analysis, and the accuracy table prints the mean number offered beside it. The other columns score the retrospective reading: the best final hypothesis, traced back through the piece, as AugmentedNet's are. **Key now** and **RN now** score the reading a listener would hold at the moment, which is the best hypothesis in the beam two quarter notes later, the same lag as for offered readings. The gap between RN and RN now shows how much the engine relies on later music to revise earlier labels.
+**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note (a frame), and each column gives the share of frames that are right.
+- **Key, degree, quality, inversion, root:** AugmentedNet's five features. Degree includes the secondary degree, such as the "/V" of V7/V.
+- **RN:** the full Roman numeral, right only when all five features match.
+- **Chord:** root, quality and inversion all match, whatever the key.
+- **RN|key:** RN accuracy over only the frames whose key is right.
+- **Offered:** the share of frames whose full Roman numeral is among the readings the engine offers (defined under expert agreement below), against the main analysis. The accuracy table prints the mean number offered beside it.
+- **Key now, RN now:** the reading a listener would hold at the moment, which is the best hypothesis in the beam two quarter notes later, the same lag as for offered readings. The other columns score the retrospective reading, the best final hypothesis traced back through the piece, as AugmentedNet's do. The gap between RN and RN now shows how much the engine relies on later music to revise earlier labels.
 
 **Expert agreement**
 - **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
@@ -74,7 +80,7 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (%).** AugmentedNet's published numbers are in brackets. It reports no chord or in-the-moment figures and none for MPS.
+**Current results, test split (%).** AugmentedNet's published numbers are in brackets. It reports no chord or in-the-moment figures and none for MPS. Columns are defined under **Metrics** above. The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart piano sonatas), WTC (Bach's Well-Tempered Clavier), HaydnSun (Haydn's Op. 20 quartets), TAVERN (Mozart and Beethoven variations) and BPS (Beethoven piano sonata first movements).
 
 | corpus | key | degree | quality | inversion | root | RN | chord | RN now |
 |---|---|---|---|---|---|---|---|---|
