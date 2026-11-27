@@ -1,4 +1,4 @@
-//! A rule about the mediant triad, the least used diatonic triad in major.
+//! A rule about the rare forms of the mediant triad: iii in major and III+ in minor.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Category;
@@ -10,7 +10,8 @@ pub const RULES: &[Rule] = &[Rule {
     id: "function.rare_mediant",
     layer: Layer::Function,
     summary: "Avoid reading the mediant triad (iii) in major, the least used diatonic triad. A third or \
-              sixth over the third degree in the bass is almost always I6 rather than iii.",
+              sixth over the third degree in the bass is almost always I6 rather than iii. In minor, \
+              the mediant is the major triad III; the augmented III+ is rare.",
     citations: &[
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -20,22 +21,31 @@ pub const RULES: &[Rule] = &[Rule {
             source: KOSTKA_PAYNE_ALMEN_2023,
             locator: "p. 263 (iii is the least often used diatonic triad)",
         },
+        Citation {
+            source: KOSTKA_PAYNE_ALMEN_2023,
+            locator: "p. 58 (the common diatonic triads in minor include III but no augmented triad)",
+        },
     ],
     default_weight: 1.0,
     hook: Hook::Close(rare_mediant),
 }];
 
-/// The mediant root, in fifths above the tonic.
+/// The mediant root in major, in fifths above the tonic.
 const MEDIANT: i32 = 4;
+/// The mediant root in minor, in fifths above the tonic.
+const MINOR_MEDIANT: i32 = -3;
 
 fn rare_mediant(context: &CloseContext) -> f32 {
     let reading = context.segment.reading;
-    let is_mediant = reading.key.mode == Mode::Major
-        && reading.category == Category::Diatonic
-        && reading.tonicized.is_none()
-        && reading.chord.quality == Quality::Minor
-        && reading.chord.root - reading.key.tonic == MEDIANT;
-    if is_mediant { -1.0 } else { 0.0 }
+    if reading.category != Category::Diatonic || reading.tonicized.is_some() {
+        return 0.0;
+    }
+    let degree = reading.chord.root - reading.key.tonic;
+    let is_rare = match reading.key.mode {
+        Mode::Major => reading.chord.quality == Quality::Minor && degree == MEDIANT,
+        Mode::Minor => reading.chord.quality == Quality::Augmented && degree == MINOR_MEDIANT,
+    };
+    if is_rare { -1.0 } else { 0.0 }
 }
 
 #[cfg(test)]
@@ -76,6 +86,11 @@ mod tests {
     #[test]
     fn mediant_seventh_is_left_to_rare_seventh() {
         assert_eq!(score("C", "major", "E", Quality::MinorSeventh), 0.0);
+    }
+
+    #[test]
+    fn augmented_mediant_in_minor_costs() {
+        assert_eq!(score("A", "minor", "C", Quality::Augmented), -1.0);
     }
 
     #[test]
