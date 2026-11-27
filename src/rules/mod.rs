@@ -2,6 +2,7 @@
 
 pub mod chord_attack;
 pub mod chord_bass;
+pub mod chord_bass_note;
 pub mod chord_completeness;
 pub mod chord_fit;
 pub mod chord_proposal;
@@ -43,6 +44,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_attack::RULES,
         chord_completeness::RULES,
         chord_bass::RULES,
+        chord_bass_note::RULES,
         chord_seventh_sonority::RULES,
         chord_seventh_arrival::RULES,
         key_proposal::RULES,

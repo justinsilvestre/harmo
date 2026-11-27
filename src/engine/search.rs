@@ -6,7 +6,7 @@
 //! Hypotheses whose recent segments the rules count as the same interpretation compete for one place
 //! in the beam, so that the beam holds more distinct interpretations.
 
-use super::bass::{Bass, BassNote, is_accented};
+use super::bass::{Bass, BassNote};
 use super::model::{NONE, Node, Reading, Segment};
 use super::pruning::{PruneCause, Pruned};
 use super::rule::{CloseContext, DepartureContext, History, SliceContext, TransitionContext};
@@ -92,7 +92,7 @@ fn step(
     for (reading, opening_score) in openings(keys, slices, index, rules, config.candidate_limit) {
         let best = best_predecessor(&reading, slices, index, arena, beam, &exits, rules);
         if let Some((parent, previous_score)) = best {
-            let segment = open_segment(reading, index, parent, slice);
+            let segment = open_segment(reading, index, parent, slice, rules);
             pending.push(Node {
                 parent,
                 slice: index as u32,
@@ -112,7 +112,12 @@ fn continuations(slices: &[Slice], index: usize, arena: &[Node], beam: &[u32], r
         let reading = node.segment.reading;
         let context = SliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
         let fit = *cache.entry(reading).or_insert_with(|| rules.score_slice(&context));
-        Node { parent: b, slice: index as u32, segment: extend(node.segment, slice), score: node.score + fit }
+        Node {
+            parent: b,
+            slice: index as u32,
+            segment: extend(node.segment, slice, rules),
+            score: node.score + fit,
+        }
     };
     beam.iter().map(|&b| extend_node(b)).collect()
 }
@@ -198,7 +203,7 @@ fn best_predecessor(
     candidates.max_by(|a, b| a.1.total_cmp(&b.1))
 }
 
-fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice) -> Segment {
+fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice, rules: &RuleSet) -> Segment {
     let empty = Segment {
         reading,
         start: index as u32,
@@ -207,21 +212,22 @@ fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice) ->
         members_heard: 0,
         bass: Bass::default(),
     };
-    extend(empty, slice)
+    extend(empty, slice, rules)
 }
 
-fn extend(mut segment: Segment, slice: &Slice) -> Segment {
+fn extend(mut segment: Segment, slice: &Slice, rules: &RuleSet) -> Segment {
     let lowest = slice.bass().map(|n| n.midi);
-    let is_accented_slice = is_accented(slice.metric_level, segment.duration == 0.0);
+    let opens_segment = segment.duration == 0.0;
     segment.duration += slice.duration;
     for note in &slice.notes {
         let Some(member) = segment.reading.chord.member_index(note.tpc) else {
             continue;
         };
         segment.members_heard |= 1 << member;
-        let is_accented_bass = is_accented_slice && lowest == Some(note.midi);
-        segment.bass =
-            segment.bass.hear(&BassNote { midi: note.midi, tpc: note.tpc, member, is_accented_bass });
+        let (midi, tpc, metric_level) = (note.midi, note.tpc, slice.metric_level);
+        let is_slice_bass = lowest == Some(midi);
+        let heard = BassNote { midi, tpc, member, is_slice_bass, metric_level, opens_segment };
+        segment.bass = rules.hear_bass(segment.bass, &heard);
     }
     segment
 }

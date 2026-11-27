@@ -157,7 +157,7 @@ mod tests {
                 previous: if i == 0 { NONE } else { i as u32 - 1 },
                 duration: 1.0,
                 members_heard: 0b111,
-                bass: Bass { lowest: Some((40, tpc(bass))), ..Bass::default() },
+                bass: Bass { note: Some((40, tpc(bass))), ..Bass::default() },
             };
             Node { parent: segment.previous, slice: i as u32, segment, score: 0.0 }
         };

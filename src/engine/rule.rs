@@ -1,5 +1,6 @@
 //! The interface between the engine and the rules it hooks into.
 
+use super::bass::{Bass, BassNote};
 use super::model::{Category, NONE, Node, Reading, Segment};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
@@ -78,6 +79,8 @@ pub type TransitionFn = fn(&TransitionContext, &[f64]) -> f32;
 pub type DepartureFn = fn(&DepartureContext, &[f64]) -> f32;
 pub type CloseFn = fn(&CloseContext, &[f64]) -> f32;
 pub type AdmitFn = fn(&TransitionContext) -> bool;
+/// Returns a segment's bass evidence after it hears one more chord tone.
+pub type BassFn = fn(Bass, &BassNote, &[f64]) -> Bass;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&Segment, &[f64]) -> u64;
 
@@ -105,6 +108,9 @@ pub enum Hook {
     /// hypotheses whose last `Config::distinct_depth` segments get the same values from every
     /// distinguish hook, only the best is kept.
     Distinguish(DistinguishFn),
+    /// Decides a segment's bass note, and so its inversion, as the segment hears each chord tone.
+    /// Bass hooks run in rule order, each on the evidence the previous one returned.
+    Bass(BassFn),
 }
 
 impl Hook {
@@ -119,6 +125,7 @@ impl Hook {
             Hook::Close(_) => "close",
             Hook::Admit(_) => "admit",
             Hook::Distinguish(_) => "distinguish",
+            Hook::Bass(_) => "bass",
         }
     }
 }
