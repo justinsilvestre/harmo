@@ -5,7 +5,11 @@
 //! - Some scores restart or skip their numbering, for example at a trio.
 //! - First and second endings are written `m12a` and `m12b` in the analysis,
 //!   but a score either numbers them in sequence or leaves the second ending unnumbered ("X1").
+//! - A score may number its pickup 1, where RomanText numbers it 0.
+//! - A score may leave a fragment of a bar, such as the last beat of a 5/4 bar written as 4/4 and 1/4,
+//!   as a measure of its own.
 
+use super::groundtruth_fragments::skip_unfitting_fragments;
 use crate::score::model::Measure;
 
 const EPSILON: f64 = 1e-6;
@@ -24,10 +28,20 @@ pub fn locate_measures(
 ) -> (Vec<Measure>, Vec<Option<usize>>) {
     let bars = merge_split_bars(measures);
     let mut numbers: Vec<Option<i64>> = bars.iter().map(|b| leading_number(&b.number)).collect();
-    if is_numbering_broken(&numbers) {
+    let is_broken = is_numbering_broken(&numbers);
+    if is_broken {
         numbers = numbers_by_position(&numbers);
     }
-    let pickup_shift = i64::from(!numbers.contains(&Some(0)) && references.iter().any(|r| r.0 == 0));
+    let pickup_shift = pickup_shift(&bars, &numbers, references);
+    let find = |numbers: &[Option<i64>], index: usize| {
+        find_bar(&bars, numbers, references[index].0 + pickup_shift, references[index].1)
+    };
+    if is_broken {
+        let total_fit = |numbers: &[Option<i64>]| {
+            (0..references.len()).map(|i| find(numbers, i).map_or(0.0, |bar| fit(i, &bars[bar]))).sum()
+        };
+        numbers = skip_unfitting_fragments(&bars, numbers, &total_fit);
+    }
     let resolve = |index: usize, target: Target| match target {
         Target::Bar(bar) => Some(bar),
         Target::Number(number) => find_bar(&bars, &numbers, number + pickup_shift, references[index].1),
@@ -39,12 +53,23 @@ pub fn locate_measures(
     (bars, located)
 }
 
-/// Joins two consecutive short measures that together fill one bar, unless the first is the opening pickup.
+/// Returns 1 when the analysis numbers bars one lower than the score: the analysis has a pickup bar 0
+/// that the score lacks, or the score numbers its own pickup 1.
+fn pickup_shift(bars: &[Measure], numbers: &[Option<i64>], references: &[AnalysisMeasure]) -> i64 {
+    let is_pickup = |bar: &Measure| bar.duration < bar.nominal_duration() - EPSILON;
+    let opens_with_pickup_one = bars.first().is_some_and(is_pickup) && numbers.first() == Some(&Some(1));
+    let analysis_has_pickup = references.iter().any(|r| r.0 == 0);
+    i64::from(!numbers.contains(&Some(0)) && (analysis_has_pickup || opens_with_pickup_one))
+}
+
+/// Drops measures that take no time, then joins two consecutive short measures that together fill one bar,
+/// unless the first is the opening pickup.
 fn merge_split_bars(measures: &[Measure]) -> Vec<Measure> {
+    let measures: Vec<&Measure> = measures.iter().filter(|m| m.duration > EPSILON).collect();
     let mut bars: Vec<Measure> = Vec::with_capacity(measures.len());
     let mut index = 0;
     while index < measures.len() {
-        let measure = &measures[index];
+        let measure = measures[index];
         match measures.get(index + 1) {
             Some(next) if index > 0 && is_split_bar(measure, next) => {
                 bars.push(Measure { duration: measure.duration + next.duration, ..measure.clone() });
@@ -157,9 +182,10 @@ struct Volta {
     second_start: usize,
     /// The index after the last reference in the second ending.
     end: usize,
-    /// Candidate lengths of the first ending, in bars: the span of either ending in the analysis,
-    /// since an analysis may skip the last bars of an ending when the harmony does not change,
-    /// or 0 when the score writes the repeated music only once.
+    /// Candidate lengths of the first ending, in bars: from 0, when the score writes the repeated music
+    /// only once, up to the longer span of the two endings in the analysis. An analysis may skip the last
+    /// bars of an ending when the harmony does not change, and its second ending may run on past the
+    /// score's, so the true length can lie anywhere in between.
     first_ending_lengths: Vec<i64>,
 }
 
@@ -172,10 +198,8 @@ fn find_volta(references: &[AnalysisMeasure], from: usize) -> Option<Volta> {
     let first_ending = references[from..second_start].iter().position(|r| *r == (start_number, "a"));
     let first = first_ending.map_or(second_start, |i| from + i);
     let span = |part: &[AnalysisMeasure]| part.iter().map(|r| r.0 - start_number + 1).max().unwrap_or(1);
-    let mut first_ending_lengths =
-        vec![0, span(&references[first..second_start]), span(&references[second_start..end])];
-    first_ending_lengths.dedup();
-    Some(Volta { start_number, second_start, end, first_ending_lengths })
+    let longest = span(&references[first..second_start]).max(span(&references[second_start..end]));
+    Some(Volta { start_number, second_start, end, first_ending_lengths: (0..=longest).collect() })
 }
 
 /// Returns the first unnumbered whole bar within the endings that start at `start`.
@@ -251,6 +275,41 @@ mod tests {
         let layout = [("1", 4.0), ("2", 4.0), ("X1", 4.0), ("3", 4.0)];
         let references = [(2, "a"), (2, "b"), (3, "")];
         assert_eq!(located_starts(&layout, &references), vec![Some(4.0), Some(8.0), Some(12.0)]);
+    }
+
+    #[test]
+    fn first_ending_may_be_shorter_than_either_analysis_span() {
+        let layout: Vec<(&str, f64)> = ["1", "2", "3", "4", "5", "6", "7"].map(|n| (n, 4.0)).to_vec();
+        let references = [(1, ""), (2, "a"), (2, "b"), (3, "b"), (4, "b"), (5, "")];
+        let fit = |index: usize, bar: &Measure| {
+            f64::from(index >= 2 && bar.start == 12.0 + 4.0 * (index - 2) as f64)
+        };
+        let (bars, located) = locate_measures(&bars(&layout), &references, fit);
+        assert_eq!(located[2].map(|i| bars[i].start), Some(12.0));
+    }
+
+    #[test]
+    fn measure_that_takes_no_time_does_not_count() {
+        let layout = [("1", 4.0), ("2", 3.0), ("0", 0.0), ("X1", 1.0), ("3", 4.0)];
+        assert_eq!(located_starts(&layout, &[(3, "")]), vec![Some(8.0)]);
+    }
+
+    #[test]
+    fn pickup_numbered_one_counts_as_bar_zero() {
+        let layout = [("1", 1.0), ("2", 4.0), ("3", 4.0)];
+        assert_eq!(located_starts(&layout, &[(1, "")]), vec![Some(1.0)]);
+    }
+
+    #[test]
+    fn fragment_left_out_of_broken_numbering_when_the_harmony_fits_better() {
+        let layout = [("1", 4.0), ("2", 4.0), ("604", 1.0), ("10", 4.0), ("11", 4.0)];
+        let references = [(3, ""), (4, "")];
+        let fit = |index: usize, bar: &Measure| f64::from(bar.number == ["10", "11"][index]);
+        let (bars, located) = locate_measures(&bars(&layout), &references, fit);
+        assert_eq!(
+            located.iter().map(|i| i.map(|i| bars[i].start)).collect::<Vec<_>>(),
+            vec![Some(9.0), Some(13.0)]
+        );
     }
 
     #[test]
