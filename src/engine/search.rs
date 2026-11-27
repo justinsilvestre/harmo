@@ -8,11 +8,13 @@
 
 use super::bass::{Bass, BassNote, is_accented};
 use super::model::{NONE, Node, Reading, Segment};
+use super::pruning::{PruneCause, Pruned};
 use super::rule::{CloseContext, DepartureContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::key::{Key, all_keys};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -26,11 +28,20 @@ pub struct Config {
     pub distinct_depth: usize,
     /// Keeps the beam of every slice, for tracing how readings rise and fall in the ranking.
     pub record_snapshots: bool,
+    /// Keeps the hypotheses that pruning drops at every slice, with the reason, for explaining
+    /// why readings leave the beam.
+    pub record_pruning: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { beam_width: 80, candidate_limit: 48, distinct_depth: 4, record_snapshots: false }
+        Config {
+            beam_width: 80,
+            candidate_limit: 48,
+            distinct_depth: 4,
+            record_snapshots: false,
+            record_pruning: false,
+        }
     }
 }
 
@@ -41,22 +52,28 @@ pub struct Analysis {
     pub ranking: Vec<(u32, f32)>,
     /// The beam after each slice, best first. Empty unless `Config::record_snapshots` is set.
     pub snapshots: Vec<Vec<u32>>,
+    /// The hypotheses dropped at each slice, best first. Empty unless `Config::record_pruning` is set.
+    pub pruned: Vec<Vec<Pruned>>,
 }
 
 pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut arena: Vec<Node> = Vec::new();
     let mut beam: Vec<u32> = Vec::new();
     let mut snapshots = Vec::new();
+    let mut pruned = Vec::new();
     for index in 0..slices.len() {
         let pending = step(all_keys(), slices, index, &arena, &beam, rules, config);
-        let kept = prune(pending, &arena, config);
+        let (kept, dropped) = prune(pending, &arena, config);
         beam = commit(&mut arena, kept);
         if config.record_snapshots {
             snapshots.push(beam.clone());
         }
+        if config.record_pruning {
+            pruned.push(dropped);
+        }
     }
     let ranking = rank_final(slices, &arena, &beam, rules);
-    Analysis { arena, ranking, snapshots }
+    Analysis { arena, ranking, snapshots, pruned }
 }
 
 fn step(
@@ -215,23 +232,37 @@ fn close_score(slices: &[Slice], node: &Node, next_slice: Option<&Slice>, rules:
 
 /// Keeps the best hypotheses, skipping any whose recent readings repeat those of a better one
 /// (see `Config::distinct_depth`). The sort is stable, so ties are broken by insertion order.
-fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> Vec<Node> {
+/// Also returns the dropped hypotheses when `Config::record_pruning` is set.
+fn prune(mut pending: Vec<Node>, arena: &[Node], config: &Config) -> (Vec<Node>, Vec<Pruned>) {
     pending.sort_by(|a, b| b.score.total_cmp(&a.score));
-    if config.distinct_depth == 0 {
-        pending.truncate(config.beam_width);
-        return pending;
-    }
-    let mut seen: HashSet<Vec<Reading>> = HashSet::new();
+    let first = arena.len() as u32;
+    let mut seen: HashMap<Vec<Reading>, u32> = HashMap::new();
     let mut kept = Vec::with_capacity(config.beam_width);
-    for node in pending {
-        if kept.len() == config.beam_width {
-            break;
-        }
-        if seen.insert(recent_readings(&node.segment, arena, config.distinct_depth)) {
+    let mut dropped = Vec::new();
+    for (rank, node) in pending.into_iter().enumerate() {
+        let cause = if kept.len() == config.beam_width {
+            if !config.record_pruning {
+                break;
+            }
+            PruneCause::Width
+        } else if config.distinct_depth == 0 {
             kept.push(node);
+            continue;
+        } else {
+            match seen.entry(recent_readings(&node.segment, arena, config.distinct_depth)) {
+                Entry::Vacant(entry) => {
+                    entry.insert(first + kept.len() as u32);
+                    kept.push(node);
+                    continue;
+                }
+                Entry::Occupied(entry) => PruneCause::Merged { keeper: *entry.get() },
+            }
+        };
+        if config.record_pruning {
+            dropped.push(Pruned { node, rank: rank + 1, cause });
         }
     }
-    kept
+    (kept, dropped)
 }
 
 /// Returns the readings of a segment and of up to `depth - 1` segments before it, most recent first.
@@ -297,7 +328,7 @@ mod tests {
     }
 
     fn kept_starts(arena: &[Node], config: &Config) -> Vec<u32> {
-        prune(pending(), arena, config).iter().map(|n| n.segment.start).collect()
+        prune(pending(), arena, config).0.iter().map(|n| n.segment.start).collect()
     }
 
     #[test]
@@ -320,6 +351,23 @@ mod tests {
     fn prune_looks_back_no_further_than_distinct_depth() {
         let config = Config { distinct_depth: 1, ..Config::default() };
         assert_eq!(kept_starts(&arena("C", "F"), &config), [2]);
+    }
+
+    fn dropped_causes(arena: &[Node], config: &Config) -> Vec<PruneCause> {
+        let config = Config { record_pruning: true, ..config.clone() };
+        prune(pending(), arena, &config).1.iter().map(|p| p.cause).collect()
+    }
+
+    #[test]
+    fn prune_records_the_hypothesis_kept_in_place_of_a_merged_one() {
+        let arena = arena("C", "C");
+        assert_eq!(dropped_causes(&arena, &Config::default()), [PruneCause::Merged { keeper: 2 }]);
+    }
+
+    #[test]
+    fn prune_records_hypotheses_cut_by_beam_width() {
+        let config = Config { beam_width: 1, ..Config::default() };
+        assert_eq!(dropped_causes(&arena("C", "F"), &config), [PruneCause::Width]);
     }
 
     #[test]

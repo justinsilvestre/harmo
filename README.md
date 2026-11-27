@@ -48,6 +48,8 @@ cargo build --release
 ./target/release/harmo results                    # regenerate RESULTS.md
 ```
 
+In the `--json` document, each span's `rank_history` lists the rank (1 = best hypothesis) at which the beam held the span's reading after each slice where it changed, and each alternative has its own. `pruned_alternatives` lists, best first, readings of the span that the beam held but later dropped. Each of their histories ends with `rank: null` and a `left_beam` record: when (`slice`, `time`, `measure`), the rank it last stood at (`last_rank`), the rank of its best hypothesis among all that competed for the beam (`competing_rank`), how far that hypothesis fell below the best (`score_gap`), and why: `beam_width` when the beam was full of better hypotheses, or `distinct_depth` when a better hypothesis with the same readings of its last segments took its place (`merged_into_rank`, `merged_into_reading`). A reading that leaves the beam never returns, because every hypothesis descends from one in the previous beam.
+
 `bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
 
 `diagnose` runs the same evaluation and assigns every frame the top reading gets wrong to exactly one kind, ranked by frames lost, for each set and its subsets:
