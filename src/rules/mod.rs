@@ -1,5 +1,6 @@
 //! The rule catalog. Each file holds the rules of one layer and topic, prefixed by layer.
 
+pub mod chord_attack;
 pub mod chord_bass;
 pub mod chord_completeness;
 pub mod chord_fit;
@@ -31,6 +32,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_proposal::RULES,
         chord_fit::RULES,
         chord_rhythm::RULES,
+        chord_attack::RULES,
         chord_completeness::RULES,
         chord_bass::RULES,
         chord_seventh_sonority::RULES,

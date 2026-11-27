@@ -36,6 +36,11 @@ impl Slice {
     pub fn bass(&self) -> Option<&SliceNote> {
         self.notes.first()
     }
+
+    /// Returns whether the slice sounds at least `notes` notes and every one of them starts with it.
+    pub fn is_struck_together(&self, notes: usize) -> bool {
+        self.notes.len() >= notes && self.notes.iter().all(|note| note.attacked)
+    }
 }
 
 /// Slices the score at every note onset, note release and barline.
