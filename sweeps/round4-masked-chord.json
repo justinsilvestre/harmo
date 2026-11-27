@@ -1,0 +1,30 @@
+{
+  "sets": [
+    "tune",
+    "agreement-tune"
+  ],
+  "objective_set": "tune",
+  "objective_feature": "chord",
+  "base": {},
+  "one_at_a_time": true,
+  "grid": {
+    "chord.ornamental_dissonance": [
+      2.5,
+      3.0
+    ],
+    "chord.compatibility": [
+      1.25
+    ],
+    "function.dominant_resolution": [
+      0.375
+    ],
+    "function.rare_mediant": [
+      0.5,
+      1.5,
+      2.5
+    ],
+    "function.picardy_third": [
+      2.0
+    ]
+  }
+}
