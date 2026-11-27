@@ -8,15 +8,28 @@ use serde::{Deserialize, Serialize};
 /// "chord" requires quality, inversion and root, whatever the key.
 /// "rn|key" is the rn accuracy over only the frames whose key is correct.
 /// "offered" is the share of frames whose full Roman numeral is among the readings the engine offers.
-pub const FEATURES: [&str; 9] =
-    ["key", "degree", "quality", "inversion", "root", "rn", "chord", "rn|key", "offered"];
+/// "key now" and "rn now" score the reading held at the moment rather than the one traced back from
+/// the end of the piece.
+pub const FEATURES: [&str; 11] = [
+    "key",
+    "degree",
+    "quality",
+    "inversion",
+    "root",
+    "rn",
+    "chord",
+    "rn|key",
+    "offered",
+    "key now",
+    "rn now",
+];
 
 /// The number of leading features that AugmentedNet reports.
 pub const AUGMENTEDNET_FEATURES: usize = 6;
 
 /// The number of leading features that are compared frame by frame.
-/// Of the remaining features, "rn|key" is derived from the counts for "rn" and "key", and "offered"
-/// is counted against the offered readings rather than the top reading.
+/// Of the remaining features, "rn|key" is derived from the counts for "rn" and "key", "offered" is
+/// counted against the offered readings, and "key now" and "rn now" against the in-the-moment reading.
 pub const MATCHED_FEATURES: usize = 7;
 
 const KEY: usize = 0;
@@ -47,8 +60,8 @@ fn add_where(counts: &mut FeatureCounts, flags: FeatureFlags) {
     }
 }
 
-/// Accuracy of the top-ranked reading against one analyst, and how often that analyst's reading is
-/// among the readings offered.
+/// Accuracy of the top-ranked reading against one analyst, how often that analyst's reading is among
+/// the readings offered, and how often the in-the-moment reading matches it.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Accuracy {
     pub frames: u64,
@@ -57,16 +70,24 @@ pub struct Accuracy {
     pub offered: u64,
     /// Sum over frames of the number of distinct full readings offered.
     pub offered_readings: u64,
+    /// Frames whose in-the-moment reading has the right key.
+    pub now_key: u64,
+    /// Frames whose in-the-moment reading has the right full Roman numeral.
+    pub now_rn: u64,
 }
 
 impl Accuracy {
-    pub fn add_frame(&mut self, predicted: Option<&Label>, offered: &[Label], truth: &Label) {
+    /// Adds a frame, given the top reading, the offered readings and the in-the-moment reading.
+    pub fn add_frame(&mut self, top: Option<&Label>, offered: &[Label], now: Option<&Label>, truth: &Label) {
         self.frames += 1;
-        if let Some(predicted) = predicted {
-            add_where(&mut self.correct, feature_matches(predicted, truth));
+        if let Some(top) = top {
+            add_where(&mut self.correct, feature_matches(top, truth));
         }
         self.offered += offered.iter().any(|o| is_rn_match(o, truth)) as u64;
         self.offered_readings += offered.len() as u64;
+        let now_matches = now.map_or([false; MATCHED_FEATURES], |n| feature_matches(n, truth));
+        self.now_key += now_matches[KEY] as u64;
+        self.now_rn += now_matches[RN] as u64;
     }
 
     pub fn merge(&mut self, other: &Accuracy) {
@@ -74,6 +95,8 @@ impl Accuracy {
         add_where_counts(&mut self.correct, &other.correct);
         self.offered += other.offered;
         self.offered_readings += other.offered_readings;
+        self.now_key += other.now_key;
+        self.now_rn += other.now_rn;
     }
 
     /// Returns the rate for each of `FEATURES`.
@@ -81,6 +104,8 @@ impl Accuracy {
         let mut rates: Vec<f64> = self.correct.iter().map(|&c| ratio(c, self.frames)).collect();
         rates.push(ratio(self.correct[RN], self.correct[KEY]));
         rates.push(ratio(self.offered, self.frames));
+        rates.push(ratio(self.now_key, self.frames));
+        rates.push(ratio(self.now_rn, self.frames));
         rates
     }
 
@@ -213,9 +238,9 @@ mod tests {
     /// One frame in G with the right key and the wrong inversion.
     fn accuracy() -> Accuracy {
         let mut accuracy = Accuracy::default();
-        accuracy.add_frame(Some(&label("C", "G", "G")), &[], &label("C", "G", "G"));
-        accuracy.add_frame(Some(&label("G", "G", "G")), &[], &label("C", "G", "G"));
-        accuracy.add_frame(Some(&label("G", "D", "F#")), &[], &label("G", "D", "D"));
+        accuracy.add_frame(Some(&label("C", "G", "G")), &[], None, &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "G", "G")), &[], None, &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "D", "F#")), &[], None, &label("G", "D", "D"));
         accuracy
     }
 
@@ -224,9 +249,14 @@ mod tests {
     fn offers() -> Accuracy {
         let mut accuracy = Accuracy::default();
         let truth = label("C", "G", "G");
-        accuracy.add_frame(None, &[label("C", "G", "B"), truth], &truth);
-        accuracy.add_frame(None, &[label("C", "F", "F"), label("G", "G", "G"), label("C", "C", "C")], &truth);
-        accuracy.add_frame(None, &[], &truth);
+        accuracy.add_frame(None, &[label("C", "G", "B"), truth], None, &truth);
+        accuracy.add_frame(
+            None,
+            &[label("C", "F", "F"), label("G", "G", "G"), label("C", "C", "C")],
+            None,
+            &truth,
+        );
+        accuracy.add_frame(None, &[], None, &truth);
         accuracy
     }
 
@@ -263,21 +293,21 @@ mod tests {
     #[test]
     fn offered_requires_the_key() {
         let mut accuracy = Accuracy::default();
-        accuracy.add_frame(None, &[label("G", "G", "G")], &label("C", "G", "G"));
+        accuracy.add_frame(None, &[label("G", "G", "G")], None, &label("C", "G", "G"));
         assert_eq!(rate(&accuracy, "offered"), 0.0);
     }
 
     #[test]
     fn offered_requires_the_inversion() {
         let mut accuracy = Accuracy::default();
-        accuracy.add_frame(None, &[label("C", "G", "B")], &label("C", "G", "G"));
+        accuracy.add_frame(None, &[label("C", "G", "B")], None, &label("C", "G", "G"));
         assert_eq!(rate(&accuracy, "offered"), 0.0);
     }
 
     #[test]
     fn offered_is_independent_of_the_top_reading() {
         let mut accuracy = Accuracy::default();
-        accuracy.add_frame(Some(&label("C", "G", "G")), &[], &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("C", "G", "G")), &[], None, &label("C", "G", "G"));
         assert_eq!(rate(&accuracy, "offered"), 0.0);
     }
 
@@ -291,6 +321,48 @@ mod tests {
         let mut merged = offers();
         merged.merge(&offers());
         assert_eq!(rate(&merged, "offered"), 1.0 / 3.0);
+    }
+
+    /// One frame whose in-the-moment reading is wholly right but whose top reading is in another key.
+    fn revised() -> Accuracy {
+        let mut accuracy = Accuracy::default();
+        let truth = label("C", "G", "G");
+        accuracy.add_frame(Some(&label("G", "G", "G")), &[], Some(&truth), &truth);
+        accuracy
+    }
+
+    #[test]
+    fn rn_now_counts_the_in_the_moment_reading() {
+        assert_eq!(rate(&revised(), "rn now"), 1.0);
+    }
+
+    #[test]
+    fn rn_ignores_the_in_the_moment_reading() {
+        assert_eq!(rate(&revised(), "rn"), 0.0);
+    }
+
+    #[test]
+    fn key_now_counts_the_in_the_moment_key() {
+        assert_eq!(rate(&revised(), "key now"), 1.0);
+    }
+
+    #[test]
+    fn key_now_is_zero_without_an_in_the_moment_reading() {
+        assert_eq!(rate(&accuracy(), "key now"), 0.0);
+    }
+
+    #[test]
+    fn rn_now_requires_the_inversion() {
+        let mut accuracy = Accuracy::default();
+        accuracy.add_frame(None, &[], Some(&label("C", "G", "B")), &label("C", "G", "G"));
+        assert_eq!(rate(&accuracy, "rn now"), 0.0);
+    }
+
+    #[test]
+    fn merge_adds_in_the_moment_counts() {
+        let mut merged = revised();
+        merged.merge(&accuracy());
+        assert_eq!(rate(&merged, "rn now"), 0.25);
     }
 
     #[test]

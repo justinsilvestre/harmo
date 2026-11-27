@@ -101,10 +101,11 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let analysis = analyze(&piece.slices, rules, &engine);
     let top = top_frames(&analysis, piece);
     let offered = offered_frames(&analysis, piece, top.len(), config);
+    let now = now_frames(&analysis, piece, top.len(), config);
     let mut accuracy = Accuracy::default();
-    for ((predicted, offers), truth) in top.iter().zip(&offered).zip(&piece.analyses[0].1) {
+    for (frame, truth) in piece.analyses[0].1.iter().enumerate() {
         if let Some(truth) = truth {
-            accuracy.add_frame(predicted.as_ref(), offers, truth);
+            accuracy.add_frame(top[frame].as_ref(), &offered[frame], now[frame].as_ref(), truth);
         }
     }
     let agreement = (piece.analyses.len() >= 2).then(|| agreement(piece, &top, &offered));
@@ -159,8 +160,26 @@ pub fn offered_frames(
     let slices = &piece.slices;
     let per_slice: Vec<Vec<Label>> =
         (0..slices.len()).map(|i| offered_at(analysis, slices, i, config)).collect();
-    let offers_at = |slice: usize| per_slice.get(slice).cloned().unwrap_or_default();
-    frame_slices(slices, count).into_iter().map(offers_at).collect()
+    slice_values_by_frame(slices, count, &per_slice)
+}
+
+/// Returns, for each frame, the reading of its slice held by the best hypothesis of the beam a short
+/// time later (see `EvalConfig::offer_lag`): the reading a listener would hold at that moment.
+pub fn now_frames(
+    analysis: &Analysis,
+    piece: &BenchPiece,
+    count: usize,
+    config: &EvalConfig,
+) -> Vec<Option<Label>> {
+    let slices = &piece.slices;
+    let per_slice: Vec<Option<Label>> =
+        (0..slices.len()).map(|i| now_at(analysis, slices, i, config)).collect();
+    slice_values_by_frame(slices, count, &per_slice)
+}
+
+fn slice_values_by_frame<T: Clone + Default>(slices: &[Slice], count: usize, per_slice: &[T]) -> Vec<T> {
+    let value_at = |slice: usize| per_slice.get(slice).cloned().unwrap_or_default();
+    frame_slices(slices, count).into_iter().map(value_at).collect()
 }
 
 /// Returns the beam as it stood `lag` quarter notes after the slice `at` began, best first.
@@ -185,14 +204,24 @@ fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalCon
         if labels.len() == config.offer_count {
             break;
         }
-        let Some(segment) = segment_at(analysis, node, at) else {
+        let Some(label) = reading_at(analysis, node, at) else {
             continue;
         };
-        let reading = segment.reading;
-        let label = Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc());
         if !labels.contains(&label) {
             labels.push(label);
         }
     }
     labels
+}
+
+fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> Option<Label> {
+    let best = *lagged_beam(analysis, slices, at, config.offer_lag)?.first()?;
+    reading_at(analysis, best, at)
+}
+
+/// Returns the label that the hypothesis `node` gives the slice `at`.
+fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Label> {
+    let segment = segment_at(analysis, node, at)?;
+    let reading = segment.reading;
+    Some(Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc()))
 }
