@@ -24,6 +24,7 @@ pub mod key_phrase_close;
 pub mod key_profile;
 pub mod key_segment_profile;
 pub mod key_signature;
+pub mod key_six_four_tonicization;
 pub mod sources;
 
 use crate::engine::rule::Rule;
@@ -45,6 +46,7 @@ pub fn default_rules() -> Vec<Rule> {
         key_signature::RULES,
         key_modulation::RULES,
         key_cadence::RULES,
+        key_six_four_tonicization::RULES,
         key_confirmation::RULES,
         key_phrase_close::RULES,
         key_opening_tonic::RULES,
