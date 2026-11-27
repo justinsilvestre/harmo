@@ -68,7 +68,7 @@ cargo build --release
 
 **Expert agreement**
 - **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
-- **Where they disagree,** the measure is how often both readings are among those the engine offers. Offered readings are the distinct readings held by the leading hypotheses two quarter notes after the moment, a listener who has heard a little further.
+- **Where they disagree,** the measure is how often both readings are among those the engine offers. Offered readings are up to four distinct readings held by hypotheses within a score margin of the best, two quarter notes after the moment, as a listener who has heard a little further might entertain them. The bench reports the mean number offered, so that coverage is read against how much is offered.
 
 Tune on `tune`, and report on `test`.
 

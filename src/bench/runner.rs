@@ -28,9 +28,9 @@ pub struct BenchPiece {
 #[derive(Clone, Debug)]
 pub struct EvalConfig {
     pub engine: Config,
-    /// At most this many final hypotheses count as "offered" readings...
+    /// At most this many distinct readings are offered...
     pub offer_count: usize,
-    /// ...and only those within this score margin of the best.
+    /// ...taken from the hypotheses within this score margin of the best.
     pub offer_margin: f32,
     /// Readings are offered as the beam stood this many quarter notes after the moment in question,
     /// modeling a listener who has heard a little further.
@@ -39,7 +39,7 @@ pub struct EvalConfig {
 
 impl Default for EvalConfig {
     fn default() -> EvalConfig {
-        EvalConfig { engine: Config::default(), offer_count: 8, offer_margin: 4.0, offer_lag: 2.0 }
+        EvalConfig { engine: Config::default(), offer_count: 4, offer_margin: 4.0, offer_lag: 2.0 }
     }
 }
 
@@ -187,7 +187,10 @@ fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalCon
     let best_score = analysis.arena[best as usize].score;
     let is_close = |node: &&u32| best_score - analysis.arena[**node as usize].score <= config.offer_margin;
     let mut labels: Vec<Label> = Vec::new();
-    for &node in beam.iter().take(config.offer_count).filter(is_close) {
+    for &node in beam.iter().filter(is_close) {
+        if labels.len() == config.offer_count {
+            break;
+        }
         let Some(segment) = segment_at(analysis, node, at) else {
             continue;
         };
