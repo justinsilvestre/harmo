@@ -13,7 +13,8 @@ pub const RULES: &[Rule] = &[Rule {
     id: "function.vocabulary",
     layer: Layer::Function,
     summary: "Read chords as diatonic triads and seventh chords, mixture chords, the Neapolitan, \
-              augmented sixths, or applied dominants and leading-tone chords of diatonic triads.",
+              augmented sixths, or applied dominants and leading-tone chords of diatonic triads. In minor, \
+              the dominant seventh on the subtonic is read as V7/III, not as VII7.",
     citations: &[
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -22,6 +23,10 @@ pub const RULES: &[Rule] = &[Rule {
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
             locator: "pp. 256–260, 273–276 (secondary dominants and leading-tone chords)",
+        },
+        Citation {
+            source: KOSTKA_PAYNE_ALMEN_2023,
+            locator: "pp. 257, 263 (VII7 in minor usually functions as a dominant of III and is labeled V7/III)",
         },
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -73,6 +78,7 @@ const MAJOR: &[Entry] = &[
     (2, FrenchSixth, Chromatic),
 ];
 
+/// Has no VII7, so that the dominant seventh on the subtonic is read only as V7/III.
 const MINOR: &[Entry] = &[
     (0, Minor, Diatonic),
     (2, Diminished, Diatonic),
@@ -94,7 +100,6 @@ const MINOR: &[Entry] = &[
     (1, MinorSeventh, Diatonic),
     (1, DominantSeventh, Diatonic),
     (-4, MajorSeventh, Diatonic),
-    (-2, DominantSeventh, Diatonic),
     (5, DiminishedSeventh, Diatonic),
     (5, HalfDiminishedSeventh, Diatonic),
     (0, Major, Mixture),
@@ -161,6 +166,19 @@ mod tests {
     fn chords_outside_the_vocabulary_have_no_reading() {
         let c = Key::parse("C", "major").unwrap();
         assert!(interpret(c, chord("F#", Major)).is_empty());
+    }
+
+    #[test]
+    fn subtonic_dominant_seventh_in_minor_tonicizes_the_mediant() {
+        let c = Key::parse("C", "minor").unwrap();
+        let e_flat = Key::parse("Eb", "major").unwrap();
+        assert_eq!(interpret(c, chord("Bb", DominantSeventh)), vec![(Some(e_flat), Category::Applied)]);
+    }
+
+    #[test]
+    fn subtonic_triad_in_minor_stays_diatonic() {
+        let c = Key::parse("C", "minor").unwrap();
+        assert_eq!(interpret(c, chord("Bb", Major)), vec![(None, Diatonic)]);
     }
 
     #[test]
