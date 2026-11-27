@@ -59,7 +59,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History { arena: &[], last: NONE };
+        let history = History { arena: &[], slices: &[], last: NONE };
         opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history })
     }
 

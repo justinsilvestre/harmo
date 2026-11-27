@@ -106,6 +106,8 @@ pub struct CloseContext<'a> {
 #[derive(Clone, Copy)]
 pub struct History<'a> {
     pub arena: &'a [Node],
+    /// Every slice of the score, so that a past segment's slices can be read from its `start`.
+    pub slices: &'a [Slice],
     /// Arena index of the last node of the most recent segment, or `NONE`.
     pub last: u32,
 }

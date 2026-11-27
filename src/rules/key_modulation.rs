@@ -98,7 +98,7 @@ mod tests {
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
         let arena = arena(segments);
-        area_heard(History { arena: &arena, last: arena.len() as u32 - 1 }, reading("C").key)
+        area_heard(History { arena: &arena, slices: &[], last: arena.len() as u32 - 1 }, reading("C").key)
     }
 
     /// Scores moving to G major after the given segments.
@@ -118,7 +118,7 @@ mod tests {
             previous: Some(&arena[last as usize].segment),
             next: &reading("G"),
             slice: &slice,
-            history: History { arena: &arena, last },
+            history: History { arena: &arena, slices: &[], last },
         };
         area_duration(&context)
     }

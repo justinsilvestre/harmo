@@ -60,7 +60,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History { arena: &[], last: NONE };
+        let history = History { arena: &[], slices: &[], last: NONE };
         rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history })
     }
 

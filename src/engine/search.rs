@@ -73,7 +73,7 @@ fn step(
     let closes: Vec<f32> =
         beam.iter().map(|&b| close_score(slices, &arena[b as usize], Some(slice), rules)).collect();
     for (reading, opening_score) in openings(keys, slices, index, rules, config.candidate_limit) {
-        let best = best_predecessor(&reading, slice, arena, beam, &closes, rules);
+        let best = best_predecessor(&reading, slices, index, arena, beam, &closes, rules);
         if let Some((parent, previous_score)) = best {
             let segment = open_segment(reading, index, parent, slice);
             pending.push(Node {
@@ -141,14 +141,16 @@ fn openings(
 /// of the path up to the new segment (closing and transition scores included).
 fn best_predecessor(
     reading: &Reading,
-    slice: &Slice,
+    slices: &[Slice],
+    index: usize,
     arena: &[Node],
     beam: &[u32],
     closes: &[f32],
     rules: &RuleSet,
 ) -> Option<(u32, f32)> {
     let evaluate = |previous: Option<&Segment>, last: u32| {
-        let context = TransitionContext { previous, next: reading, slice, history: History { arena, last } };
+        let history = History { arena, slices, last };
+        let context = TransitionContext { previous, next: reading, slice: &slices[index], history };
         rules.admits(&context).then(|| rules.score_transition(&context))
     };
     if beam.is_empty() {

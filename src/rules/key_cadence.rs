@@ -83,7 +83,7 @@ mod tests {
             key_signature: None,
         };
         let next = reading("C", Quality::Major);
-        let history = History { arena: &[], last: NONE };
+        let history = History { arena: &[], slices: &[], last: NONE };
         cadential_confirmation(&TransitionContext {
             previous: Some(&previous),
             next: &next,

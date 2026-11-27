@@ -33,7 +33,7 @@ pub fn trace_segment(
         previous,
         next: &segment.reading,
         slice: &slices[first],
-        history: History { arena: &analysis.arena, last: state.previous },
+        history: History { arena: &analysis.arena, slices, last: state.previous },
     };
     let close = CloseContext { segment: state, slices: &slices[first..end], next_slice: slices.get(end) };
     let slice_sum = |f: fn(&SliceContext) -> f32| -> f32 {

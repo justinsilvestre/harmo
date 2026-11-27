@@ -124,7 +124,7 @@ mod tests {
             previous: Some(&previous),
             next: &reading("G"),
             slice: &slice,
-            history: History { arena: &[], last: NONE },
+            history: History { arena: &[], slices: &[], last: NONE },
         };
         thin_texture_rhythm(&context)
     }
