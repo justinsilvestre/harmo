@@ -9,7 +9,7 @@
 use super::bass::{Bass, BassNote};
 use super::model::{NONE, Node, Reading, Segment};
 use super::pruning::{PruneCause, Pruned};
-use super::rule::{CloseContext, DepartureContext, History, SliceContext, TransitionContext};
+use super::rule::{CloseContext, DepartureContext, History, RivalContext, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -90,8 +90,7 @@ fn step(
     let mut pending = continuations(slices, index, arena, beam, rules);
     let exits: Vec<Exit> = beam.iter().map(|&b| exit(slices, index, arena, b, rules)).collect();
     for (reading, opening_score) in openings(keys, slices, index, rules, config.candidate_limit) {
-        let best = best_predecessor(&reading, slices, index, arena, beam, &exits, rules);
-        if let Some((parent, previous_score)) = best {
+        for (parent, previous_score) in predecessors(&reading, slices, index, arena, beam, &exits, rules) {
             let segment = open_segment(reading, index, parent, slice, rules);
             pending.push(Node {
                 parent,
@@ -155,7 +154,17 @@ fn openings(
     };
     let mut scored: Vec<(Reading, f32)> = readings.into_iter().map(|r| (r, score(&r))).collect();
     scored.sort_by(|a, b| b.1.total_cmp(&a.1));
-    scored.truncate(limit);
+    let rest = scored.split_off(limit.min(scored.len()));
+    let mut rivals: Vec<Reading> = Vec::new();
+    for (reading, _) in &scored {
+        for (rival_of, params) in &rules.rival_candidate_rules {
+            rivals.extend(rival_of(reading, slice, params));
+        }
+    }
+    let is_rival = |r: &Reading| {
+        rivals.iter().any(|v| v.key == r.key && v.chord == r.chord && v.tonicized == r.tonicized)
+    };
+    scored.extend(rest.into_iter().filter(|(reading, _)| is_rival(reading)));
     scored
 }
 
@@ -164,21 +173,32 @@ fn openings(
 struct Exit {
     close: f32,
     departures: Vec<f32>,
+    /// The rival hooks' groups for the hypothesis's last segment, in rule order.
+    rivals: Vec<Option<u64>>,
 }
 
 fn exit(slices: &[Slice], index: usize, arena: &[Node], b: u32, rules: &RuleSet) -> Exit {
     let node = &arena[b as usize];
     let history = History { arena, slices, last: b };
     let context = DepartureContext { previous: &node.segment, slice: &slices[index], history };
+    let start = node.segment.start as usize;
+    let rival = RivalContext {
+        segment: &node.segment,
+        slices: &slices[start..=node.slice as usize],
+        previous_slice: start.checked_sub(1).map(|i| &slices[i]),
+    };
     Exit {
         close: close_score(slices, node, Some(&slices[index]), rules),
         departures: rules.score_departures(&context),
+        rivals: rules.rival_groups(&rival),
     }
 }
 
-/// Finds the hypothesis that best leads into a new reading, returning its index and the score
-/// of the path up to the new segment (closing and transition scores included).
-fn best_predecessor(
+/// Finds the hypotheses that a new reading opens after: the one that leads into it best and, for
+/// each rival hook that puts that hypothesis's last segment in a group, the best one whose last
+/// segment has the same group and another reading. Returns each one's index and the score of the
+/// path up to the new segment (closing and transition scores included), best first.
+fn predecessors(
     reading: &Reading,
     slices: &[Slice],
     index: usize,
@@ -186,21 +206,45 @@ fn best_predecessor(
     beam: &[u32],
     exits: &[Exit],
     rules: &RuleSet,
-) -> Option<(u32, f32)> {
+) -> Vec<(u32, f32)> {
     let evaluate = |previous: Option<&Segment>, last: u32, departures: &[f32]| {
         let history = History { arena, slices, last };
         let context = TransitionContext { previous, next: reading, slice: &slices[index], history };
         rules.admits(&context).then(|| rules.score_transition(&context, departures))
     };
     if beam.is_empty() {
-        return evaluate(None, NONE, &[]).map(|score| (NONE, score));
+        return evaluate(None, NONE, &[]).map(|score| (NONE, score)).into_iter().collect();
     }
-    let candidates = beam.iter().zip(exits).filter_map(|(&b, exit)| {
-        let node = &arena[b as usize];
-        let transition = evaluate(Some(&node.segment), b, &exit.departures);
-        transition.map(|transition| (b, node.score + exit.close + transition))
-    });
-    candidates.max_by(|a, b| a.1.total_cmp(&b.1))
+    let scored: Vec<(usize, f32)> = (0..beam.len())
+        .filter_map(|position| {
+            let (b, exit) = (beam[position], &exits[position]);
+            let node = &arena[b as usize];
+            let transition = evaluate(Some(&node.segment), b, &exit.departures)?;
+            Some((position, node.score + exit.close + transition))
+        })
+        .collect();
+    let best_of = |candidates: &mut dyn Iterator<Item = &(usize, f32)>| {
+        candidates.copied().max_by(|a, b| a.1.total_cmp(&b.1))
+    };
+    let Some(best) = best_of(&mut scored.iter()) else {
+        return vec![];
+    };
+    let mut found = vec![best];
+    let best_reading = arena[beam[best.0] as usize].segment.reading;
+    for (rule, group) in exits[best.0].rivals.iter().enumerate() {
+        let Some(group) = *group else {
+            continue;
+        };
+        let is_rival = |&&(position, _): &&(usize, f32)| {
+            exits[position].rivals[rule] == Some(group)
+                && arena[beam[position] as usize].segment.reading != best_reading
+        };
+        let rival = best_of(&mut scored.iter().filter(is_rival));
+        if let Some(rival) = rival.filter(|r| !found.iter().any(|f| f.0 == r.0)) {
+            found.push(rival);
+        }
+    }
+    found.into_iter().map(|(position, score)| (beam[position], score)).collect()
 }
 
 fn open_segment(reading: Reading, index: usize, previous: u32, slice: &Slice, rules: &RuleSet) -> Segment {
@@ -310,6 +354,7 @@ fn rank_final(slices: &[Slice], arena: &[Node], beam: &[u32], rules: &RuleSet) -
 mod tests {
     use super::*;
     use crate::engine::model::Category;
+    use crate::engine::rule::Rule;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
     use crate::theory::key::{Key, Mode};
@@ -407,5 +452,54 @@ mod tests {
     fn prune_keeps_at_most_beam_width_hypotheses() {
         let config = Config { beam_width: 1, ..Config::default() };
         assert_eq!(kept_starts(&arena("C", "F"), &config), [2]);
+    }
+
+    fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
+        Some(0)
+    }
+
+    /// Returns the parents that a new reading on slice 3 opens after, from a beam of two hypotheses
+    /// whose last segments end on slice 2 with the given roots and scores.
+    fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
+        let rule = Rule {
+            id: "test.rival",
+            layer: crate::engine::rule::Layer::Chord,
+            summary: "",
+            citations: &[],
+            default_weight: 1.0,
+            params: &[],
+            hook: crate::engine::rule::Hook::Rival(same_group),
+        };
+        let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
+        let arena = vec![node(roots[0], 0, NONE, scores[0]), node(roots[1], 0, NONE, scores[1])];
+        let slice = Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![],
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        };
+        let slices = vec![slice; 4];
+        let beam = [0, 1];
+        let exits: Vec<Exit> = beam.iter().map(|&b| exit(&slices, 3, &arena, b, &rules)).collect();
+        let found = predecessors(&reading("C"), &slices, 3, &arena, &beam, &exits, &rules);
+        found.iter().map(|&(parent, _)| parent).collect()
+    }
+
+    #[test]
+    fn a_new_segment_opens_after_the_best_hypothesis_alone() {
+        assert_eq!(parents(false, ["G", "F"], [0.0, -1.0]), [0]);
+    }
+
+    #[test]
+    fn a_new_segment_also_opens_after_the_best_rival_reading() {
+        assert_eq!(parents(true, ["G", "F"], [0.0, -1.0]), [0, 1]);
+    }
+
+    #[test]
+    fn a_rival_needs_another_reading() {
+        assert_eq!(parents(true, ["G", "G"], [0.0, -1.0]), [0]);
     }
 }

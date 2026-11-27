@@ -2,12 +2,14 @@
 
 pub mod chord_bass;
 pub mod chord_bass_note;
+pub mod chord_cadential_dominant;
 pub mod chord_completeness;
 pub mod chord_fit;
 pub mod chord_implied_harmony;
 pub mod chord_proposal;
 pub mod chord_rhythm;
 pub mod chord_seventh_delay;
+pub mod chord_seventh_rival;
 pub mod chord_seventh_sonority;
 pub mod function_distinct_readings;
 pub mod function_picardy_third;
@@ -38,6 +40,7 @@ use crate::engine::rule::Rule;
 pub fn default_rules() -> Vec<Rule> {
     [
         chord_proposal::RULES,
+        chord_cadential_dominant::RULES,
         chord_fit::RULES,
         chord_implied_harmony::RULES,
         chord_rhythm::RULES,
@@ -47,6 +50,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_seventh_sonority::RULES,
         key_proposal::RULES,
         chord_seventh_delay::RULES,
+        chord_seventh_rival::RULES,
         key_profile::RULES,
         key_context::RULES,
         key_segment_profile::RULES,
