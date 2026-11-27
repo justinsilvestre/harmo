@@ -7,12 +7,12 @@ use std::collections::HashMap;
 
 const SEED: u64 = 2;
 
-/// The coverage columns that get an interval, as indices into the agreement features: rn, chord
-/// and rn eq.
-const COLUMNS: [(usize, &str); 3] = [(5, "rn"), (6, "chord"), (7, "rn eq")];
+/// The coverage columns that get an interval, as indices into the agreement features: key, rn,
+/// chord and rn eq.
+const COLUMNS: [(usize, &str); 4] = [(0, "key"), (5, "rn"), (6, "chord"), (7, "rn eq")];
 
-/// Prints, for each set with two analyses, the change in "both readings offered" in the rn and
-/// chord columns, with a 95% interval from resampling the set's pieces, paired by id, and the mean
+/// Prints, for each set with two analyses, the change in "both readings offered" in the key, rn,
+/// chord and rn eq columns, with a 95% interval from resampling the set's pieces, paired by id, and the mean
 /// number of readings offered in both runs.
 pub fn print_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
     let old: HashMap<&str, &PieceCoverage> =
