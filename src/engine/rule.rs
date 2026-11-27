@@ -83,6 +83,8 @@ pub type AdmitFn = fn(&TransitionContext) -> bool;
 pub type BassFn = fn(Bass, &BassNote, &[f64]) -> Bass;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&Segment, &[f64]) -> u64;
+/// Returns the rival group of a hypothesis's last segment, or `None` if it has no rival reading.
+pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<u64>;
 
 #[derive(Clone, Copy)]
 pub enum Hook {
@@ -111,6 +113,11 @@ pub enum Hook {
     /// Decides a segment's bass note, and so its inversion, as the segment hears each chord tone.
     /// Bass hooks run in rule order, each on the evidence the previous one returned.
     Bass(BassFn),
+    /// Names rival readings of the same music. A new segment normally opens after the one hypothesis
+    /// that leads into it best. When the hook puts that hypothesis's last segment in a group, the
+    /// best hypothesis whose last segment has the same group but another reading opens the new
+    /// segment as well, so that the rival reading stays in the search as a hypothesis of its own.
+    Rival(RivalFn),
 }
 
 impl Hook {
@@ -126,6 +133,7 @@ impl Hook {
             Hook::Admit(_) => "admit",
             Hook::Distinguish(_) => "distinguish",
             Hook::Bass(_) => "bass",
+            Hook::Rival(_) => "rival",
         }
     }
 }
@@ -173,6 +181,14 @@ pub struct CloseContext<'a> {
     pub slices: &'a [Slice],
     /// The slice that opens the following segment, if any.
     pub next_slice: Option<&'a Slice>,
+}
+
+pub struct RivalContext<'a> {
+    pub segment: &'a Segment,
+    /// The slices covered by the segment so far.
+    pub slices: &'a [Slice],
+    /// The slice before the segment, if any.
+    pub previous_slice: Option<&'a Slice>,
 }
 
 /// Read-only access to the segments preceding a transition, most recent first.

@@ -4,7 +4,8 @@ use super::bass::{Bass, BassNote};
 use super::model::Segment;
 use super::rule::{
     AdmitFn, BassFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
-    ProposeFn, ProposeKeysFn, Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
+    ProposeFn, ProposeKeysFn, RivalContext, RivalFn, Rule, SliceContext, SliceFn, TransitionContext,
+    TransitionFn,
 };
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -39,6 +40,7 @@ pub struct RuleSet {
     pub admit_rules: Vec<AdmitFn>,
     pub distinguish_rules: Vec<(DistinguishFn, Box<[f64]>)>,
     pub bass_rules: Vec<(BassFn, Box<[f64]>)>,
+    pub rival_rules: Vec<(RivalFn, Box<[f64]>)>,
 }
 
 impl RuleSet {
@@ -70,6 +72,7 @@ impl RuleSet {
             admit_rules: vec![],
             distinguish_rules: vec![],
             bass_rules: vec![],
+            rival_rules: vec![],
         };
         set.group_hooks();
         Ok(set)
@@ -96,6 +99,7 @@ impl RuleSet {
                 Hook::Admit(f) => self.admit_rules.push(f),
                 Hook::Distinguish(f) => self.distinguish_rules.push((f, params)),
                 Hook::Bass(f) => self.bass_rules.push((f, params)),
+                Hook::Rival(f) => self.rival_rules.push((f, params)),
             }
         }
     }
@@ -162,6 +166,11 @@ impl RuleSet {
     /// Returns a segment's bass evidence after the bass hooks hear one more chord tone.
     pub fn hear_bass(&self, bass: Bass, note: &BassNote) -> Bass {
         self.bass_rules.iter().fold(bass, |bass, (f, params)| f(bass, note, params))
+    }
+
+    /// Returns each rival hook's group for a segment, in rule order.
+    pub fn rival_groups(&self, context: &RivalContext) -> Vec<Option<u64>> {
+        self.rival_rules.iter().map(|(f, params)| f(context, params)).collect()
     }
 
     /// Appends each distinguish hook's value for the segment, in rule order.
