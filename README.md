@@ -113,7 +113,7 @@ A systematic offset or a wrong key in the labels can look like an engine error. 
 
 ### 4. Make one change at a time
 
-Each change is a cited rule, a vocabulary entry or a weight. Before benching it, write down which `diagnose` error kind it targets and about how many frames are at stake.
+A change can be a cited rule, a vocabulary entry or a weight, or a change to the search or the theory model, such as how the beam is pruned or what a key can be. Its size does not matter. Making one change at a time keeps each change's effect measurable, so a large change is tested as one unit. Before benching a change, write down which `diagnose` error kind it targets and about how many frames are at stake.
 
 Keep a change only if it passes all four checks:
 
