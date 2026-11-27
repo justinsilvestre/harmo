@@ -74,6 +74,7 @@ mod tests {
             measure: 0,
             metric_level: 4,
             phrase: 0,
+            key_signature: None,
         }
     }
 

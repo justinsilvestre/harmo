@@ -1,6 +1,6 @@
 //! A minimal MusicXML (partwise) reader that extracts sounding notes and measures.
 
-use super::model::{Measure, Note, Offset, Score};
+use super::model::{KeySignature, Measure, Note, Offset, Score};
 use crate::pitch::{Tpc, tpc_from_step};
 use roxmltree::{Document, Node, ParsingOptions};
 use std::collections::HashMap;
@@ -74,9 +74,10 @@ pub fn parse_musicxml(text: &str) -> Result<Score, String> {
     }
     let readings: Vec<PartReading> = parts.iter().enumerate().map(|(i, p)| read_part(*p, i as u16)).collect();
     let measures = merge_measures(&readings);
+    let key_signatures = realign_key_signatures(&readings[0], &measures);
     let notes: Vec<Note> = readings.into_iter().flat_map(|r| realign_notes(r, &measures)).collect();
     let fermata_ends = fermata_ends(&notes);
-    Ok(Score { notes, measures, fermata_ends })
+    Ok(Score { notes, measures, fermata_ends, key_signatures })
 }
 
 /// Returns the distinct end times of notes marked with a fermata.
@@ -93,16 +94,36 @@ struct PartReading {
     /// The index of the measure in which each note starts.
     notes_measures: Vec<usize>,
     measures: Vec<Measure>,
+    /// Each key signature with the index of the measure in which it appears.
+    key_signatures: Vec<(usize, KeySignature)>,
 }
 
 /// Moves a part's notes onto the merged measure grid, in case the part's measures were shorter.
 fn realign_notes(reading: PartReading, measures: &[Measure]) -> Vec<Note> {
-    let shift = |index: usize| match (measures.get(index), reading.measures.get(index)) {
+    let shifts: Vec<f64> =
+        reading.notes_measures.iter().map(|&i| measure_shift(&reading, measures, i)).collect();
+    reading.notes.into_iter().zip(shifts).map(|(note, s)| Note { onset: note.onset + s, ..note }).collect()
+}
+
+/// Moves a part's key signatures onto the merged measure grid, keeping only actual changes.
+fn realign_key_signatures(reading: &PartReading, measures: &[Measure]) -> Vec<KeySignature> {
+    let mut signatures: Vec<KeySignature> = Vec::new();
+    for &(index, signature) in &reading.key_signatures {
+        let start = signature.start + measure_shift(reading, measures, index);
+        let is_change = signatures.last().is_none_or(|last| last.fifths != signature.fifths);
+        if is_change {
+            signatures.push(KeySignature { start, ..signature });
+        }
+    }
+    signatures
+}
+
+/// Returns how far the merged grid moves the start of a part's measure.
+fn measure_shift(reading: &PartReading, measures: &[Measure], index: usize) -> Offset {
+    match (measures.get(index), reading.measures.get(index)) {
         (Some(merged), Some(own)) => merged.start - own.start,
         _ => 0.0,
-    };
-    let shifts: Vec<f64> = reading.notes_measures.iter().map(|&i| shift(i)).collect();
-    reading.notes.into_iter().zip(shifts).map(|(note, s)| Note { onset: note.onset + s, ..note }).collect()
+    }
 }
 
 #[derive(Default, Clone, Copy)]
@@ -122,6 +143,7 @@ struct PartState {
     transposition: Transposition,
     notes: Vec<Note>,
     notes_measures: Vec<usize>,
+    key_signatures: Vec<(usize, KeySignature)>,
     measure_index: usize,
     open_ties: HashMap<i32, usize>,
 }
@@ -137,6 +159,7 @@ fn read_part(part: Node, index: u16) -> PartReading {
         transposition: Transposition::default(),
         notes: Vec::new(),
         notes_measures: Vec::new(),
+        key_signatures: Vec::new(),
         measure_index: 0,
         open_ties: HashMap::new(),
     };
@@ -145,7 +168,12 @@ fn read_part(part: Node, index: u16) -> PartReading {
         state.measure_index = index;
         measures.push(read_measure(measure, &mut state));
     }
-    PartReading { notes: state.notes, notes_measures: state.notes_measures, measures }
+    PartReading {
+        notes: state.notes,
+        notes_measures: state.notes_measures,
+        measures,
+        key_signatures: state.key_signatures,
+    }
 }
 
 fn read_measure(measure: Node, state: &mut PartState) -> Measure {
@@ -207,6 +235,17 @@ fn read_attributes(attributes: Node, state: &mut PartState) {
             octaves: child_number(transpose, "octave-change").unwrap_or(0.0) as i32,
         };
     }
+    if let Some(signature) = child(attributes, "key").and_then(|key| key_signature(key, state)) {
+        state.key_signatures.push((state.measure_index, signature));
+    }
+}
+
+/// Reads a traditional key signature at sounding pitch. Signatures without `<fifths>` are skipped,
+/// and so is `<mode>`, which exports often fill in as "major" whatever the key.
+fn key_signature(key: Node, state: &PartState) -> Option<KeySignature> {
+    let written = child_number(key, "fifths")? as i32;
+    let Transposition { diatonic, chromatic, .. } = state.transposition;
+    Some(KeySignature { start: state.position, fifths: written + 7 * chromatic - 12 * diatonic })
 }
 
 fn read_note(note: Node, state: &mut PartState) {
@@ -318,6 +357,35 @@ mod tests {
         let rests = r#"<measure number="2"><note><rest/><duration>4</duration></note>
             <note><rest/><duration>4</duration></note></measure><measure number="3"/>"#;
         assert_eq!(measure_starts(rests), vec![0.0, 4.0, 8.0]);
+    }
+
+    fn key_signatures(measures_xml: &str) -> Vec<KeySignature> {
+        let text = format!(r#"<score-partwise><part id="P1">{measures_xml}</part></score-partwise>"#);
+        parse_musicxml(&text).unwrap().key_signatures
+    }
+
+    const KEY_CHANGE: &str = r#"<measure number="1">
+        <attributes><divisions>1</divisions><key><fifths>-3</fifths><mode>minor</mode></key></attributes>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note></measure>
+        <measure number="2"><attributes><key><fifths>0</fifths></key></attributes>
+        <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note></measure>"#;
+
+    #[test]
+    fn key_signature_reads_fifths() {
+        let first = KeySignature { start: 0.0, fifths: -3 };
+        assert_eq!(key_signatures(KEY_CHANGE)[0], first);
+    }
+
+    #[test]
+    fn key_signature_change_starts_at_its_measure() {
+        assert_eq!(key_signatures(KEY_CHANGE)[1].start, 4.0);
+    }
+
+    #[test]
+    fn key_signature_of_a_transposing_part_is_read_at_sounding_pitch() {
+        let clarinet = r#"<measure number="1"><attributes><divisions>1</divisions><key><fifths>2</fifths></key>
+            <transpose><diatonic>-1</diatonic><chromatic>-2</chromatic></transpose></attributes></measure>"#;
+        assert_eq!(key_signatures(clarinet)[0].fifths, 0);
     }
 
     #[test]

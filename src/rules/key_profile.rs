@@ -101,6 +101,7 @@ mod tests {
             measure: 0,
             metric_level: 0,
             phrase: 0,
+            key_signature: None,
         };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
         let reading =

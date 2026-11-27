@@ -112,7 +112,15 @@ mod tests {
                 onset_level: 0,
             })
             .collect();
-        Slice { start, duration: 4.0, notes, measure: start as usize / 4, metric_level: 0, phrase: 0 }
+        Slice {
+            start,
+            duration: 4.0,
+            notes,
+            measure: start as usize / 4,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        }
     }
 
     /// A C major passage, I–IV–V–I–IV–V–I, with an F major chord in the middle.

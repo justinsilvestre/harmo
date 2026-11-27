@@ -50,8 +50,15 @@ mod tests {
 
     /// Scores opening a C major segment read in C major, after the given segment if any.
     fn transition(previous: Option<&Segment>, root: &str) -> f32 {
-        let slice =
-            Slice { start: 0.0, duration: 1.0, notes: vec![], measure: 0, metric_level: 0, phrase: 0 };
+        let slice = Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![],
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        };
         let history = History { arena: &[], last: NONE };
         opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history })
     }

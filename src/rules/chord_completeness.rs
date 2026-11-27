@@ -120,7 +120,7 @@ mod tests {
     }
 
     fn slice(notes: Vec<SliceNote>, duration: f64) -> Slice {
-        Slice { start: 0.0, duration, notes, measure: 0, metric_level: 0, phrase: 0 }
+        Slice { start: 0.0, duration, notes, measure: 0, metric_level: 0, phrase: 0, key_signature: None }
     }
 
     /// Scores a G7 segment: G and B for three beats, then F for one beat over a G that may be restruck.

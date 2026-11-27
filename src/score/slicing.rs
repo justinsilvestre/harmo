@@ -1,7 +1,7 @@
 //! Cuts a score into "salami slices": maximal spans during which no note starts or stops.
 
 use super::meter::metric_level;
-use super::model::{Measure, Note, Offset, Score};
+use super::model::{KeySignature, Measure, Note, Offset, Score};
 use crate::pitch::Tpc;
 use serde::Serialize;
 
@@ -28,6 +28,8 @@ pub struct Slice {
     /// The number of fermatas that end at or before the slice's start, which numbers the phrases
     /// of music that marks its phrase endings with fermatas, such as chorales.
     pub phrase: usize,
+    /// The key signature in force at the slice's start.
+    pub key_signature: Option<KeySignature>,
 }
 
 impl Slice {
@@ -88,7 +90,9 @@ fn make_slice(score: &Score, annotated: &[SliceNote], active: &[usize], window: 
     let measure = measure_at(&score.measures, start);
     let metric_level = level_at(&score.measures, start);
     let phrase = score.fermata_ends.partition_point(|&t| t <= start + EPSILON);
-    Slice { start, duration: end - start, notes, measure, metric_level, phrase }
+    let signatures_begun = score.key_signatures.partition_point(|k| k.start <= start + EPSILON);
+    let key_signature = signatures_begun.checked_sub(1).map(|i| score.key_signatures[i]);
+    Slice { start, duration: end - start, notes, measure, metric_level, phrase, key_signature }
 }
 
 fn level_at(measures: &[Measure], time: Offset) -> u8 {
@@ -112,7 +116,7 @@ mod tests {
 
     fn score(notes: Vec<Note>) -> Score {
         let measure = Measure { number: "1".into(), start: 0.0, duration: 4.0, beats: 4, beat_type: 4 };
-        Score { notes, measures: vec![measure], fermata_ends: vec![] }
+        Score { notes, measures: vec![measure], fermata_ends: vec![], key_signatures: vec![] }
     }
 
     #[test]
@@ -137,6 +141,22 @@ mod tests {
     fn slices_after_a_fermata_begin_a_new_phrase() {
         let score = Score { fermata_ends: vec![2.0], ..score(vec![note(0.0, 2.0, 60), note(2.0, 2.0, 62)]) };
         assert_eq!(slice_score(&score)[1].phrase, 1);
+    }
+
+    #[test]
+    fn slices_carry_the_key_signature_in_force() {
+        let signature = KeySignature { start: 2.0, fifths: 1 };
+        let score =
+            Score { key_signatures: vec![signature], ..score(vec![note(0.0, 2.0, 60), note(2.0, 2.0, 62)]) };
+        assert_eq!(slice_score(&score)[1].key_signature, Some(signature));
+    }
+
+    #[test]
+    fn slices_before_the_first_key_signature_have_none() {
+        let signature = KeySignature { start: 2.0, fifths: 1 };
+        let score =
+            Score { key_signatures: vec![signature], ..score(vec![note(0.0, 2.0, 60), note(2.0, 2.0, 62)]) };
+        assert_eq!(slice_score(&score)[0].key_signature, None);
     }
 
     #[test]

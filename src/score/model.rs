@@ -35,12 +35,23 @@ impl Measure {
     }
 }
 
+/// A key signature and the time from which it is in force.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub struct KeySignature {
+    pub start: Offset,
+    /// The number of sharps (positive) or flats (negative) at sounding pitch, which is also the
+    /// TPC of the tonic of the signature's major key.
+    pub fifths: Tpc,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Score {
     pub notes: Vec<Note>,
     pub measures: Vec<Measure>,
     /// The times at which a note under a fermata ends, in order and without repeats.
     pub fermata_ends: Vec<Offset>,
+    /// The key signatures of the first part, in order of time.
+    pub key_signatures: Vec<KeySignature>,
 }
 
 impl Score {

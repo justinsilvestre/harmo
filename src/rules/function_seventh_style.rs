@@ -51,8 +51,15 @@ mod tests {
         let key = Key::parse("C", "major").unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let next = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        let slice =
-            Slice { start: 0.0, duration: 1.0, notes: vec![], measure: 0, metric_level: 0, phrase: 0 };
+        let slice = Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![],
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        };
         let history = History { arena: &[], last: NONE };
         rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history })
     }

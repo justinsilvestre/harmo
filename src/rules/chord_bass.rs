@@ -84,7 +84,15 @@ mod tests {
     fn slice(midi: i32, name: &str, metric_level: u8) -> Slice {
         let tpc = tpc_from_name(name).unwrap();
         let note = SliceNote { tpc, midi, attacked: true, onset_level: metric_level };
-        Slice { start: 0.0, duration: 1.0, notes: vec![note], measure: 0, metric_level, phrase: 0 }
+        Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![note],
+            measure: 0,
+            metric_level,
+            phrase: 0,
+            key_signature: None,
+        }
     }
 
     /// Scores a C major segment over the given slices.

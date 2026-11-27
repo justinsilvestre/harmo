@@ -61,7 +61,15 @@ mod tests {
     use crate::theory::key::{Key, Mode};
 
     fn slice(phrase: usize) -> Slice {
-        Slice { start: 0.0, duration: 1.0, notes: vec![], measure: 0, metric_level: 0, phrase }
+        Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![],
+            measure: 0,
+            metric_level: 0,
+            phrase,
+            key_signature: None,
+        }
     }
 
     /// Scores a chord with the given root, read in C major, followed by a slice in the given phrase.
