@@ -23,6 +23,7 @@ pub mod key_modulation;
 pub mod key_opening_tonic;
 pub mod key_phrase_close;
 pub mod key_profile;
+pub mod key_proposal;
 pub mod key_raised_fourth;
 pub mod key_segment_profile;
 pub mod key_signature;
@@ -42,6 +43,7 @@ pub fn default_rules() -> Vec<Rule> {
         chord_bass::RULES,
         chord_seventh_sonority::RULES,
         chord_seventh_arrival::RULES,
+        key_proposal::RULES,
         key_profile::RULES,
         key_context::RULES,
         key_segment_profile::RULES,

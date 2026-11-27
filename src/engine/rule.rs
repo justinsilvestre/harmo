@@ -70,6 +70,7 @@ impl Param {
 pub type Interpretation = (Option<Key>, Category);
 
 pub type ProposeFn = fn(&Slice) -> Vec<Chord>;
+pub type ProposeKeysFn = fn(&Slice) -> Vec<Key>;
 pub type InterpretFn = fn(Key, Chord) -> Vec<Interpretation>;
 /// Scoring hooks receive the context and the values of their rule's parameters.
 pub type SliceFn = fn(&SliceContext, &[f64]) -> f32;
@@ -82,6 +83,8 @@ pub type AdmitFn = fn(&TransitionContext) -> bool;
 pub enum Hook {
     /// Proposes chords that a new segment opening on this slice might have.
     ProposeChords(ProposeFn),
+    /// Proposes keys in which a new segment opening on this slice might be read.
+    ProposeKeys(ProposeKeysFn),
     /// Lists the ways a chord can function in a key, as (tonicized key, category) pairs.
     Interpret(InterpretFn),
     /// Scores how well one slice fits a reading.
@@ -102,6 +105,7 @@ impl Hook {
     pub fn kind(&self) -> &'static str {
         match self {
             Hook::ProposeChords(_) => "propose_chords",
+            Hook::ProposeKeys(_) => "propose_keys",
             Hook::Interpret(_) => "interpret",
             Hook::Slice(_) => "slice",
             Hook::Transition(_) => "transition",

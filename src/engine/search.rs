@@ -12,7 +12,7 @@ use super::pruning::{PruneCause, Pruned};
 use super::rule::{CloseContext, DepartureContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
-use crate::theory::key::{Key, all_keys};
+use crate::theory::key::Key;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
@@ -62,7 +62,8 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut snapshots = Vec::new();
     let mut pruned = Vec::new();
     for index in 0..slices.len() {
-        let pending = step(all_keys(), slices, index, &arena, &beam, rules, config);
+        let keys = rules.propose_keys(&slices[index]);
+        let pending = step(&keys, slices, index, &arena, &beam, rules, config);
         let (kept, dropped) = prune(pending, &arena, config);
         beam = commit(&mut arena, kept);
         if config.record_snapshots {
