@@ -35,11 +35,18 @@ pub fn tally_errors(context: &PieceContext) -> ErrorTally {
         let engine = context.top[frame];
         let credit = engine.and_then(|e| view.credit(&e, frame));
         tally.equivalent += credit.is_some() as u64;
+        let is_mono = context.piece.slices[context.frame_slices[frame]].is_single_line();
+        tally.monophony.frames += is_mono as u64;
+        tally.monophony.equivalent += (is_mono && credit.is_some()) as u64;
         if engine.is_some_and(|e| is_rn_match(&e, expert)) {
             tally.correct += 1;
+            tally.monophony.correct += is_mono as u64;
             continue;
         }
         let kind = classify_frame(context, frame, expert, engine.as_ref());
+        if is_mono {
+            *tally.monophony.kinds.entry(kind.name()).or_default() += 1;
+        }
         if let Some(credit) = credit {
             *tally.credits.entry(credit.name().to_string()).or_default() += 1;
             kind_entry(&mut tally, kind).equivalent += 1;

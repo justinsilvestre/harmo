@@ -1,5 +1,6 @@
 //! Frame counts collected per piece and merged per benchmark set.
 
+use super::monophony::MonophonyTally;
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -68,6 +69,7 @@ pub struct ErrorTally {
     pub bars: u64,
     pub expert_changes: u64,
     pub engine_changes: u64,
+    pub monophony: MonophonyTally,
 }
 
 impl ErrorTally {
@@ -82,5 +84,6 @@ impl ErrorTally {
         self.expert_changes += other.expert_changes;
         self.engine_changes += other.engine_changes;
         merge_kinds(&mut self.kinds, &other.kinds);
+        self.monophony.merge(&other.monophony);
     }
 }

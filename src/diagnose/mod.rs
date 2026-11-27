@@ -12,6 +12,7 @@ pub mod frame_runs;
 pub mod key_dependence;
 pub mod key_relation;
 pub mod missing_reading;
+pub mod monophony;
 pub mod piece_context;
 pub mod piece_disagreements;
 pub mod piece_errors;

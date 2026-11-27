@@ -2,6 +2,7 @@
 
 use super::beam_diversity::{BeamTally, tally_beam};
 use super::key_dependence::{KeyDependence, tally_key_dependence};
+use super::monophony::MonophonyTally;
 use super::piece_context::PieceContext;
 use super::piece_disagreements::tally_disagreements;
 use super::piece_errors::tally_errors;
@@ -40,6 +41,7 @@ pub struct SetDiagnosis {
     pub disagreements: Vec<(String, ClassTally)>,
     pub beam: BeamTally,
     pub key_dependence: KeyDependence,
+    pub monophony: MonophonyTally,
 }
 
 pub fn diagnose_pieces(pieces: &[BenchPiece], rules: &RuleSet, config: &EvalConfig) -> Vec<PieceDiagnosis> {
@@ -95,6 +97,7 @@ fn summarize_set(diagnoses: &[PieceDiagnosis], name: &str) -> SetDiagnosis {
         disagreements: ranked(disagreements, |t| t.frames),
         beam,
         key_dependence,
+        monophony: errors.monophony.clone(),
     }
 }
 

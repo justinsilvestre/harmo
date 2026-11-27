@@ -48,6 +48,7 @@ fn print_overview(sets: &[SetDiagnosis]) {
         println!("{:<28} {}", set.name, top.join(" · "));
     }
     print_key_dependence(sets);
+    print_monophony(sets);
 }
 
 fn print_credits(sets: &[SetDiagnosis]) {
@@ -76,6 +77,27 @@ fn print_key_dependence(sets: &[SetDiagnosis]) {
         let (right, wrong) = (format_layer(&counts.key_right), format_layer(&counts.key_wrong));
         let share = 100.0 * counts.chord_wrong_key_right_share();
         println!("{:<28} {right}  {wrong} {share:>8.1}", set.name);
+    }
+}
+
+fn print_monophony(sets: &[SetDiagnosis]) {
+    println!("\nframes where one pitch class sounds alone (% of those frames; kinds: % of all frames)");
+    println!("{:<28} {:>8} {:>6} {:>6} {:>6}  largest kinds", "set", "frames", "share", "rn", "rn eq");
+    for set in sets {
+        let mono = &set.monophony;
+        let mut kinds: Vec<(&String, &u64)> = mono.kinds.iter().collect();
+        kinds.sort_by(|a, b| b.1.cmp(a.1));
+        let top: Vec<String> =
+            kinds.iter().take(4).map(|(name, f)| format!("{name} {:.2}", percent(**f, set.frames))).collect();
+        println!(
+            "{:<28} {:>8} {:>6.1} {:>6.1} {:>6.1}  {}",
+            set.name,
+            mono.frames,
+            percent(mono.frames, set.frames),
+            percent(mono.correct, mono.frames),
+            percent(mono.equivalent, mono.frames),
+            top.join(" · ")
+        );
     }
 }
 
