@@ -8,6 +8,7 @@ pub mod chord_relation;
 pub mod disagreement_class;
 pub mod error_kind;
 pub mod frame_runs;
+pub mod key_dependence;
 pub mod key_relation;
 pub mod missing_reading;
 pub mod piece_context;

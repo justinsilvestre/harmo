@@ -1,5 +1,6 @@
 //! Prints a compact text report of set diagnoses.
 
+use super::key_dependence::ChordLayerCounts;
 use super::report_text_detail::print_detail;
 use super::summary::SetDiagnosis;
 
@@ -43,6 +44,34 @@ fn print_overview(sets: &[SetDiagnosis]) {
             .collect();
         println!("{:<28} {}", set.name, top.join(" · "));
     }
+    print_key_dependence(sets);
+}
+
+fn print_key_dependence(sets: &[SetDiagnosis]) {
+    println!(
+        "\nchord layer with the key right and wrong (% of frames; last column: % of chord-wrong frames with the key right)"
+    );
+    println!("{:<29}{:<38}key wrong", "", "key right");
+    let side = format!("{:>8} {:>6} {:>6} {:>6} {:>6}", "frames", "qual", "inv", "root", "chord");
+    println!("{:<28} {side}  {side} {:>8}", "set", "share");
+    for set in sets {
+        let counts = &set.key_dependence;
+        let (right, wrong) = (format_layer(&counts.key_right), format_layer(&counts.key_wrong));
+        let share = 100.0 * counts.chord_wrong_key_right_share();
+        println!("{:<28} {right}  {wrong} {share:>8.1}", set.name);
+    }
+}
+
+fn format_layer(counts: &ChordLayerCounts) -> String {
+    let rate = |part: u64| percent(part, counts.frames);
+    format!(
+        "{:>8} {:>6.1} {:>6.1} {:>6.1} {:>6.1}",
+        counts.frames,
+        rate(counts.quality),
+        rate(counts.inversion),
+        rate(counts.root),
+        rate(counts.chord)
+    )
 }
 
 fn group_share(set: &SetDiagnosis, group: &str) -> f64 {
