@@ -42,11 +42,6 @@ impl Slice {
     pub fn is_single_line(&self) -> bool {
         self.notes.first().is_some_and(|first| self.notes.iter().all(|n| n.tpc == first.tpc))
     }
-
-    /// Returns whether the slice sounds at least `notes` notes and every one of them starts with it.
-    pub fn is_struck_together(&self, notes: usize) -> bool {
-        self.notes.len() >= notes && self.notes.iter().all(|note| note.attacked)
-    }
 }
 
 /// Slices the score at every note onset, note release and barline.
