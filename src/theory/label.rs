@@ -56,7 +56,7 @@ impl Label {
         let main =
             format!("{}{}", numeral(degree, self.quality), inversion_figure(self.quality, self.inversion));
         match self.secondary {
-            Some(secondary) => format!("{main}/{}", secondary_numeral(self.key, secondary)),
+            Some(secondary) => format!("{main}/{}", secondary_numeral(reference.mode, secondary)),
             None => main,
         }
     }
@@ -98,15 +98,11 @@ fn inversion_figure(quality: Quality, inversion: u8) -> &'static str {
     }
 }
 
-/// Spells the target of a tonicization: upper case for major targets, lower case for minor ones.
-fn secondary_numeral(key: Key, secondary: Degree) -> String {
-    let quality = if is_major_target(key, key.tpc_of(secondary)) { Quality::Major } else { Quality::Minor };
+/// Spells the target of a tonicization in the case of its mode: upper case for a major target,
+/// lower case for a minor one.
+fn secondary_numeral(target_mode: Mode, secondary: Degree) -> String {
+    let quality = if target_mode == Mode::Major { Quality::Major } else { Quality::Minor };
     numeral(secondary, quality)
-}
-
-fn is_major_target(key: Key, tonic: Tpc) -> bool {
-    let third = tonic + 4;
-    key.is_scale_tone(third) && !(key.mode == Mode::Minor && key.degree_of(third).alteration > 0)
 }
 
 #[cfg(test)]
@@ -139,5 +135,13 @@ mod tests {
         let d = Key::parse("D", "minor").unwrap();
         let label = Label::new(c, Some(d), Chord::new(tpc("A"), Quality::Major), tpc("A"));
         assert_eq!(label.figure(), "V/ii");
+    }
+
+    #[test]
+    fn applied_chord_to_major_target_in_minor_uses_upper_case() {
+        let f_sharp = Key::parse("F#", "minor").unwrap();
+        let b = Key::parse("B", "major").unwrap();
+        let label = Label::new(f_sharp, Some(b), Chord::new(tpc("A#"), Quality::DiminishedSeventh), tpc("E"));
+        assert_eq!(label.figure(), "viio43/IV");
     }
 }
