@@ -1,7 +1,7 @@
 //! Rules about how chords function in succession.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::{Category, Reading};
+use crate::engine::model::{Category, Reading, Segment};
 use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
 use crate::pitch::{Tpc, pitch_class};
 use crate::theory::chord::Quality;
@@ -12,9 +12,21 @@ pub const RULES: &[Rule] = &[
         layer: Layer::Function,
         summary: "Prefer diatonic readings. Altered chords (applied chords, mixture, the Neapolitan and \
                   augmented sixths) are read only when the notes call for them. Mixture chords whose only \
-                  borrowed tone is the lowered sixth degree, the most common kind, cost half as much.",
+                  borrowed tone is the lowered sixth degree, the most common kind, cost half as much. \
+                  An applied chord that continues a tonicization costs three quarters as much: one \
+                  that follows a chord applied to the same degree, or follows that degree's own chord \
+                  right after a chord applied to it, as in V/V–V–V/V. A longer tonicization is heard \
+                  as one excursion to the tonicized degree, not as a new choice at every chord.",
         citations: &[
             Citation { source: KOSTKA_PAYNE_ALMEN_2023, locator: "p. 255 (chromaticism and altered chords)" },
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "p. 278 (a bracket under a passage labels a longer tonicization)",
+            },
+            Citation {
+                source: KOSTKA_PAYNE_ALMEN_2023,
+                locator: "pp. 298–299 (the line between modulation and tonicization is not clearly defined)",
+            },
             Citation {
                 source: KOSTKA_PAYNE_ALMEN_2023,
                 locator: "p. 361 (ii°, iiø7, iv and vii°7 are the most frequent borrowed chords in major)",
@@ -71,12 +83,35 @@ pub const RULES: &[Rule] = &[
     },
 ];
 
+/// The cost of an applied chord that continues a tonicization, against 1 for one that begins it.
+const CONTINUED_TONICIZATION: f32 = 0.75;
+
 fn diatonic_preference(context: &TransitionContext) -> f32 {
     let next = context.next;
     match next.category {
         Category::Diatonic => 0.0,
         Category::Mixture if borrows_only_lowered_sixth(next) => -0.5,
+        Category::Applied if continues_tonicization(context) => -CONTINUED_TONICIZATION,
         _ => -1.0,
+    }
+}
+
+/// Reports whether an applied chord continues a tonicization already under way: the chord just
+/// before it, in the same key, is applied to the same degree, or is that degree's own chord
+/// following a chord applied to it.
+fn continues_tonicization(context: &TransitionContext) -> bool {
+    let next = context.next;
+    let Some(target) = next.tonicized else { return false };
+    let mut recent = context.history.segments().take_while(|s| s.reading.key == next.key);
+    let tonicizes = |segment: &Segment| segment.reading.tonicized == Some(target);
+    match recent.next() {
+        Some(previous) if tonicizes(previous) => true,
+        Some(previous)
+            if previous.reading.chord.root == target.tonic && previous.reading.tonicized.is_none() =>
+        {
+            recent.next().is_some_and(tonicizes)
+        }
+        _ => false,
     }
 }
 
@@ -134,13 +169,81 @@ fn augmented_sixth_bass(context: &TransitionContext) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::bass::Bass;
+    use crate::engine::model::{NONE, Node};
+    use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
+    use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
     use crate::theory::key::Key;
 
     fn reading(key: &str, root: &str, quality: Quality, category: Category) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         Reading { key: Key::parse(key, "major").unwrap(), chord, tonicized: None, category }
+    }
+
+    /// Builds a path of one-slice segments in C major, each given as (root, quality, tonicized key).
+    fn path(chords: &[(&str, Quality, Option<&str>)]) -> Vec<Node> {
+        let node = |(i, &(root, quality, target)): (usize, &(&str, Quality, Option<&str>))| {
+            let mut reading = reading("C", root, quality, Category::Diatonic);
+            reading.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
+            let previous = if i == 0 { NONE } else { i as u32 - 1 };
+            let segment = Segment {
+                reading,
+                start: i as u32,
+                previous,
+                duration: 1.0,
+                members_heard: 0,
+                bass: Bass::default(),
+            };
+            Node { parent: previous, slice: i as u32, segment, score: 0.0 }
+        };
+        chords.iter().enumerate().map(node).collect()
+    }
+
+    /// Scores reading D major as V/V in C major after the given chords.
+    fn secondary_dominant_after(chords: &[(&str, Quality, Option<&str>)]) -> f32 {
+        let arena = path(chords);
+        let mut next = reading("C", "D", Quality::Major, Category::Applied);
+        next.tonicized = Key::parse("G", "major");
+        let slice = Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes: vec![],
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        };
+        let last = arena.len() as u32 - 1;
+        let history = History { arena: &arena, slices: &[], last };
+        let previous = Some(&arena[last as usize].segment);
+        diatonic_preference(&TransitionContext { previous, next: &next, slice: &slice, history })
+    }
+
+    #[test]
+    fn an_applied_chord_beginning_a_tonicization_costs_in_full() {
+        assert_eq!(secondary_dominant_after(&[("C", Quality::Major, None)]), -1.0);
+    }
+
+    #[test]
+    fn an_applied_chord_after_its_target_and_a_chord_applied_to_it_costs_less() {
+        let chords = [("D", Quality::DominantSeventh, Some("G")), ("G", Quality::Major, None)];
+        assert_eq!(secondary_dominant_after(&chords), -CONTINUED_TONICIZATION);
+    }
+
+    #[test]
+    fn an_applied_chord_after_another_applied_to_the_same_degree_costs_less() {
+        assert_eq!(
+            secondary_dominant_after(&[("D", Quality::DominantSeventh, Some("G"))]),
+            -CONTINUED_TONICIZATION
+        );
+    }
+
+    #[test]
+    fn an_applied_chord_after_its_target_alone_costs_in_full() {
+        let chords = [("C", Quality::Major, None), ("G", Quality::Major, None)];
+        assert_eq!(secondary_dominant_after(&chords), -1.0);
     }
 
     #[test]
