@@ -37,6 +37,12 @@ impl Slice {
         self.notes.first()
     }
 
+    /// Returns whether every sounding note has the same spelled pitch class, as in a single line or a
+    /// passage in unison or octaves.
+    pub fn is_single_line(&self) -> bool {
+        self.notes.first().is_some_and(|first| self.notes.iter().all(|n| n.tpc == first.tpc))
+    }
+
     /// Returns whether the slice sounds at least `notes` notes and every one of them starts with it.
     pub fn is_struck_together(&self, notes: usize) -> bool {
         self.notes.len() >= notes && self.notes.iter().all(|note| note.attacked)
@@ -114,6 +120,40 @@ pub fn measure_at(measures: &[Measure], time: Offset) -> usize {
 mod tests {
     use super::*;
     use crate::score::model::Measure;
+
+    fn slice_of(names: &[&str]) -> Slice {
+        let note = |name: &&str| SliceNote {
+            tpc: crate::pitch::tpc_from_name(name).unwrap(),
+            midi: 60,
+            attacked: true,
+            onset_level: 0,
+        };
+        let notes = names.iter().map(note).collect();
+        Slice {
+            start: 0.0,
+            duration: 1.0,
+            notes,
+            measure: 0,
+            metric_level: 0,
+            phrase: 0,
+            key_signature: None,
+        }
+    }
+
+    #[test]
+    fn notes_of_one_spelling_in_octaves_are_a_single_line() {
+        assert!(slice_of(&["C", "C"]).is_single_line());
+    }
+
+    #[test]
+    fn enharmonic_notes_are_not_a_single_line() {
+        assert!(!slice_of(&["C#", "Db"]).is_single_line());
+    }
+
+    #[test]
+    fn a_rest_is_not_a_single_line() {
+        assert!(!slice_of(&[]).is_single_line());
+    }
 
     fn note(onset: f64, duration: f64, midi: i32) -> Note {
         Note { onset, duration, tpc: 0, midi, part: 0, tied_from_previous: false, has_fermata: false }

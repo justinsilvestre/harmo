@@ -82,6 +82,7 @@ fn diagnosis() -> SetDiagnosis {
         disagreements: vec![("seventh vs triad".into(), class)],
         beam: Default::default(),
         key_dependence: Default::default(),
+        monophony: Default::default(),
     }
 }
 
