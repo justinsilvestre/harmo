@@ -26,6 +26,9 @@ pub struct SetRecord {
     pub frames: u64,
     /// Rates for each of `FEATURES`. Runs saved before a feature was added lack its rate.
     pub rates: Vec<f64>,
+    /// The mean number of distinct readings offered per frame. Older runs lack it.
+    #[serde(default)]
+    pub mean_offered: Option<f64>,
     pub agreement: Option<AgreementSummary>,
 }
 
@@ -71,6 +74,7 @@ fn summarize_set(results: &[PieceResult], name: &str) -> SetRecord {
         pieces: members.len(),
         frames: accuracy.frames,
         rates: accuracy.rates(),
+        mean_offered: Some(accuracy.mean_offered()),
         agreement: agreement.map(|a| a.summary()),
     }
 }
@@ -86,18 +90,20 @@ pub fn piece_records(results: &[PieceResult]) -> Vec<PieceRecord> {
 }
 
 /// Prints accuracy by set, with differences from a previous run and AugmentedNet's reference where known.
+/// The last column is the mean number of readings offered per frame, against which "offered" is read.
 pub fn print_accuracy(sets: &[SetRecord], previous: Option<&RunRecord>) {
-    println!("\n{:<28} {:>6} {:>8}  {}", "accuracy (%)", "pieces", "frames", header(&FEATURES));
+    let header = format!("{}{:>10}", header(&FEATURES), "n offered");
+    println!("\n{:<28} {:>6} {:>8}  {header}", "accuracy (%)", "pieces", "frames");
     for set in sets {
-        println!("{:<28} {:>6} {:>8}  {}", set.name, set.pieces, set.frames, percentages(&set.rates));
+        let row = format!("{}{}", percentages(&set.rates), count(set.mean_offered));
+        println!("{:<28} {:>6} {:>8}  {row}", set.name, set.pieces, set.frames);
         if let Some(old) = previous.and_then(|p| p.sets.iter().find(|s| s.name == set.name)) {
-            println!(
-                "{:<28} {:>6} {:>8}  {}",
-                "  change vs previous",
-                "",
-                "",
-                differences(&set.rates, &old.rates)
+            let change = format!(
+                "{}{}",
+                differences(&set.rates, &old.rates),
+                count_difference(set.mean_offered, old.mean_offered)
             );
+            println!("{:<28} {:>6} {:>8}  {change}", "  change vs previous", "", "");
         }
         if let Some((_, reference)) = AUGMENTEDNET_REFERENCE.iter().find(|(n, _)| *n == set.name) {
             println!("{:<28} {:>6} {:>8}  {}", "  AugmentedNet (published)", "", "", percentages(reference));
@@ -146,6 +152,17 @@ fn differences(values: &[f64], old: &[f64]) -> String {
     values.iter().enumerate().map(difference).collect()
 }
 
+fn count(value: Option<f64>) -> String {
+    value.map_or(format!("{:>10}", ""), |v| format!("{v:>10.2}"))
+}
+
+fn count_difference(value: Option<f64>, old: Option<f64>) -> String {
+    match (value, old) {
+        (Some(v), Some(o)) => format!("{:>+10.2}", v - o),
+        _ => format!("{:>10}", ""),
+    }
+}
+
 pub fn save(record: &RunRecord, path: &Path) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -162,6 +179,18 @@ pub fn load(path: &Path) -> Result<RunRecord, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn count_difference_is_blank_for_an_old_run_without_the_count() {
+        assert_eq!(count_difference(Some(2.5), None), format!("{:>10}", ""));
+    }
+
+    #[test]
+    fn set_records_without_mean_offered_still_load() {
+        let json = r#"{"name": "tune", "pieces": 1, "frames": 8, "rates": [0.5], "agreement": null}"#;
+        let record: SetRecord = serde_json::from_str(json).unwrap();
+        assert_eq!(record.mean_offered, None);
+    }
 
     #[test]
     fn differences_leave_features_missing_from_the_old_run_blank() {

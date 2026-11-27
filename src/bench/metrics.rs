@@ -7,13 +7,16 @@ use serde::{Deserialize, Serialize};
 /// five before it.
 /// "chord" requires quality, inversion and root, whatever the key.
 /// "rn|key" is the rn accuracy over only the frames whose key is correct.
-pub const FEATURES: [&str; 8] = ["key", "degree", "quality", "inversion", "root", "rn", "chord", "rn|key"];
+/// "offered" is the share of frames whose full Roman numeral is among the readings the engine offers.
+pub const FEATURES: [&str; 9] =
+    ["key", "degree", "quality", "inversion", "root", "rn", "chord", "rn|key", "offered"];
 
 /// The number of leading features that AugmentedNet reports.
 pub const AUGMENTEDNET_FEATURES: usize = 6;
 
 /// The number of leading features that are compared frame by frame.
-/// The remaining feature, "rn|key", is derived from the counts for "rn" and "key".
+/// Of the remaining features, "rn|key" is derived from the counts for "rn" and "key", and "offered"
+/// is counted against the offered readings rather than the top reading.
 pub const MATCHED_FEATURES: usize = 7;
 
 const KEY: usize = 0;
@@ -44,31 +47,46 @@ fn add_where(counts: &mut FeatureCounts, flags: FeatureFlags) {
     }
 }
 
-/// Accuracy of the top-ranked reading against one analyst.
+/// Accuracy of the top-ranked reading against one analyst, and how often that analyst's reading is
+/// among the readings offered.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Accuracy {
     pub frames: u64,
     pub correct: FeatureCounts,
+    /// Frames whose full Roman numeral is among the offered readings.
+    pub offered: u64,
+    /// Sum over frames of the number of distinct full readings offered.
+    pub offered_readings: u64,
 }
 
 impl Accuracy {
-    pub fn add_frame(&mut self, predicted: Option<&Label>, truth: &Label) {
+    pub fn add_frame(&mut self, predicted: Option<&Label>, offered: &[Label], truth: &Label) {
         self.frames += 1;
         if let Some(predicted) = predicted {
             add_where(&mut self.correct, feature_matches(predicted, truth));
         }
+        self.offered += offered.iter().any(|o| is_rn_match(o, truth)) as u64;
+        self.offered_readings += offered.len() as u64;
     }
 
     pub fn merge(&mut self, other: &Accuracy) {
         self.frames += other.frames;
         add_where_counts(&mut self.correct, &other.correct);
+        self.offered += other.offered;
+        self.offered_readings += other.offered_readings;
     }
 
     /// Returns the rate for each of `FEATURES`.
     pub fn rates(&self) -> Vec<f64> {
         let mut rates: Vec<f64> = self.correct.iter().map(|&c| ratio(c, self.frames)).collect();
         rates.push(ratio(self.correct[RN], self.correct[KEY]));
+        rates.push(ratio(self.offered, self.frames));
         rates
+    }
+
+    /// Returns the mean number of distinct readings offered per frame.
+    pub fn mean_offered(&self) -> f64 {
+        ratio(self.offered_readings, self.frames)
     }
 }
 
@@ -195,9 +213,20 @@ mod tests {
     /// One frame in G with the right key and the wrong inversion.
     fn accuracy() -> Accuracy {
         let mut accuracy = Accuracy::default();
-        accuracy.add_frame(Some(&label("C", "G", "G")), &label("C", "G", "G"));
-        accuracy.add_frame(Some(&label("G", "G", "G")), &label("C", "G", "G"));
-        accuracy.add_frame(Some(&label("G", "D", "F#")), &label("G", "D", "D"));
+        accuracy.add_frame(Some(&label("C", "G", "G")), &[], &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "G", "G")), &[], &label("C", "G", "G"));
+        accuracy.add_frame(Some(&label("G", "D", "F#")), &[], &label("G", "D", "D"));
+        accuracy
+    }
+
+    /// One frame whose reading is offered second, one offered only in another key, and one with
+    /// nothing offered: five readings in all.
+    fn offers() -> Accuracy {
+        let mut accuracy = Accuracy::default();
+        let truth = label("C", "G", "G");
+        accuracy.add_frame(None, &[label("C", "G", "B"), truth], &truth);
+        accuracy.add_frame(None, &[label("C", "F", "F"), label("G", "G", "G"), label("C", "C", "C")], &truth);
+        accuracy.add_frame(None, &[], &truth);
         accuracy
     }
 
@@ -224,6 +253,44 @@ mod tests {
     #[test]
     fn rn_given_key_is_zero_without_a_right_key() {
         assert_eq!(rate(&Accuracy::default(), "rn|key"), 0.0);
+    }
+
+    #[test]
+    fn offered_counts_a_reading_offered_below_the_top() {
+        assert_eq!(rate(&offers(), "offered"), 1.0 / 3.0);
+    }
+
+    #[test]
+    fn offered_requires_the_key() {
+        let mut accuracy = Accuracy::default();
+        accuracy.add_frame(None, &[label("G", "G", "G")], &label("C", "G", "G"));
+        assert_eq!(rate(&accuracy, "offered"), 0.0);
+    }
+
+    #[test]
+    fn offered_requires_the_inversion() {
+        let mut accuracy = Accuracy::default();
+        accuracy.add_frame(None, &[label("C", "G", "B")], &label("C", "G", "G"));
+        assert_eq!(rate(&accuracy, "offered"), 0.0);
+    }
+
+    #[test]
+    fn offered_is_independent_of_the_top_reading() {
+        let mut accuracy = Accuracy::default();
+        accuracy.add_frame(Some(&label("C", "G", "G")), &[], &label("C", "G", "G"));
+        assert_eq!(rate(&accuracy, "offered"), 0.0);
+    }
+
+    #[test]
+    fn mean_offered_averages_over_frames() {
+        assert_eq!(offers().mean_offered(), 5.0 / 3.0);
+    }
+
+    #[test]
+    fn merge_adds_offered_counts() {
+        let mut merged = offers();
+        merged.merge(&offers());
+        assert_eq!(rate(&merged, "offered"), 1.0 / 3.0);
     }
 
     #[test]

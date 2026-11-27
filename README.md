@@ -64,7 +64,7 @@ cargo build --release
 
 **Ground truth** is placed on the score by measure number. Bars that a score splits around a repeat sign are joined, scores whose numbering skips or restarts are numbered by position, and first and second endings (`m12a`, `m12b`) are matched whether the score numbers both endings or leaves the second unnumbered. Spans known to be mislabeled are listed in `EXCLUDED_SPANS` in `tools/prepare_corpus.py` and skipped.
 
-**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match. Two further columns separate chord errors from key errors. **Chord** counts a frame as correct when root, quality and inversion all match, whatever the key. **RN|key** is the RN accuracy over only the frames whose key is correct.
+**Metrics** follow AugmentedNet. Labels are compared at every thirty-second note on key, degree (primary and secondary), quality, inversion and root. RN counts as correct only when all five match. Two further columns separate chord errors from key errors. **Chord** counts a frame as correct when root, quality and inversion all match, whatever the key. **RN|key** is the RN accuracy over only the frames whose key is correct. **Offered** is the share of frames whose full Roman numeral, compared as for RN, is among the readings the engine offers (defined under expert agreement below). It is computed on every set against the main analysis, and the accuracy table prints the mean number offered beside it.
 
 **Expert agreement**
 - **Where two analysts agree,** the target is for the top reading to match them at the square root of their pairwise agreement rate.
@@ -84,7 +84,7 @@ Each round of work follows the same loop.
    - Only `agreement-tune` has two analysts, so elsewhere ambiguity and error cannot be told apart.
 2. **Compare with the experts.** For the largest kinds, read weak passages in the score beside `harmo inspect` and the rule traces from `analyze --json`. Find what the expert hears that the engine does not, and trace it to a rule, a missing rule or a weight.
 3. **Check the ground truth.** A systematic offset or a wrong key in the labels can look like an engine error. Fix these in the corpus preparation rather than in the engine.
-4. **Change one thing at a time.** Each change is a cited rule, a vocabulary entry or a weight. Keep it only if it helps `tune` overall, costs no corpus more than about 1 RN point, and does not lower how often both readings are offered where analysts disagree. Record rejected ideas in the commit message or report.
+4. **Change one thing at a time.** Each change is a cited rule, a vocabulary entry or a weight. Keep it only if it helps `tune` overall, costs no corpus more than about 1 RN point, and does not lower how often both readings are offered where analysts disagree. A change that raises `offered` without raising the mean number offered, and without lowering RN by more than the usual guard, also counts in its favor; RN remains the safeguard. Record rejected ideas in the commit message or report.
 5. **Sweep the weights.** Once the rules settle, run a one-at-a-time sweep on `tune`, then combine the best settings. Turn down any gain that comes mostly from one repertoire at the expense of others.
 6. **Report on `test` once,** at the end of the round, and update the results above.
 

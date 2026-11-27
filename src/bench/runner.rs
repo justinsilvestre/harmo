@@ -97,17 +97,17 @@ pub fn evaluate(pieces: &[BenchPiece], rules: &RuleSet, config: &EvalConfig) -> 
 
 pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) -> PieceResult {
     let started = Instant::now();
-    let needs_snapshots = piece.analyses.len() >= 2;
-    let engine = Config { record_snapshots: needs_snapshots, ..config.engine.clone() };
+    let engine = Config { record_snapshots: true, ..config.engine.clone() };
     let analysis = analyze(&piece.slices, rules, &engine);
     let top = top_frames(&analysis, piece);
+    let offered = offered_frames(&analysis, piece, top.len(), config);
     let mut accuracy = Accuracy::default();
-    for (predicted, truth) in top.iter().zip(&piece.analyses[0].1) {
+    for ((predicted, offers), truth) in top.iter().zip(&offered).zip(&piece.analyses[0].1) {
         if let Some(truth) = truth {
-            accuracy.add_frame(predicted.as_ref(), truth);
+            accuracy.add_frame(predicted.as_ref(), offers, truth);
         }
     }
-    let agreement = (piece.analyses.len() >= 2).then(|| agreement(&analysis, piece, &top, config));
+    let agreement = (piece.analyses.len() >= 2).then(|| agreement(piece, &top, &offered));
     PieceResult {
         id: piece.id.clone(),
         sets: piece.sets.clone(),
@@ -134,13 +134,7 @@ fn hypothesis_frames(analysis: &Analysis, piece: &BenchPiece, node: u32, count: 
 }
 
 /// Compares the engine with every pair of analysts of the piece.
-fn agreement(
-    analysis: &Analysis,
-    piece: &BenchPiece,
-    top: &[Option<Label>],
-    config: &EvalConfig,
-) -> Agreement {
-    let offered = offered_frames(analysis, piece, top.len(), config);
+fn agreement(piece: &BenchPiece, top: &[Option<Label>], offered: &[Vec<Label>]) -> Agreement {
     let mut agreement = Agreement::default();
     for (i, (_, first)) in piece.analyses.iter().enumerate() {
         for (_, second) in &piece.analyses[i + 1..] {
