@@ -3,6 +3,7 @@
 //! Every frame that the top reading gets wrong is assigned exactly one error kind. Frames where a
 //! piece's analysts disagree are set apart and classified by what the analysts differ on.
 
+pub mod beam_absence;
 pub mod beam_diversity;
 pub mod chord_relation;
 pub mod disagreement_class;

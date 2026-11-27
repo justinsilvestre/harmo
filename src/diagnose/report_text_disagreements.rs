@@ -10,11 +10,20 @@ pub fn print_disagreements(classes: &[(String, ClassTally)]) {
         return;
     }
     println!(
-        "\ndisagreements ({frames} frames, per pair of analysts): % of the class's frames, then missing readings by reason"
+        "\ndisagreements ({frames} frames, per pair of analysts): % of the class's frames, then missing readings by reason\n  (readings not in the beam: cut by beam width, merged by distinct depth, mean quarter notes after the frame at which those were pruned, never held)"
     );
     println!(
-        "  {:<32} {:>7} {:>10} {:>6} | {:>7} {:>20} {:>7}",
-        "class", "frames", "top∈either", "both", "unprod", "below (rank, gap)", "outside"
+        "  {:<32} {:>7} {:>10} {:>6} | {:>7} {:>20} | {:>6} {:>6} {:>5} {:>6}",
+        "class",
+        "frames",
+        "top∈either",
+        "both",
+        "unprod",
+        "below (rank, gap)",
+        "width",
+        "merged",
+        "after",
+        "never"
     );
     let mut total = ClassTally::default();
     for (name, class) in classes {
@@ -27,7 +36,7 @@ pub fn print_disagreements(classes: &[(String, ClassTally)]) {
 fn print_class(name: &str, class: &ClassTally) {
     let below = class.missing_below_cutoff.max(1) as f64;
     println!(
-        "  {name:<32} {:>7} {:>10.1} {:>6.1} | {:>7} {:>7} ({:>4.1}, {:>4.1}) {:>7}",
+        "  {name:<32} {:>7} {:>10.1} {:>6.1} | {:>7} {:>7} ({:>4.1}, {:>4.1}) | {:>6} {:>6} {:>5.1} {:>6}",
         class.frames,
         percent(class.top_matches_either, class.frames),
         percent(class.both_offered, class.frames),
@@ -35,6 +44,9 @@ fn print_class(name: &str, class: &ClassTally) {
         class.missing_below_cutoff,
         class.below_cutoff_rank as f64 / below,
         class.below_cutoff_gap / below,
-        class.missing_outside_beam
+        class.missing_cut_by_width,
+        class.missing_merged,
+        class.mean_pruned_after(),
+        class.missing_never_held
     );
 }
