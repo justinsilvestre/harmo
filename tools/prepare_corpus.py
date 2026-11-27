@@ -38,13 +38,51 @@ SOURCES = {
 }
 # Machine-generated analyses are not ground truth.
 EXCLUDED_ANALYSES = {"analysis_automatic.rntxt"}
-# Spans of ground truth that are known to be wrong, by piece and analyst: the first excluded measure and why.
-# The bench skips their frames.
+# Spans of ground truth that are known to be wrong, by piece and analyst: the first and last excluded
+# measures (None for the end of the piece) and why. The bench skips their frames.
 EXCLUDED_SPANS = {
     ("quartets-beethoven-ludwig-van-op059-no3-1", "main"): (
         175,
+        None,
         "The DCML source keeps the local key in C minor through the C-major recapitulation and coda.",
     ),
+    ("quartets-beethoven-ludwig-van-op059-no3-4", "main"): (
+        326,
+        None,
+        "The local key stays C minor over the closing C-major cadences (I, ii, IV in the score).",
+    ),
+    ("quartets-beethoven-ludwig-van-op132-1", "main"): (
+        231,
+        None,
+        "The local key stays A major for the A-minor close, so VI is read as F# major over F major.",
+    ),
+    ("quartets-beethoven-ludwig-van-op135-4", "main"): (
+        13,
+        44,
+        "The local key stays F minor through the F-major Allegro.",
+    ),
+}
+# Analyses whose measure numbers disagree with their score from some measure on, by piece and analyst:
+# the first measure to move and how many bars to add, applied in order.
+MEASURE_SHIFTS = {
+    # The analysis folds the repeat that the score writes out.
+    ("early-choral-bach-johann-sebastian-chorales-253", "main"): [(6, 2)],
+    ("early-choral-bach-johann-sebastian-chorales-272", "main"): [(7, 2)],
+    ("early-choral-bach-johann-sebastian-chorales-333", "main"): [(7, 1)],
+    # The analysis marks m208a-m209a but no second ending, and its numbering skips the score's
+    # four-bar first ending (mm. 211-214).
+    ("quartets-beethoven-ludwig-van-op059-no2-1", "main"): [(210, 4)],
+    # The main analysis has m174a and m174b; this one writes the repeat as "m175-194 = m1-20" without them.
+    ("piano-sonatas-mozart-wolfgang-amadeus-k310-3", "DT"): [(175, 1)],
+}
+# Corrections to the RomanText of analyses, by piece and analyst: each replaces text that occurs once.
+KEY_CORRECTIONS = {
+    # The Humdrum source moves to G, but the figures and the music stay in C (m137 is E-G-B, "iii").
+    ("quartets-haydn-franz-joseph-op20-no2-4", "main"): [("m137 G: iii", "m137 C: iii")],
+    # Titled "C Major to A- minor"; the chords are those of A-flat minor a fifth above the labels.
+    ("textbooks-reger-max-modulation-38", "main"): [("db: IV6", "ab: IV6")],
+    # Titled "C# Major to G- minor"; the target key is written as G-flat major yet ends on i.
+    ("textbooks-reger-max-modulation-45b", "main"): [("Gb: V7", "gb: V7")],
 }
 ANET_SPLIT_MODULES = ["wir", "abc_dcml", "mps", "wirwtc"]
 ANET_SPLITS = ["training", "validation", "test"]
@@ -201,12 +239,14 @@ def anet_match_key(module, anet_id, duples):
 def convert_piece(piece):
     analyses = {}
     for analyst, analysis_file in piece.pop("analysis_files").items():
+        key = (piece["id"], analyst)
         try:
-            harmonies = extract_harmonies(DATA / analysis_file)
+            harmonies = extract_harmonies(DATA / analysis_file, KEY_CORRECTIONS.get(key, []))
         except Exception as error:  # noqa: BLE001 - malformed files are reported and skipped.
             print(f"skipping {analysis_file}: {error}")
             continue
-        exclude_span(harmonies, EXCLUDED_SPANS.get((piece["id"], analyst)))
+        shift_measures(harmonies, MEASURE_SHIFTS.get(key, []))
+        exclude_span(harmonies, EXCLUDED_SPANS.get(key))
         target = DATA / "groundtruth" / piece["id"] / f"{analyst}.json"
         write_if_changed(target, json.dumps({"source": analysis_file, "harmonies": harmonies}))
         analyses[analyst] = str(target.relative_to(DATA))
@@ -214,12 +254,20 @@ def convert_piece(piece):
     return piece
 
 
+def shift_measures(harmonies, shifts):
+    for first_measure, bars in shifts:
+        for harmony in harmonies:
+            if harmony["measure"] >= first_measure:
+                harmony["measure"] += bars
+
+
 def exclude_span(harmonies, span):
     if span is None:
         return
-    first_measure, reason = span
+    first_measure, last_measure, reason = span
+    last_measure = float("inf") if last_measure is None else last_measure
     for harmony in harmonies:
-        if harmony["measure"] >= first_measure:
+        if first_measure <= harmony["measure"] <= last_measure:
             harmony["excluded"] = reason
 
 
@@ -238,10 +286,13 @@ def analyst_name(analysis_file):
     return "main" if stem == "analysis" else stem.removeprefix("analysis_")
 
 
-def extract_harmonies(path):
+def extract_harmonies(path, corrections=()):
     import music21
 
     text = path.read_text(encoding="utf-8-sig")
+    for old, new in corrections:
+        assert text.count(old) == 1, f"{path}: expected one {old!r}"
+        text = text.replace(old, new)
     try:
         score = music21.converter.parse(text, format="romantext", forceSource=True)
     except music21.romanText.translate.RomanTextTranslateException as error:

@@ -81,6 +81,8 @@ def add_entry(pieces, module, split, anet_id, duple):
     analysis, score = (ANET / path for path in duple)
     folders = analysis.parent.parts
     wir_path = Path(*folders[folders.index("Corpus") + 1 :])
+    if module == "haydnsun" and split != "test":
+        analysis = current_analysis(wir_path, analysis)
     analyst = TAVERN_ANALYSTS[anet_id[-1]] if module == "tavern" else "main"
     piece = pieces.setdefault(
         str(score),
@@ -93,6 +95,17 @@ def add_entry(pieces, module, split, anet_id, duple):
         },
     )
     piece["analysis_files"][analyst] = str(analysis.relative_to(DATA))
+
+
+def current_analysis(wir_path, pinned):
+    """Returns the analysis in the current When in Rome checkout, or the pinned one when it has none.
+
+    AugmentedNet pins an older When in Rome, whose HaydnSun analyses have since been corrected,
+    for example the keys of Op. 20 No. 6/i at mm. 74 and 135. The test split keeps the pinned analyses,
+    so that its results stay comparable with AugmentedNet's.
+    """
+    current = DATA / "sources" / "When-in-Rome" / "Corpus" / wir_path / pinned.name
+    return current if current.exists() else pinned
 
 
 def convert_score(module, score):
