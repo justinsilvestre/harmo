@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Segment;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
@@ -25,45 +25,62 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
-    hook: Hook::Transition(unconfirmed_departure),
+    hook: Hook::Departure(unconfirmed_departure),
 }];
 
 /// The weakest metric level on which a cadential tonic may arrive (3 = mid-measure in duple meters).
 const STRONG_BEAT: u8 = 3;
 
-fn unconfirmed_departure(context: &TransitionContext) -> f32 {
-    let Some(previous) = context.previous else { return 0.0 };
-    let key = previous.reading.key;
-    if key == context.next.key {
-        return 0.0;
+fn unconfirmed_departure(context: &DepartureContext) -> f32 {
+    match find_confirmation(context) {
+        Confirmation::Confirmed | Confirmation::FirstArea => 0.0,
+        Confirmation::Unconfirmed => -1.0,
     }
-    let area: Vec<&Segment> = context.history.segments().take_while(|s| s.reading.key == key).collect();
-    let is_first_area = context.history.segments().nth(area.len()).is_none();
+}
+
+enum Confirmation {
+    Confirmed,
+    /// Unconfirmed, but the area opens the piece.
+    FirstArea,
+    Unconfirmed,
+}
+
+/// Walks back through the key area being left, most recent segment first, and stops at the first
+/// event that confirms it.
+fn find_confirmation(context: &DepartureContext) -> Confirmation {
     let slices = context.history.slices;
-    let is_confirmed = crosses_phrase_end(&area, slices, context.slice)
-        || has_authentic_cadence(&area, slices)
-        || has_cadential_six_four(&area);
-    if is_first_area || is_confirmed { 0.0 } else { -1.0 }
+    let key = context.previous.reading.key;
+    let mut later: Option<&Segment> = None;
+    for segment in context.history.segments() {
+        if segment.reading.key != key {
+            return Confirmation::Unconfirmed;
+        }
+        let is_confirming = |later: &Segment| {
+            is_authentic_cadence(later, segment, slices) || is_cadential_six_four(later, segment)
+        };
+        if crosses_phrase_end(segment, slices, context.slice) || later.is_some_and(is_confirming) {
+            return Confirmation::Confirmed;
+        }
+        later = Some(segment);
+    }
+    Confirmation::FirstArea
 }
 
-/// Reports whether a phrase ending falls between the first slice of the area and the given slice.
-fn crosses_phrase_end(area: &[&Segment], slices: &[Slice], slice: &Slice) -> bool {
-    let first = area.last().and_then(|s| slices.get(s.start as usize));
-    first.is_some_and(|start| start.phrase != slice.phrase)
+/// Reports whether a phrase ending falls between the segment's first slice and the given slice.
+/// Phrase numbers never decrease, so an area crosses a phrase end exactly when one of its
+/// segments does.
+fn crosses_phrase_end(segment: &Segment, slices: &[Slice], slice: &Slice) -> bool {
+    slices.get(segment.start as usize).is_some_and(|start| start.phrase != slice.phrase)
 }
 
-/// Reports whether the area, listed most recent first, holds a root-position dominant followed by
-/// a root-position tonic on a strong beat.
-fn has_authentic_cadence(area: &[&Segment], slices: &[Slice]) -> bool {
-    let is_cadence = |pair: &[&Segment]| {
-        is_cadential_tonic(pair[0], slices) && is_dominant(pair[1]) && is_in_root_position(pair[1])
-    };
-    area.windows(2).any(is_cadence)
+/// Reports whether a root-position dominant is followed by a root-position tonic on a strong beat.
+fn is_authentic_cadence(later: &Segment, earlier: &Segment, slices: &[Slice]) -> bool {
+    is_cadential_tonic(later, slices) && is_dominant(earlier) && is_in_root_position(earlier)
 }
 
-/// Reports whether the area, listed most recent first, holds a tonic six-four followed by a dominant.
-fn has_cadential_six_four(area: &[&Segment]) -> bool {
-    area.windows(2).any(|pair| is_dominant(pair[0]) && is_tonic_six_four(pair[1]))
+/// Reports whether a tonic six-four is followed by a dominant.
+fn is_cadential_six_four(later: &Segment, earlier: &Segment) -> bool {
+    is_dominant(later) && is_tonic_six_four(earlier)
 }
 
 fn is_cadential_tonic(segment: &Segment, slices: &[Slice]) -> bool {
@@ -139,15 +156,13 @@ mod tests {
         chords.iter().enumerate().map(node).collect()
     }
 
-    /// Scores moving to a C major tonic after the path, with slices at the given metric levels and
-    /// phrases (one more slice than the path, for the transition).
+    /// Scores leaving the key of the path's last segment, with slices at the given metric levels and
+    /// phrases (one more slice than the path, for the new segment).
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
         let arena = path(chords);
-        let next = reading("C", "C", Quality::Major);
         let history = History { arena: &arena, slices, last: arena.len() as u32 - 1 };
-        unconfirmed_departure(&TransitionContext {
-            previous: Some(&arena[arena.len() - 1].segment),
-            next: &next,
+        unconfirmed_departure(&DepartureContext {
+            previous: &arena[arena.len() - 1].segment,
             slice: &slices[chords.len()],
             history,
         })

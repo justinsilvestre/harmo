@@ -1,7 +1,7 @@
 //! Rules about changes of key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, History, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, DepartureContext, History, Hook, Layer, Rule, TransitionContext};
 use crate::theory::key::Key;
 
 pub const RULES: &[Rule] = &[
@@ -27,7 +27,7 @@ pub const RULES: &[Rule] = &[
             locator: "p. 299 (the length of time spent in the new key area as evidence of modulation)",
         }],
         default_weight: 0.25,
-        hook: Hook::Transition(area_duration),
+        hook: Hook::Departure(area_duration),
     },
 ];
 
@@ -41,12 +41,8 @@ fn modulation(context: &TransitionContext) -> f32 {
     }
 }
 
-fn area_duration(context: &TransitionContext) -> f32 {
-    let Some(previous) = context.previous else { return 0.0 };
-    let key = previous.reading.key;
-    if key == context.next.key {
-        return 0.0;
-    }
+fn area_duration(context: &DepartureContext) -> f32 {
+    let key = context.previous.reading.key;
     -((1.0 - area_heard(context.history, key) / ESTABLISHED_AREA).max(0.0) as f32)
 }
 
@@ -101,7 +97,7 @@ mod tests {
         area_heard(History { arena: &arena, slices: &[], last: arena.len() as u32 - 1 }, reading("C").key)
     }
 
-    /// Scores moving to G major after the given segments.
+    /// Scores leaving the key of the given segments.
     fn leaving(segments: &[(&str, f64)]) -> f32 {
         let arena = arena(segments);
         let last = arena.len() as u32 - 1;
@@ -114,9 +110,8 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let context = TransitionContext {
-            previous: Some(&arena[last as usize].segment),
-            next: &reading("G"),
+        let context = DepartureContext {
+            previous: &arena[last as usize].segment,
             slice: &slice,
             history: History { arena: &arena, slices: &[], last },
         };

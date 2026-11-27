@@ -8,7 +8,7 @@
 
 use super::bass::{Bass, BassNote, is_accented};
 use super::model::{NONE, Node, Reading, Segment};
-use super::rule::{CloseContext, History, SliceContext, TransitionContext};
+use super::rule::{CloseContext, DepartureContext, History, SliceContext, TransitionContext};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::key::{Key, all_keys};
@@ -70,10 +70,9 @@ fn step(
 ) -> Vec<Node> {
     let slice = &slices[index];
     let mut pending = continuations(slices, index, arena, beam, rules);
-    let closes: Vec<f32> =
-        beam.iter().map(|&b| close_score(slices, &arena[b as usize], Some(slice), rules)).collect();
+    let exits: Vec<Exit> = beam.iter().map(|&b| exit(slices, index, arena, b, rules)).collect();
     for (reading, opening_score) in openings(keys, slices, index, rules, config.candidate_limit) {
-        let best = best_predecessor(&reading, slices, index, arena, beam, &closes, rules);
+        let best = best_predecessor(&reading, slices, index, arena, beam, &exits, rules);
         if let Some((parent, previous_score)) = best {
             let segment = open_segment(reading, index, parent, slice);
             pending.push(Node {
@@ -137,6 +136,23 @@ fn openings(
     scored
 }
 
+/// The scores of leaving a hypothesis's last segment on a given slice, which are the same for every
+/// new reading (departure scores apply only to readings in another key).
+struct Exit {
+    close: f32,
+    departures: Vec<f32>,
+}
+
+fn exit(slices: &[Slice], index: usize, arena: &[Node], b: u32, rules: &RuleSet) -> Exit {
+    let node = &arena[b as usize];
+    let history = History { arena, slices, last: b };
+    let context = DepartureContext { previous: &node.segment, slice: &slices[index], history };
+    Exit {
+        close: close_score(slices, node, Some(&slices[index]), rules),
+        departures: rules.score_departures(&context),
+    }
+}
+
 /// Finds the hypothesis that best leads into a new reading, returning its index and the score
 /// of the path up to the new segment (closing and transition scores included).
 fn best_predecessor(
@@ -145,20 +161,21 @@ fn best_predecessor(
     index: usize,
     arena: &[Node],
     beam: &[u32],
-    closes: &[f32],
+    exits: &[Exit],
     rules: &RuleSet,
 ) -> Option<(u32, f32)> {
-    let evaluate = |previous: Option<&Segment>, last: u32| {
+    let evaluate = |previous: Option<&Segment>, last: u32, departures: &[f32]| {
         let history = History { arena, slices, last };
         let context = TransitionContext { previous, next: reading, slice: &slices[index], history };
-        rules.admits(&context).then(|| rules.score_transition(&context))
+        rules.admits(&context).then(|| rules.score_transition(&context, departures))
     };
     if beam.is_empty() {
-        return evaluate(None, NONE).map(|score| (NONE, score));
+        return evaluate(None, NONE, &[]).map(|score| (NONE, score));
     }
-    let candidates = beam.iter().zip(closes).filter_map(|(&b, close)| {
+    let candidates = beam.iter().zip(exits).filter_map(|(&b, exit)| {
         let node = &arena[b as usize];
-        evaluate(Some(&node.segment), b).map(|transition| (b, node.score + close + transition))
+        let transition = evaluate(Some(&node.segment), b, &exit.departures);
+        transition.map(|transition| (b, node.score + exit.close + transition))
     });
     candidates.max_by(|a, b| a.1.total_cmp(&b.1))
 }

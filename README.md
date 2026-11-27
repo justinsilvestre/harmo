@@ -6,7 +6,7 @@ Rules-based harmonic analysis of MusicXML scores that offers **several competing
 
 The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment. When the beam is pruned, hypotheses that give their last four segments the same readings and differ only in where those segments begin keep just the best of them, so that the beam's places go to distinct interpretations (`--distinct-depth`, 0 to turn this off).
 
-The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at six points:
+The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at seven points:
 
 | hook | what it does | example |
 |---|---|---|
@@ -14,6 +14,7 @@ The engine knows nothing about music. All musical knowledge lives in **rules**, 
 | `Interpret` | lists how a chord can function in a key (a hard constraint: no entry, no reading) | `function.vocabulary` |
 | `Slice` | scores one slice against a reading | `chord.compatibility`, `key.profile` |
 | `Transition` | scores opening a new segment after the previous one | `key.modulation`, `function.applied_resolution` |
+| `Departure` | scores leaving the previous segment's key, from the hypothesis alone (scored once per hypothesis, not per new reading) | `key.area_duration`, `key.unconfirmed_departure` |
 | `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `function.six_four` |
 | `Admit` | rejects transitions outright | (none yet) |
 

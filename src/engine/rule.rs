@@ -41,6 +41,7 @@ pub type ProposeFn = fn(&Slice) -> Vec<Chord>;
 pub type InterpretFn = fn(Key, Chord) -> Vec<Interpretation>;
 pub type SliceFn = fn(&SliceContext) -> f32;
 pub type TransitionFn = fn(&TransitionContext) -> f32;
+pub type DepartureFn = fn(&DepartureContext) -> f32;
 pub type CloseFn = fn(&CloseContext) -> f32;
 pub type AdmitFn = fn(&TransitionContext) -> bool;
 
@@ -54,6 +55,10 @@ pub enum Hook {
     Slice(SliceFn),
     /// Scores opening a new segment after the previous one.
     Transition(TransitionFn),
+    /// Scores opening a new segment in a different key from the previous one, from the hypothesis
+    /// and the slice alone. Since the new reading plays no part, the engine scores it once per
+    /// hypothesis and slice instead of once per new reading.
+    Departure(DepartureFn),
     /// Scores a segment once its extent is known.
     Close(CloseFn),
     /// Rejects transitions outright (a hard constraint).
@@ -67,6 +72,7 @@ impl Hook {
             Hook::Interpret(_) => "interpret",
             Hook::Slice(_) => "slice",
             Hook::Transition(_) => "transition",
+            Hook::Departure(_) => "departure",
             Hook::Close(_) => "close",
             Hook::Admit(_) => "admit",
         }
@@ -90,6 +96,22 @@ pub struct TransitionContext<'a> {
     /// The segment being closed, or `None` at the start of the piece.
     pub previous: Option<&'a Segment>,
     pub next: &'a Reading,
+    pub slice: &'a Slice,
+    pub history: History<'a>,
+}
+
+impl<'a> TransitionContext<'a> {
+    /// Returns the context for departure hooks if the transition leaves the previous segment's key.
+    pub fn departure(&self) -> Option<DepartureContext<'a>> {
+        let previous = self.previous.filter(|p| p.reading.key != self.next.key)?;
+        Some(DepartureContext { previous, slice: self.slice, history: self.history })
+    }
+}
+
+pub struct DepartureContext<'a> {
+    /// The segment being closed.
+    pub previous: &'a Segment,
+    /// The slice that opens the new segment.
     pub slice: &'a Slice,
     pub history: History<'a>,
 }
@@ -118,5 +140,54 @@ impl<'a> History<'a> {
         std::iter::successors((self.last != NONE).then(|| &arena[self.last as usize].segment), move |s| {
             (s.previous != NONE).then(|| &arena[s.previous as usize].segment)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::bass::Bass;
+    use crate::pitch::tpc_from_name;
+    use crate::theory::chord::Quality;
+    use crate::theory::key::Mode;
+
+    fn reading(tonic: &str) -> Reading {
+        let tpc = tpc_from_name(tonic).unwrap();
+        let chord = Chord::new(tpc, Quality::Major);
+        Reading { key: Key::new(tpc, Mode::Major), chord, tonicized: None, category: Category::Diatonic }
+    }
+
+    fn segment(tonic: &str) -> Segment {
+        let (start, previous, duration, members_heard) = (0, NONE, 1.0, 0);
+        Segment { reading: reading(tonic), start, previous, duration, members_heard, bass: Bass::default() }
+    }
+
+    fn slice() -> Slice {
+        let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
+        Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None }
+    }
+
+    /// Reports whether a transition from the given previous key to C major is a departure.
+    fn is_departure(previous: Option<&str>) -> bool {
+        let (previous, next, slice) = (previous.map(segment), reading("C"), slice());
+        let history = History { arena: &[], slices: &[], last: NONE };
+        TransitionContext { previous: previous.as_ref(), next: &next, slice: &slice, history }
+            .departure()
+            .is_some()
+    }
+
+    #[test]
+    fn a_transition_to_another_key_is_a_departure() {
+        assert!(is_departure(Some("G")));
+    }
+
+    #[test]
+    fn a_transition_within_the_key_is_not_a_departure() {
+        assert!(!is_departure(Some("C")));
+    }
+
+    #[test]
+    fn the_opening_segment_departs_from_nothing() {
+        assert!(!is_departure(None));
     }
 }

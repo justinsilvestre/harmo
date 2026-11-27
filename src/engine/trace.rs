@@ -52,6 +52,7 @@ pub fn trace_segment(
         let raw = match rule.hook {
             Hook::Slice(f) => slice_sum(f),
             Hook::Transition(f) => f(&transition),
+            Hook::Departure(f) => transition.departure().map_or(0.0, |context| f(&context)),
             Hook::Close(f) => f(&close),
             _ => continue,
         };
