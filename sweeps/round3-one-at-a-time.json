@@ -1,156 +1,156 @@
 {
- "sets": [
-  "tune",
-  "agreement-tune"
- ],
- "objective_set": "tune",
- "objective_feature": "rn",
- "base": {},
- "grid": {
-  "chord.compatibility": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
+  "sets": [
+    "tune",
+    "agreement-tune"
   ],
-  "chord.ornamental_dissonance": [
-   1.0,
-   1.5,
-   2.5,
-   3.0
-  ],
-  "chord.strong_beat": [
-   0.25,
-   0.375,
-   0.625,
-   0.75
-  ],
-  "chord.harmonic_variance": [
-   0.125,
-   0.1875,
-   0.3125,
-   0.375
-  ],
-  "chord.completeness": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "chord.seventh_evidence": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "chord.bass_change": [
-   0.25,
-   0.375,
-   0.625,
-   0.75
-  ],
-  "chord.seventh_sonority": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "key.profile": [
-   0.25,
-   0.375,
-   0.625,
-   0.75
-  ],
-  "key.context_profile": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "key.final_tonic": [
-   0.025,
-   0.0375,
-   0.0625,
-   0.075
-  ],
-  "key.modulation": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "key.area_duration": [
-   0.125,
-   0.1875,
-   0.3125,
-   0.375
-  ],
-  "key.cadential_confirmation": [
-   0.375,
-   0.5625,
-   0.9375,
-   1.125
-  ],
-  "key.phrase_close": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "key.opening_tonic": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.diatonic_preference": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.applied_resolution": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.dominant_resolution": [
-   0.375,
-   0.5625,
-   0.9375,
-   1.125
-  ],
-  "function.augmented_sixth_bass": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.picardy_third": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.rare_seventh": [
-   0.75,
-   1.125,
-   1.875,
-   2.25
-  ],
-  "function.rare_mediant": [
-   0.5,
-   0.75,
-   1.25,
-   1.5
-  ],
-  "function.six_four": [
-   0.25,
-   0.375,
-   0.625,
-   0.75
-  ]
- },
- "one_at_a_time": true
+  "objective_set": "tune",
+  "objective_feature": "rn",
+  "base": {},
+  "grid": {
+    "chord.compatibility": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "chord.ornamental_dissonance": [
+      1.0,
+      1.5,
+      2.5,
+      3.0
+    ],
+    "chord.strong_beat": [
+      0.25,
+      0.375,
+      0.625,
+      0.75
+    ],
+    "chord.harmonic_variance": [
+      0.125,
+      0.1875,
+      0.3125,
+      0.375
+    ],
+    "chord.completeness": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "chord.seventh_evidence": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "chord.bass_change": [
+      0.25,
+      0.375,
+      0.625,
+      0.75
+    ],
+    "chord.seventh_sonority": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "key.profile": [
+      0.25,
+      0.375,
+      0.625,
+      0.75
+    ],
+    "key.context_profile": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "key.final_tonic": [
+      0.025,
+      0.0375,
+      0.0625,
+      0.075
+    ],
+    "key.modulation": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "key.area_duration": [
+      0.125,
+      0.1875,
+      0.3125,
+      0.375
+    ],
+    "key.cadential_confirmation": [
+      0.375,
+      0.5625,
+      0.9375,
+      1.125
+    ],
+    "key.phrase_close": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "key.opening_tonic": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.diatonic_preference": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.applied_resolution": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.dominant_resolution": [
+      0.375,
+      0.5625,
+      0.9375,
+      1.125
+    ],
+    "function.augmented_sixth_bass": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.picardy_third": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.rare_seventh": [
+      0.75,
+      1.125,
+      1.875,
+      2.25
+    ],
+    "function.rare_mediant": [
+      0.5,
+      0.75,
+      1.25,
+      1.5
+    ],
+    "function.six_four": [
+      0.25,
+      0.375,
+      0.625,
+      0.75
+    ]
+  },
+  "one_at_a_time": true
 }
