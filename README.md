@@ -6,7 +6,7 @@ Rules-based harmonic analysis of MusicXML scores that offers **several competing
 
 The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment, so no rule may use music more than two quarter notes past the slice it scores, the same lag allowed to offered readings below, and no rule may use statistics of the whole score. The reading reported for each moment is the best final hypothesis traced back, so later music can still decide between hypotheses that were each scored this way, as a listener revises an earlier hearing. [Search](#search) describes the search step by step, with its settings and where each value came from.
 
-The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at seven points:
+The engine represents the music and the readings (slices, chords, keys, functions and the bass), runs the search, and records traces and rankings. It makes no musical judgments of its own. Every judgment, from which readings to propose and allow to how well a reading fits and which competing readings count as different, is made by a **rule**, so that it shows in the traces and carries a citation. Rules hook into the engine at seven points:
 
 | hook | what it does | example |
 |---|---|---|
