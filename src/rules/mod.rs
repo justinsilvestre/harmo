@@ -17,6 +17,7 @@ pub mod function_vocabulary;
 pub mod key_cadence;
 pub mod key_confirmation;
 pub mod key_context;
+pub mod key_modal_minor;
 pub mod key_modulation;
 pub mod key_opening_tonic;
 pub mod key_phrase_close;

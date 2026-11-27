@@ -37,9 +37,14 @@ const MAJOR_PROFILE: [f32; 12] =
     [0.748, 0.060, 0.488, 0.082, 0.670, 0.460, 0.096, 0.715, 0.104, 0.366, 0.057, 0.400];
 const MINOR_PROFILE: [f32; 12] =
     [0.712, 0.084, 0.474, 0.618, 0.049, 0.460, 0.105, 0.747, 0.404, 0.067, 0.133, 0.330];
+/// The minor profile with the values of the raised leading tone and the subtonic exchanged, so
+/// that the subtonic is the diatonic seventh degree, as in the natural minor scale.
+const NATURAL_MINOR_PROFILE: [f32; 12] =
+    [0.712, 0.084, 0.474, 0.618, 0.049, 0.460, 0.105, 0.747, 0.404, 0.067, 0.330, 0.133];
 
-static CENTERED_LOGS: LazyLock<[[f32; 12]; 2]> =
-    LazyLock::new(|| [centered_logs(&MAJOR_PROFILE), centered_logs(&MINOR_PROFILE)]);
+static CENTERED_LOGS: LazyLock<[[f32; 12]; 3]> = LazyLock::new(|| {
+    [centered_logs(&MAJOR_PROFILE), centered_logs(&MINOR_PROFILE), centered_logs(&NATURAL_MINOR_PROFILE)]
+});
 
 fn centered_logs(profile: &[f32; 12]) -> [f32; 12] {
     let logs = profile.map(f32::ln);
@@ -55,6 +60,11 @@ pub fn profile_proportions(mode: Mode) -> &'static [f32; 12] {
 /// Returns the log key profile of a mode, centered on its mean, by semitones above the tonic.
 pub fn profile_logs(mode: Mode) -> &'static [f32; 12] {
     &CENTERED_LOGS[if mode == Mode::Major { 0 } else { 1 }]
+}
+
+/// Returns the log natural minor profile, centered on its mean, by semitones above the tonic.
+pub fn natural_minor_logs() -> &'static [f32; 12] {
+    &CENTERED_LOGS[2]
 }
 
 fn profile_fit(context: &SliceContext) -> f32 {

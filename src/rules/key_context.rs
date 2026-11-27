@@ -1,10 +1,14 @@
 //! Scores how well the music heard up to a slice fits the key of a reading.
 
-use super::key_profile::profile_logs;
-use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001};
+use super::key_modal_minor::modal_minor_tonics;
+use super::key_profile::{natural_minor_logs, profile_logs};
+use super::sources::{
+    BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001, TEMPERLEY_2007,
+};
 use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
+use crate::theory::key::Mode;
 use std::cell::Cell;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -17,7 +21,12 @@ pub const RULES: &[Rule] = &[Rule {
               as much every sixteen quarter notes, and each note counts by its duration. The fit \
               is multiplied by the slice's duration. A chord that briefly sounds like a tonic is then heard within \
               what led up to it. The window stops at a fermata, which ends a phrase in a chorale, \
-              so that each phrase is heard afresh.",
+              so that each phrase is heard afresh. A minor key is scored with a natural minor \
+              profile, in which the subtonic and the raised leading tone exchange values, once the \
+              key has been established, by its raised leading tone earlier in the piece or by a \
+              piece that opens on its tonic triad over the tonic, and its raised leading tone has \
+              not sounded in the last 64 quarter notes or the next two. A stretch in natural minor \
+              is then not heard as the relative major.",
     citations: &[
         Citation {
             source: TEMPERLEY_2001,
@@ -30,6 +39,26 @@ pub const RULES: &[Rule] = &[Rule {
         Citation {
             source: SCHULTZ_ET_AL_2018,
             locator: "p. 69 (a phrase of a Bach chorale ends where the voices reach a fermata)",
+        },
+        Citation {
+            source: BURSTEIN_STRAUS_2016,
+            locator: "p. 300 (the raised seventh degree establishes a minor key; the subtonic can undermine it)",
+        },
+        Citation {
+            source: KOSTKA_PAYNE_ALMEN_2023,
+            locator: "p. 65 (in minor, scale degrees 6 and 7 are variable)",
+        },
+        Citation {
+            source: TEMPERLEY_2007,
+            locator: "p. 91 (the folk-song key profiles reflect the natural minor scale)",
+        },
+        Citation {
+            source: TEMPERLEY_2007,
+            locator: "p. 121 (the lowered seventh degree is routinely used in minor, quasi-scalar)",
+        },
+        Citation {
+            source: BURSTEIN_STRAUS_2016,
+            locator: "p. 368 (pieces usually begin and end in the same key, the main key)",
         },
     ],
     default_weight: 0.5,
@@ -54,8 +83,9 @@ fn context_fit(context: &SliceContext) -> f32 {
         return 0.0;
     }
     let key = context.reading.key;
-    let logs = profile_logs(key.mode);
     let tonic = pitch_class(key.tonic) as usize;
+    let is_modal = key.mode == Mode::Minor && modal_minor_tonics(context.slices, context.index)[tonic];
+    let logs = if is_modal { natural_minor_logs() } else { profile_logs(key.mode) };
     let fit: f32 = (0..12).map(|pc| weights[pc] * logs[(pc + 12 - tonic) % 12]).sum();
     fit / total * context.slice.duration as f32
 }
@@ -117,7 +147,7 @@ mod tests {
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
-    use crate::theory::key::{Key, Mode};
+    use crate::theory::key::Key;
 
     fn slice(start: f64, names: &[&str]) -> Slice {
         let notes = names
@@ -156,7 +186,10 @@ mod tests {
     }
 
     fn fit(slices: &[Slice], index: usize, tonic: &str) -> f32 {
-        let key = Key::new(tpc_from_name(tonic).unwrap(), Mode::Major);
+        fit_in(slices, index, Key::new(tpc_from_name(tonic).unwrap(), Mode::Major))
+    }
+
+    fn fit_in(slices: &[Slice], index: usize, key: Key) -> f32 {
         let chord = Chord::new(tpc_from_name("F").unwrap(), Quality::Major);
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
         let context = SliceContext {
@@ -174,6 +207,21 @@ mod tests {
     fn subdominant_chord_in_context_fits_the_home_key_better_than_its_own() {
         let slices = passage();
         assert!(fit(&slices, 4, "C") > fit(&slices, 4, "F"));
+    }
+
+    /// A passage in A minor without G sharp, i–v–iv–i, opening on the given voicing of the tonic triad.
+    fn natural_minor_passage(opening: &[&str]) -> Vec<Slice> {
+        let chords: [&[&str]; 4] = [opening, &["E", "G", "B"], &["D", "F", "A"], &["A", "C", "E"]];
+        chords.iter().enumerate().map(|(i, names)| slice(4.0 * i as f64, names)).collect()
+    }
+
+    /// The same pitch classes fit A minor better when the piece opened on its tonic triad over A,
+    /// since the natural minor profile then applies.
+    #[test]
+    fn a_natural_minor_passage_fits_better_once_the_minor_key_is_established() {
+        let a_minor = Key::new(tpc_from_name("A").unwrap(), Mode::Minor);
+        let established = fit_in(&natural_minor_passage(&["A", "C", "E"]), 3, a_minor);
+        assert!(established > fit_in(&natural_minor_passage(&["C", "E", "A"]), 3, a_minor));
     }
 
     fn weight(weights: &[f32; 12], name: &str) -> f32 {
