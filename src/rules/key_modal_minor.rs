@@ -10,9 +10,6 @@ use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use std::cell::Cell;
 
-/// How far back the music counts as recent, in quarter notes: sixteen bars of common time.
-const LOOK_BACK: f64 = 64.0;
-
 /// How far the recent music reaches past the end of the slice, in quarter notes, the lag the
 /// benchmark allows offered readings.
 const LOOK_AHEAD: f64 = 2.0;
@@ -28,28 +25,31 @@ const MINOR_THIRD: usize = 3;
 type SliceIdentity = (usize, usize, usize, usize);
 
 thread_local! {
-    /// The modal tonics of the most recent slice asked about. The engine scores many readings of
-    /// one slice in a row, so one entry avoids nearly all recomputation without changing any result.
-    static LAST_MODAL: Cell<(SliceIdentity, [bool; 12])> = const { Cell::new(((0, 0, 0, usize::MAX), [false; 12])) };
+    /// The modal tonics of the most recent slice asked about, with the look-back they were found
+    /// with. The engine scores many readings of one slice in a row, so one entry avoids nearly all
+    /// recomputation without changing any result.
+    static LAST_MODAL: Cell<(SliceIdentity, f64, [bool; 12])> =
+        const { Cell::new(((0, 0, 0, usize::MAX), 0.0, [false; 12])) };
 }
 
 /// Marks, by tonic pitch class, the minor keys to score with the natural minor profile at a
 /// slice: those established earlier, by their raised leading tone or by the piece's opening
-/// chord, whose raised leading tone has not sounded in the last 64 quarter notes, the slice
+/// chord, whose raised leading tone has not sounded in the last `look_back` quarter notes, the slice
 /// itself or the next two quarter notes.
-pub fn modal_minor_tonics(slices: &[Slice], index: usize) -> [bool; 12] {
+pub fn modal_minor_tonics(slices: &[Slice], index: usize, look_back: f64) -> [bool; 12] {
     let identity = (slices.as_ptr() as usize, slices[index].notes.as_ptr() as usize, slices.len(), index);
-    let (cached_identity, modal) = LAST_MODAL.get();
-    if cached_identity == identity {
+    let (cached_identity, cached_look_back, modal) = LAST_MODAL.get();
+    if cached_identity == identity && cached_look_back == look_back {
         return modal;
     }
-    let (earlier, recent) = (earlier_pitch_classes(slices, index), recent_pitch_classes(slices, index));
+    let earlier = earlier_pitch_classes(slices, index);
+    let recent = recent_pitch_classes(slices, index, look_back);
     let opening = opening_minor_tonic(&slices[0]);
     let modal = std::array::from_fn(|tonic| {
         let leading_tone = (tonic + LEADING_TONE) % 12;
         (earlier[leading_tone] || opening == Some(tonic)) && !recent[leading_tone]
     });
-    LAST_MODAL.set((identity, modal));
+    LAST_MODAL.set((identity, look_back, modal));
     modal
 }
 
@@ -74,12 +74,12 @@ fn earlier_pitch_classes(slices: &[Slice], index: usize) -> [bool; 12] {
     earlier
 }
 
-/// Marks the pitch classes sounding in the slice, in the 64 quarter notes before it and in the
-/// next two quarter notes.
-fn recent_pitch_classes(slices: &[Slice], index: usize) -> [bool; 12] {
+/// Marks the pitch classes sounding in the slice, in the `look_back` quarter notes before it and in
+/// the next two quarter notes.
+fn recent_pitch_classes(slices: &[Slice], index: usize, look_back: f64) -> [bool; 12] {
     let slice = &slices[index];
     let horizon = slice.start + slice.duration + LOOK_AHEAD;
-    let before = slices[..index].iter().rev().take_while(|s| s.start + s.duration > slice.start - LOOK_BACK);
+    let before = slices[..index].iter().rev().take_while(|s| s.start + s.duration > slice.start - look_back);
     let after = slices[index + 1..].iter().take_while(|s| s.start < horizon);
     let mut recent = [false; 12];
     for other in before.chain(after).chain(std::iter::once(slice)) {
@@ -120,7 +120,7 @@ mod tests {
     }
 
     fn is_modal(slices: &[Slice], index: usize, tonic: &str) -> bool {
-        modal_minor_tonics(slices, index)[pitch_class(tpc_from_name(tonic).unwrap()) as usize]
+        modal_minor_tonics(slices, index, 64.0)[pitch_class(tpc_from_name(tonic).unwrap()) as usize]
     }
 
     #[test]

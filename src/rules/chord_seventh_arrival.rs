@@ -1,7 +1,7 @@
 //! Rules about where a dominant seventh chord begins when its seventh enters after the chord.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
@@ -35,6 +35,7 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[FULL_TEXTURE_NOTES, SEVENTH_CHORD_FACTOR],
     hook: Hook::Close(seventh_arrival),
 }];
 
@@ -43,37 +44,51 @@ const BEAT: u8 = 2;
 /// The metric level of a beat subdivision.
 const SUBDIVISION: u8 = 1;
 /// The fewest voices sounding on the beat before the seventh enters.
-const FULL_TEXTURE_NOTES: usize = 4;
+const FULL_TEXTURE_NOTES: Param = Param {
+    index: 0,
+    name: "full_texture_notes",
+    default: 4.0,
+    unit: "notes",
+    provenance: "measured: 8feac94, round 5 (four notes sounding against four struck together: tune RN +0.08 against +0.05)",
+};
 /// The minor seventh above the root, in fifths.
 const MINOR_SEVENTH: i32 = -2;
-/// A dominant seventh chord over the whole span is a correct reading too, so it costs half.
-const SEVENTH_CHORD_FACTOR: f32 = 0.5;
+/// The cost for a dominant seventh chord, against 1 for a major triad. A dominant seventh chord
+/// over the whole span is a correct reading too.
+const SEVENTH_CHORD_FACTOR: Param = Param {
+    index: 1,
+    name: "seventh_chord_factor",
+    default: 0.5,
+    unit: "ratio",
+    provenance: "measured: 8feac94, round 5 (0 / 0.25 / 0.5 / 0.75 / 1: tune RN +0.08 / +0.08 / +0.08 / +0.22 / +0.22, both offered 20.67 / 20.77 / 20.80 / 20.04 / 20.01)",
+};
 
 /// Returns minus the cost of a segment inside which the seventh arrives, or 0 when it arrives where
 /// the segment opens or not at all.
-fn seventh_arrival(context: &CloseContext) -> f32 {
+fn seventh_arrival(context: &CloseContext, params: &[f64]) -> f32 {
     let chord = context.segment.reading.chord;
-    let Some(factor) = cost_factor(chord) else { return 0.0 };
+    let Some(factor) = cost_factor(chord, SEVENTH_CHORD_FACTOR.read(params) as f32) else { return 0.0 };
+    let full_texture = FULL_TEXTURE_NOTES.read(params) as usize;
     let seventh = chord.root + MINOR_SEVENTH;
     let slices = context.slices;
-    let arrives = (1..slices.len()).any(|index| is_arrival(&slices[index - 1..], seventh));
+    let arrives = (1..slices.len()).any(|index| is_arrival(&slices[index - 1..], seventh, full_texture));
     if arrives { -factor } else { 0.0 }
 }
 
 /// Returns how much an arrival inside the segment costs for the chord, if the rule judges it.
-fn cost_factor(chord: Chord) -> Option<f32> {
+fn cost_factor(chord: Chord, seventh_chord_factor: f32) -> Option<f32> {
     match chord.quality {
         Quality::Major => Some(1.0),
-        Quality::DominantSeventh => Some(SEVENTH_CHORD_FACTOR),
+        Quality::DominantSeventh => Some(seventh_chord_factor),
         _ => None,
     }
 }
 
 /// Reports whether `slices` open with a beat on which the full texture sounds without the seventh,
 /// followed at the subdivision by the seventh attacked alone and held through the remaining slices.
-fn is_arrival(slices: &[Slice], seventh: Tpc) -> bool {
+fn is_arrival(slices: &[Slice], seventh: Tpc, full_texture: usize) -> bool {
     let [beat, arrival, held @ ..] = slices else { return false };
-    let is_full_beat = beat.metric_level >= BEAT && beat.notes.len() >= FULL_TEXTURE_NOTES;
+    let is_full_beat = beat.metric_level >= BEAT && beat.notes.len() >= full_texture;
     let is_entry = !beat.notes.iter().any(|note| note.tpc == seventh) && arrival.metric_level == SUBDIVISION;
     let Some((midi, _)) = lone_attack(arrival).filter(|&(_, tpc)| tpc == seventh) else {
         return false;
@@ -132,7 +147,10 @@ mod tests {
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
         let (start, previous, duration, members_heard) = (0, NONE, 1.5, 0b1111);
         let segment = Segment { reading, start, previous, duration, members_heard, bass: Bass::default() };
-        seventh_arrival(&CloseContext { segment: &segment, slices, next_slice: None })
+        seventh_arrival(
+            &CloseContext { segment: &segment, slices, next_slice: None },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]

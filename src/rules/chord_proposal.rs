@@ -16,6 +16,7 @@ pub const RULES: &[Rule] = &[Rule {
         locator: "ch. 3, pp. 38–44 (triad and seventh chord types); ch. 22, pp. 382–389 (augmented sixths)",
     }],
     default_weight: 1.0,
+    params: &[],
     hook: Hook::ProposeChords(propose_templates),
 }];
 

@@ -24,10 +24,11 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.0,
+    params: &[],
     hook: Hook::Close(picardy_third),
 }];
 
-fn picardy_third(context: &CloseContext) -> f32 {
+fn picardy_third(context: &CloseContext, _: &[f64]) -> f32 {
     if ends_phrase(context) && is_major_tonic_in_minor(&context.segment.reading) { 1.0 } else { 0.0 }
 }
 
@@ -77,7 +78,10 @@ mod tests {
             bass: Bass::default(),
         };
         let next = next_phrase.map(slice);
-        picardy_third(&CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() })
+        picardy_third(
+            &CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
+            &[],
+        )
     }
 
     #[test]

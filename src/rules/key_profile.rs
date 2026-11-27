@@ -26,6 +26,7 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.0,
+    params: &[],
     hook: Hook::Slice(profile_fit),
 }];
 
@@ -67,7 +68,7 @@ pub fn natural_minor_logs() -> &'static [f32; 12] {
     &CENTERED_LOGS[2]
 }
 
-fn profile_fit(context: &SliceContext) -> f32 {
+fn profile_fit(context: &SliceContext, _: &[f64]) -> f32 {
     let home = key_fit(context.reading.key, context);
     match context.reading.tonicized {
         Some(local) => TONICIZED_SHARE * key_fit(local, context) + (1.0 - TONICIZED_SHARE) * home,
@@ -130,7 +131,7 @@ mod tests {
             reading: &reading,
             is_opening: true,
         };
-        profile_fit(&context)
+        profile_fit(&context, &[])
     }
 
     #[test]

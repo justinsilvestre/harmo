@@ -1,7 +1,7 @@
 //! Rules about the bass line within a chord segment.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
@@ -30,37 +30,61 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[BEAT_LEVEL, BASS_REGISTER, FULL_TEXTURE_NOTES],
     hook: Hook::Close(bass_change),
 }];
 
-/// The weakest metric level at which a bass change counts (2 = any beat).
-const BEAT: u8 = 2;
-/// The metric level of a beat subdivision.
-const SUBDIVISION: u8 = 1;
-/// The largest upward leap, in semitones, that still counts as the same bass voice.
-const BASS_REGISTER: i32 = 12;
+/// The weakest metric level at which a bass change counts, and to which the new bass must be held
+/// (2 = any beat).
+const BEAT_LEVEL: Param = Param {
+    index: 0,
+    name: "beat_level",
+    default: 2.0,
+    unit: "metric level",
+    provenance: "measured: 9d7b407, round 2 (beat: tune RN +0.67; beat subdivision: -0.0, TAVERN -1.9; half bar: +0.2)",
+};
+/// The largest upward leap that still counts as the same bass voice.
+const BASS_REGISTER: Param = Param {
+    index: 1,
+    name: "bass_register",
+    default: 12.0,
+    unit: "semitones",
+    provenance: "chosen: 9d7b407, round 2 (an octave, after Kostka, Payne and Almen 2023, p. 134: the real bass depends on register; not swept)",
+};
 /// The fewest voices struck together on a beat for a bass move at the half beat after it to count.
-const FULL_TEXTURE_NOTES: usize = 4;
+const FULL_TEXTURE_NOTES: Param = Param {
+    index: 2,
+    name: "full_texture_notes",
+    default: 4.0,
+    unit: "notes",
+    provenance: "measured: b00871a, round 4 (three voices: tune RN +0.13; four: +0.20, at lower cost outside chorales)",
+};
+/// The metric level of a full-texture beat, and of the subdivision after it.
+const BEAT: u8 = 2;
+const SUBDIVISION: u8 = 1;
 
 /// Returns minus the number of bass changes inside the segment.
 ///
 /// The bass is established by the segment's first bass note and by every later bass note that is
 /// attacked on a beat, or at the subdivision right after a beat struck by the full texture, and held
 /// until the next beat. A change is an established bass on another chord member than the one before it.
-fn bass_change(context: &CloseContext) -> f32 {
+fn bass_change(context: &CloseContext, params: &[f64]) -> f32 {
+    let beat = BEAT_LEVEL.read(params) as u8;
+    let register = BASS_REGISTER.read(params) as i32;
+    let full_texture = FULL_TEXTURE_NOTES.read(params) as usize;
     let chord = context.segment.reading.chord;
     let slices = context.slices;
     let mut established: Option<(usize, i32)> = None;
     let mut changes = 0;
     for (index, slice) in slices.iter().enumerate() {
         let Some((member, note)) = bass_member(slice, chord) else { continue };
-        let is_attack =
-            is_beat_attack(slice) || index > 0 && is_full_texture_follow_up(&slices[index - 1], slice);
-        let is_held = is_attack && holds_until_next_beat(&slices[index + 1..], chord, member);
+        let is_follow_up = index > 0 && is_full_texture_follow_up(&slices[index - 1], slice, full_texture);
+        let is_attack = is_beat_attack(slice, beat) || is_follow_up;
+        let is_held = is_attack && holds_until_next_beat(&slices[index + 1..], chord, member, beat);
         if established.is_some() && !is_held {
             continue;
         }
-        if established.is_some_and(|(old, midi)| old != member && note.midi - midi <= BASS_REGISTER) {
+        if established.is_some_and(|(old, midi)| old != member && note.midi - midi <= register) {
             changes += 1;
         }
         established = Some((member, note.midi));
@@ -74,22 +98,22 @@ fn bass_member(slice: &Slice, chord: Chord) -> Option<(usize, &SliceNote)> {
     chord.member_index_enharmonic(note.tpc).map(|member| (member, note))
 }
 
-fn is_beat_attack(slice: &Slice) -> bool {
-    slice.metric_level >= BEAT && slice.bass().is_some_and(|note| note.attacked)
+fn is_beat_attack(slice: &Slice, beat: u8) -> bool {
+    slice.metric_level >= beat && slice.bass().is_some_and(|note| note.attacked)
 }
 
 /// Returns whether the slice attacks a bass note at the subdivision right after a beat on which the
-/// whole texture of four or more voices was struck together.
-fn is_full_texture_follow_up(previous: &Slice, slice: &Slice) -> bool {
-    let is_full_beat = previous.metric_level >= BEAT && previous.is_struck_together(FULL_TEXTURE_NOTES);
+/// whole texture of `notes` or more voices was struck together.
+fn is_full_texture_follow_up(previous: &Slice, slice: &Slice, notes: usize) -> bool {
+    let is_full_beat = previous.metric_level >= BEAT && previous.is_struck_together(notes);
     is_full_beat && slice.metric_level == SUBDIVISION && slice.bass().is_some_and(|note| note.attacked)
 }
 
-/// Returns whether the bass stays on `member` (or is silent) until the next beat.
-fn holds_until_next_beat(following: &[Slice], chord: Chord, member: usize) -> bool {
+/// Returns whether the bass stays on `member` (or is silent) until the next slice at the given metric level.
+fn holds_until_next_beat(following: &[Slice], chord: Chord, member: usize, beat: u8) -> bool {
     let stays =
         |slice: &Slice| slice.notes.is_empty() || bass_member(slice, chord).map(|b| b.0) == Some(member);
-    following.iter().take_while(|slice| slice.metric_level < BEAT).all(stays)
+    following.iter().take_while(|slice| slice.metric_level < beat).all(stays)
 }
 
 #[cfg(test)]
@@ -143,7 +167,7 @@ mod tests {
             members_heard: 0,
             bass: Bass::default(),
         };
-        bass_change(&CloseContext { segment: &segment, slices, next_slice: None })
+        bass_change(&CloseContext { segment: &segment, slices, next_slice: None }, &RULES[0].default_params())
     }
 
     #[test]

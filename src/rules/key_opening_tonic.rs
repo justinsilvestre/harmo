@@ -20,10 +20,11 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 1.25,
+    params: &[],
     hook: Hook::Transition(opening_tonic),
 }];
 
-fn opening_tonic(context: &TransitionContext) -> f32 {
+fn opening_tonic(context: &TransitionContext, _: &[f64]) -> f32 {
     if context.previous.is_none() && is_tonic(context.next) { 1.0 } else { 0.0 }
 }
 
@@ -60,7 +61,7 @@ mod tests {
             key_signature: None,
         };
         let history = History { arena: &[], slices: &[], last: NONE };
-        opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history })
+        opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history }, &[])
     }
 
     #[test]

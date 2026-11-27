@@ -42,13 +42,14 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.1,
+    params: &[],
     hook: Hook::Slice(signature_key),
 }];
 
 /// The Dorian tonic's distance above the tonic of the signature's major key, in fifths.
 const DORIAN_TONIC: i32 = 2;
 
-fn signature_key(context: &SliceContext) -> f32 {
+fn signature_key(context: &SliceContext, _: &[f64]) -> f32 {
     let Some(signature) = context.slice.key_signature else { return 0.0 };
     let key = context.reading.key;
     let is_named = if opens_on_dorian_tonic(context.slices, signature) {
@@ -113,14 +114,17 @@ mod tests {
         let key = Key::new(tpc_from_name(key.0).unwrap(), key.1);
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::Major);
         let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
-        signature_key(&SliceContext {
-            slice: &slices[1],
-            next_slice: None,
-            slices: &slices,
-            index: 1,
-            reading: &reading,
-            is_opening: false,
-        })
+        signature_key(
+            &SliceContext {
+                slice: &slices[1],
+                next_slice: None,
+                slices: &slices,
+                index: 1,
+                reading: &reading,
+                is_opening: false,
+            },
+            &[],
+        )
     }
 
     #[test]

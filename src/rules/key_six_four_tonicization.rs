@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Segment;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -25,16 +25,24 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[STRONG_BEAT],
     hook: Hook::Transition(six_four_tonicization),
 }];
 
 /// The weakest metric level on which a cadential six-four may begin (3 = mid-measure in duple meters).
-const STRONG_BEAT: u8 = 3;
+const STRONG_BEAT: Param = Param {
+    index: 0,
+    name: "strong_beat",
+    default: 3.0,
+    unit: "metric level",
+    provenance: "measured: b52a2e8, round 6 (any stronger beat / level 3 / level 4, each at weight 0.5: tune RN 57.99 / 57.98 / 57.97)",
+};
 
-fn six_four_tonicization(context: &TransitionContext) -> f32 {
+fn six_four_tonicization(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let opening = context.history.slices.get(previous.start as usize).map_or(0, |s| s.metric_level);
-    let is_on_stronger_beat = opening >= STRONG_BEAT && opening > context.slice.metric_level;
+    let is_on_stronger_beat =
+        f64::from(opening) >= STRONG_BEAT.read(params) && opening > context.slice.metric_level;
     let tonicizes_six_four = context.next.tonicized.is_some_and(|t| t.tonic == previous.reading.chord.root);
     let is_cadential = is_on_stronger_beat && is_six_four(previous) && is_dominant_on_bass(context, previous);
     if is_cadential && tonicizes_six_four { -1.0 } else { 0.0 }
@@ -120,7 +128,7 @@ mod tests {
         let history = History { arena: &[], slices: &slices, last: NONE };
         let context =
             TransitionContext { previous: Some(&previous), next: &next, slice: &slices[1], history };
-        six_four_tonicization(&context)
+        six_four_tonicization(&context, &RULES[0].default_params())
     }
 
     #[test]

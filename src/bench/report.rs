@@ -60,6 +60,10 @@ pub struct RunRecord {
     pub seconds: f64,
     pub settings: BTreeMap<String, f64>,
     pub weights: BTreeMap<String, f32>,
+    /// The rule parameters set away from their defaults, by `<rule id>.<parameter name>`.
+    /// Older runs lack them.
+    #[serde(default)]
+    pub params: BTreeMap<String, f64>,
     pub sets: Vec<SetRecord>,
     pub pieces: Vec<PieceRecord>,
 }

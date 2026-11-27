@@ -20,7 +20,7 @@ pub struct RunHeader {
     pub has_uncommitted_changes: bool,
     pub date: String,
     pub settings: BTreeMap<String, f64>,
-    /// The weights file, if the default weights were overridden.
+    /// The weights and parameters files, if the defaults were overridden.
     pub weights: Option<String>,
     pub pieces: usize,
     /// Pieces that could not be loaded, with the reason.

@@ -18,7 +18,7 @@ The engine knows nothing about music. All musical knowledge lives in **rules**, 
 | `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `function.six_four` |
 | `Admit` | rejects transitions outright | (none yet) |
 
-Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a summary and citations. Because they are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
+Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a summary and citations. A rule may also declare **parameters**: the thresholds, durations and ratios inside it, each with a default, a unit and its provenance (the source that gives the value, or the measurement that set it). The engine passes a scoring hook its rule's parameter values. Because rules are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
 
 ### Layout
 
@@ -48,7 +48,7 @@ cargo build --release
 ./target/release/harmo results                    # regenerate RESULTS.md
 ```
 
-`bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off.
+`bench` prints accuracy by set, the change against the previous run (`runs/latest.json`, or `--compare FILE`), and AugmentedNet's published numbers where they apply. Each run is saved to `runs/`. To try different weights, pass `--weights FILE` with a JSON object of rule ids and weights; a weight of 0 switches a rule off. To try different parameter values, pass `--params FILE` with a JSON object keyed by `<rule id>.<parameter name>`, such as `{"key.context_profile.half_life": 24}`; either file accepts either kind of key. A sweep's `grid` and `base` take parameter keys too, so `harmo sweep` varies parameters the same way it varies weights. `harmo rules` lists every parameter with its default and provenance.
 
 `diagnose` runs the same evaluation and assigns every frame the top reading gets wrong to exactly one kind, ranked by frames lost, for each set and its subsets:
 - **Where the analysts agree, or there is only one:** key errors by relation (relative, dominant, subdominant, parallel, tonicization against modulation split by which side tonicizes, other), each sustained or brief; then, in the right key, a root a third, fifth or step away, a function (applied or not), a seventh added or missing, or an inversion. Labels the engine cannot produce at all are counted apart, by reason, using the rule set's own proposers and vocabulary. A label that is right but shifted by up to a quarter note counts as timing.

@@ -15,6 +15,7 @@ pub const RULES: &[Rule] = &[Rule {
         locator: "p. 237 (seventh chords ranked by frequency: V7, ii7, viiø7, IVM7, vi7, IM7, iii7)",
     }],
     default_weight: 1.5,
+    params: &[],
     hook: Hook::Transition(rare_seventh),
 }];
 
@@ -22,7 +23,7 @@ pub const RULES: &[Rule] = &[Rule {
 const MAJOR_RARE_ROOTS: [i32; 3] = [0, 4, 3];
 const MINOR_RARE_ROOTS: [i32; 3] = [0, -3, -4];
 
-fn rare_seventh(context: &TransitionContext) -> f32 {
+fn rare_seventh(context: &TransitionContext, _: &[f64]) -> f32 {
     let reading = context.next;
     let is_nondominant_seventh = matches!(
         reading.chord.quality,
@@ -61,7 +62,7 @@ mod tests {
             key_signature: None,
         };
         let history = History { arena: &[], slices: &[], last: NONE };
-        rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history })
+        rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history }, &[])
     }
 
     #[test]

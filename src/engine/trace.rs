@@ -4,7 +4,7 @@
 
 use super::model::NONE;
 use super::path::SegmentReading;
-use super::rule::{CloseContext, History, Hook, SliceContext, TransitionContext};
+use super::rule::{CloseContext, History, Hook, SliceContext, SliceFn, TransitionContext};
 use super::ruleset::RuleSet;
 use super::search::Analysis;
 use crate::score::slicing::Slice;
@@ -36,7 +36,7 @@ pub fn trace_segment(
         history: History { arena: &analysis.arena, slices, last: state.previous },
     };
     let close = CloseContext { segment: state, slices: &slices[first..end], next_slice: slices.get(end) };
-    let slice_sum = |f: fn(&SliceContext) -> f32| -> f32 {
+    let slice_sum = |f: SliceFn, params: &[f64]| -> f32 {
         let context = |i: usize| SliceContext {
             slice: &slices[i],
             next_slice: slices.get(i + 1),
@@ -45,15 +45,16 @@ pub fn trace_segment(
             reading: &segment.reading,
             is_opening: i == first,
         };
-        (first..end).map(|i| f(&context(i))).sum()
+        (first..end).map(|i| f(&context(i), params)).sum()
     };
     let mut contributions = Vec::new();
-    for (rule, &weight) in rules.rules.iter().zip(&rules.weights).filter(|(_, w)| **w != 0.0) {
+    let rules_with_params = rules.rules.iter().zip(&rules.weights).zip(&rules.params);
+    for ((rule, &weight), params) in rules_with_params.filter(|((_, w), _)| **w != 0.0) {
         let raw = match rule.hook {
-            Hook::Slice(f) => slice_sum(f),
-            Hook::Transition(f) => f(&transition),
-            Hook::Departure(f) => transition.departure().map_or(0.0, |context| f(&context)),
-            Hook::Close(f) => f(&close),
+            Hook::Slice(f) => slice_sum(f, params),
+            Hook::Transition(f) => f(&transition, params),
+            Hook::Departure(f) => transition.departure().map_or(0.0, |context| f(&context, params)),
+            Hook::Close(f) => f(&close, params),
             _ => continue,
         };
         contributions.push(Contribution {

@@ -63,3 +63,20 @@ pub fn default_rules() -> Vec<Rule> {
     ]
     .concat()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_parameter_is_read_from_its_own_position() {
+        let is_in_place = |rule: &Rule| rule.params.iter().enumerate().all(|(i, p)| p.index == i);
+        assert!(default_rules().iter().all(is_in_place));
+    }
+
+    #[test]
+    fn every_parameter_states_where_its_value_comes_from() {
+        let has_provenance = |rule: &Rule| rule.params.iter().all(|p| !p.provenance.is_empty());
+        assert!(default_rules().iter().all(has_provenance));
+    }
+}

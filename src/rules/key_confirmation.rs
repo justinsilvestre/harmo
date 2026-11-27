@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Segment;
-use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
@@ -25,14 +25,21 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[STRONG_BEAT],
     hook: Hook::Departure(unconfirmed_departure),
 }];
 
 /// The weakest metric level on which a cadential tonic may arrive (3 = mid-measure in duple meters).
-const STRONG_BEAT: u8 = 3;
+const STRONG_BEAT: Param = Param {
+    index: 0,
+    name: "strong_beat",
+    default: 3.0,
+    unit: "metric level",
+    provenance: "chosen: 1a69a17, round 4 (as in key.cadential_confirmation; not swept)",
+};
 
-fn unconfirmed_departure(context: &DepartureContext) -> f32 {
-    match find_confirmation(context) {
+fn unconfirmed_departure(context: &DepartureContext, params: &[f64]) -> f32 {
+    match find_confirmation(context, STRONG_BEAT.read(params) as u8) {
         Confirmation::Confirmed | Confirmation::FirstArea => 0.0,
         Confirmation::Unconfirmed => -1.0,
     }
@@ -46,8 +53,8 @@ enum Confirmation {
 }
 
 /// Walks back through the key area being left, most recent segment first, and stops at the first
-/// event that confirms it.
-fn find_confirmation(context: &DepartureContext) -> Confirmation {
+/// event that confirms it. A cadential tonic must arrive at `strong_beat` or a stronger metric level.
+fn find_confirmation(context: &DepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
     let key = context.previous.reading.key;
     let mut later: Option<&Segment> = None;
@@ -56,7 +63,7 @@ fn find_confirmation(context: &DepartureContext) -> Confirmation {
             return Confirmation::Unconfirmed;
         }
         let is_confirming = |later: &Segment| {
-            is_authentic_cadence(later, segment, slices) || is_cadential_six_four(later, segment)
+            is_authentic_cadence(later, segment, slices, strong_beat) || is_cadential_six_four(later, segment)
         };
         if crosses_phrase_end(segment, slices, context.slice) || later.is_some_and(is_confirming) {
             return Confirmation::Confirmed;
@@ -74,8 +81,8 @@ fn crosses_phrase_end(segment: &Segment, slices: &[Slice], slice: &Slice) -> boo
 }
 
 /// Reports whether a root-position dominant is followed by a root-position tonic on a strong beat.
-fn is_authentic_cadence(later: &Segment, earlier: &Segment, slices: &[Slice]) -> bool {
-    is_cadential_tonic(later, slices) && is_dominant(earlier) && is_in_root_position(earlier)
+fn is_authentic_cadence(later: &Segment, earlier: &Segment, slices: &[Slice], strong_beat: u8) -> bool {
+    is_cadential_tonic(later, slices, strong_beat) && is_dominant(earlier) && is_in_root_position(earlier)
 }
 
 /// Reports whether a tonic six-four is followed by a dominant.
@@ -83,8 +90,8 @@ fn is_cadential_six_four(later: &Segment, earlier: &Segment) -> bool {
     is_dominant(later) && is_tonic_six_four(earlier)
 }
 
-fn is_cadential_tonic(segment: &Segment, slices: &[Slice]) -> bool {
-    let is_strong = slices.get(segment.start as usize).is_some_and(|s| s.metric_level >= STRONG_BEAT);
+fn is_cadential_tonic(segment: &Segment, slices: &[Slice], strong_beat: u8) -> bool {
+    let is_strong = slices.get(segment.start as usize).is_some_and(|s| s.metric_level >= strong_beat);
     is_tonic(segment) && is_in_root_position(segment) && is_strong
 }
 
@@ -162,11 +169,14 @@ mod tests {
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
         let arena = path(chords);
         let history = History { arena: &arena, slices, last: arena.len() as u32 - 1 };
-        unconfirmed_departure(&DepartureContext {
-            previous: &arena[arena.len() - 1].segment,
-            slice: &slices[chords.len()],
-            history,
-        })
+        unconfirmed_departure(
+            &DepartureContext {
+                previous: &arena[arena.len() - 1].segment,
+                slice: &slices[chords.len()],
+                history,
+            },
+            &RULES[0].default_params(),
+        )
     }
 
     fn strong(count: usize) -> Vec<Slice> {

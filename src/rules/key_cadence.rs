@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Segment;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -16,19 +16,26 @@ pub const RULES: &[Rule] = &[Rule {
         locator: "pp. 298–299 (evidence that convinces the listener of a modulation)",
     }],
     default_weight: 0.375,
+    params: &[STRONG_BEAT],
     hook: Hook::Transition(cadential_confirmation),
 }];
 
 /// The weakest metric level on which a cadential tonic may arrive (3 = mid-measure in duple meters).
-const STRONG_BEAT: u8 = 3;
+const STRONG_BEAT: Param = Param {
+    index: 0,
+    name: "strong_beat",
+    default: 3.0,
+    unit: "metric level",
+    provenance: "chosen: 15273b4, round 2 (Kostka, Payne and Almen 2023, p. 149: the last chord of a cadence usually falls on a stronger beat than the one before it, but no level is given; not swept)",
+};
 
-fn cadential_confirmation(context: &TransitionContext) -> f32 {
+fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let tonic = context.next;
     let key = tonic.key;
     let is_tonic = tonic.tonicized.is_none() && tonic.chord.root == key.tonic && previous.reading.key == key;
     let bass_is_tonic = context.slice.bass().is_some_and(|note| note.tpc == key.tonic);
-    let is_strong = context.slice.metric_level >= STRONG_BEAT;
+    let is_strong = f64::from(context.slice.metric_level) >= STRONG_BEAT.read(params);
     if is_tonic && bass_is_tonic && is_strong && is_root_position_dominant(previous) { 1.0 } else { 0.0 }
 }
 
@@ -84,12 +91,11 @@ mod tests {
         };
         let next = reading("C", Quality::Major);
         let history = History { arena: &[], slices: &[], last: NONE };
-        cadential_confirmation(&TransitionContext {
-            previous: Some(&previous),
-            next: &next,
-            slice: &slice,
-            history,
-        })
+        let params = RULES[0].default_params();
+        cadential_confirmation(
+            &TransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
+            &params,
+        )
     }
 
     #[test]

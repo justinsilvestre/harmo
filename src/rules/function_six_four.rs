@@ -21,13 +21,14 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[],
     hook: Hook::Close(six_four),
 }];
 
 /// The largest bass motion, in semitones, that counts as a step.
 const STEP: i32 = 2;
 
-fn six_four(context: &CloseContext) -> f32 {
+fn six_four(context: &CloseContext, _: &[f64]) -> f32 {
     let segment = context.segment;
     let Some((midi, tpc)) = segment.bass_note().filter(|_| is_six_four(segment)) else {
         return 0.0;
@@ -87,7 +88,7 @@ mod tests {
         let segment =
             Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass };
         let slices = [slice(&[(55, "G"), (60, "C"), (64, "E")])];
-        six_four(&CloseContext { segment: &segment, slices: &slices, next_slice: Some(next) })
+        six_four(&CloseContext { segment: &segment, slices: &slices, next_slice: Some(next) }, &[])
     }
 
     #[test]

@@ -2,7 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -28,15 +28,22 @@ pub const RULES: &[Rule] = &[Rule {
         },
     ],
     default_weight: 0.5,
+    params: &[LOOK_AHEAD],
     hook: Hook::Transition(raised_fourth),
 }];
 
-/// How far past the tonic's arrival the key's own fourth degree may sound to waive the charge, in quarter notes.
-const LOOKAHEAD: f64 = 2.0;
+/// How far past the tonic's arrival the key's own fourth degree may sound to waive the charge.
+const LOOK_AHEAD: Param = Param {
+    index: 0,
+    name: "look_ahead",
+    default: 2.0,
+    unit: "quarter notes",
+    provenance: "limit: the listener may hear at most two quarter notes ahead (README, How it works); measured: 7e35101, round 6 (no waiver: tune RN +0.09 against +0.11 at weight 0.5)",
+};
 
 const EPSILON: f64 = 1e-6;
 
-fn raised_fourth(context: &TransitionContext) -> f32 {
+fn raised_fourth(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let key = previous.reading.key;
     if !is_dominant_triad_to_tonic(&previous.reading, context.next) {
@@ -45,7 +52,8 @@ fn raised_fourth(context: &TransitionContext) -> f32 {
     let slices = context.history.slices;
     let opening = slices.partition_point(|s| s.start < context.slice.start - EPSILON);
     let fourth = key.tonic - 1;
-    let ahead = slices[opening..].iter().take_while(|s| s.start < context.slice.start + LOOKAHEAD - EPSILON);
+    let horizon = context.slice.start + LOOK_AHEAD.read(params) - EPSILON;
+    let ahead = slices[opening..].iter().take_while(|s| s.start < horizon);
     if ahead.into_iter().any(|s| sounds(s, fourth)) {
         return 0.0;
     }
@@ -117,12 +125,10 @@ mod tests {
         };
         let next = reading("C", Quality::Major);
         let history = History { arena: &[], slices: &slices, last: NONE };
-        raised_fourth(&TransitionContext {
-            previous: Some(&previous),
-            next: &next,
-            slice: &slices[opening],
-            history,
-        })
+        raised_fourth(
+            &TransitionContext { previous: Some(&previous), next: &next, slice: &slices[opening], history },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]
