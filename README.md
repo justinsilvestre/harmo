@@ -72,7 +72,7 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (RN %):** WiR 56.1 (AugmentedNet 56.4), ABC 40.9 (44.5), MPS 54.8, WTC 47.8 (46.2), HaydnSun 42.3 (48.6), TAVERN 52.1 (42.6), BPS 54.9 (45.4). Where analysts disagree, both readings are offered for 16.8% of frames, with 2.8 readings offered on average. On 18 cores, a full test run takes about 0.7 s and a `tune` run about 7 s.
+**Current results, test split (RN %):** WiR 56.1 (AugmentedNet 56.4), ABC 42.3 (44.5), MPS 59.2, WTC 45.4 (46.2), HaydnSun 44.8 (48.6), TAVERN 52.9 (42.6), BPS 56.2 (45.4). Where analysts disagree, both readings are offered for 17.7% of frames, with 2.8 readings offered on average. On 18 cores, a full test run takes about 1 s and a `tune` run about 11 s.
 
 ## Improving the engine
 
