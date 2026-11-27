@@ -4,7 +4,7 @@ Rules-based harmonic analysis of MusicXML scores that offers **several competing
 
 ## How it works
 
-The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment. When the beam is pruned, hypotheses that give their last four segments the same readings and differ only in where those segments begin keep just the best of them, so that the beam's places go to distinct interpretations (`--distinct-depth`, 0 to turn this off).
+The engine reads the score left to right, one **slice** at a time (a span in which no note starts or stops). At every slice, each hypothesis in the beam either extends its current chord segment or opens a new one. A new segment gets a freshly proposed **reading**: a chord, the key it is heard in, and its function there (diatonic, mixture, chromatic or applied). The beam after each slice stands for the interpretations a listener might hold at that moment, so no rule may use music more than two quarter notes past the slice it scores, the same lag allowed to offered readings below, and no rule may use statistics of the whole score. The reading reported for each moment is the best final hypothesis traced back, so later music can still decide between hypotheses that were each scored this way, as a listener revises an earlier hearing. When the beam is pruned, hypotheses that give their last four segments the same readings and differ only in where those segments begin keep just the best of them, so that the beam's places go to distinct interpretations (`--distinct-depth`, 0 to turn this off).
 
 The engine knows nothing about music. All musical knowledge lives in **rules**, which hook into the engine at seven points:
 
@@ -73,7 +73,7 @@ cargo build --release
 
 Tune on `tune`, and report on `test`.
 
-**Current results, test split (RN %):** WiR 56.1 (AugmentedNet 56.4), ABC 42.3 (44.5), MPS 59.2, WTC 45.4 (46.2), HaydnSun 44.8 (48.6), TAVERN 52.9 (42.6), BPS 56.2 (45.4). Where analysts disagree, both readings are offered for 17.7% of frames, with 2.8 readings offered on average. On 18 cores, a full test run takes about 1 s and a `tune` run about 11 s.
+**Current results, test split (RN %):** WiR 59.6 (AugmentedNet 56.4), ABC 46.4 (44.5), MPS 61.2, WTC 47.7 (46.2), HaydnSun 47.1 (48.6), TAVERN 55.4 (42.6), BPS 55.8 (45.4). Four test pieces have corrected labels (see `KEY_CORRECTIONS` and `MEASURE_SHIFTS` in `tools/prepare_corpus.py`), which adds about 1 point to WiR and 2 to ABC. Where analysts disagree, both readings are offered for 21.9% of frames, with 3.6 readings offered on average. On 18 cores, a full test run takes about 1.5 s and a `tune` run about 5 s.
 
 ## Improving the engine
 
