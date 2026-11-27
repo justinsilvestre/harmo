@@ -29,8 +29,10 @@ pub fn is_applied_in_other_key(a: &Label, b: &Label) -> bool {
 }
 
 /// Reports whether one label is a dominant seventh on the fifth degree and the other a leading-tone
-/// chord of the same key and tonicization, over the same bass, while the dominant's root is not
-/// sounding (`sounding` holds one bit per pitch class).
+/// chord of the same key and tonicization, while the dominant's root is not sounding (`sounding`
+/// holds one bit per pitch class). The two must share a bass, unless the dominant seventh is
+/// written in root position: with its root silent, that figure names the implied root rather than
+/// a sounding bass.
 /// With the root absent, the two name the same sounding pitches.
 pub fn is_rootless_dominant(a: &Label, b: &Label, sounding: u16) -> bool {
     let (dominant, leading) = match (is_dominant_seventh(a), is_dominant_seventh(b)) {
@@ -42,7 +44,7 @@ pub fn is_rootless_dominant(a: &Label, b: &Label, sounding: u16) -> bool {
     let root_is_silent = sounding & (1 << pitch_class(dominant.root)) == 0;
     same_place
         && is_leading_tone_chord(leading)
-        && pitch_class(a.bass()) == pitch_class(b.bass())
+        && (pitch_class(a.bass()) == pitch_class(b.bass()) || dominant.bass() == dominant.root)
         && root_is_silent
 }
 
@@ -186,6 +188,12 @@ mod tests {
     fn a_rootless_dominant_needs_the_same_bass() {
         let sounding = pitch_classes(&["D", "F", "B"]);
         assert!(!is_rootless_dominant(&label("C", None, V7, "B"), &label("C", None, VIIO, "D"), sounding));
+    }
+
+    #[test]
+    fn a_root_position_dominant_with_its_root_silent_matches_any_leading_tone_inversion() {
+        let sounding = pitch_classes(&["D", "F", "B"]);
+        assert!(is_rootless_dominant(&label("C", None, V7, "G"), &label("C", None, VIIO, "D"), sounding));
     }
 
     #[test]
