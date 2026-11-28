@@ -1,7 +1,8 @@
 //! Rules about how chords function in succession.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::KeyTransitionContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Category, KeySegment, Reading};
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;

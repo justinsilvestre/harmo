@@ -2,7 +2,8 @@
 
 use super::key_profile::profile_proportions;
 use super::sources::{CAPLIN_2024, TEMPERLEY_2001, TEMPERLEY_2007};
-use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::key_contexts::KeySliceContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;

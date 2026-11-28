@@ -1,7 +1,7 @@
 //! Extends the hypotheses in the beam, and the hearings they interpret, by one more slice.
 
 use super::chord_hooks::ChordSliceContext;
-use super::key_hooks::KeySliceContext;
+use super::key_contexts::KeySliceContext;
 use super::model::{Hearing, HearingId, Hypothesis, Reading};
 use super::moment::Moment;
 use super::pending::{Pending, PendingHearingId};

@@ -5,7 +5,8 @@ use super::key_profile::{natural_minor_logs, profile_logs};
 use super::sources::{
     BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001, TEMPERLEY_2007,
 };
-use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::key_contexts::KeySliceContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;

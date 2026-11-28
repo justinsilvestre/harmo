@@ -1,7 +1,8 @@
 //! Rules about the chord that ends a phrase as evidence for a key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
+use crate::engine::key_contexts::KeyCloseContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::chord::Quality;
 

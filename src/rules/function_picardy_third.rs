@@ -2,7 +2,8 @@
 
 use super::key_phrase_close::ends_phrase;
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
+use crate::engine::key_contexts::KeyCloseContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Reading;
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;

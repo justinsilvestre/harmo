@@ -1,7 +1,8 @@
 //! Rules that keep a dominant triad and its dominant seventh chord as rival readings of one span.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, Rival, RivalContext};
+use crate::engine::key_contexts::{Rival, RivalContext};
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::{Chord, Quality};

@@ -1,7 +1,8 @@
 //! Rules about the raised fourth degree as evidence that the music has moved to the dominant key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::KeyTransitionContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Reading;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
@@ -87,7 +88,7 @@ fn sounds(slice: &Slice, tpc: Tpc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::key_hooks::History;
+    use crate::engine::key_contexts::History;
     use crate::engine::model::Function;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;

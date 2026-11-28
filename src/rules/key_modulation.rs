@@ -1,7 +1,8 @@
 //! Rules about changes of key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::{History, KeyDepartureContext, KeyTransitionContext};
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::key::Key;
 

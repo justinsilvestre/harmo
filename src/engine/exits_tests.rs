@@ -1,5 +1,6 @@
 use super::*;
-use crate::engine::key_hooks::{KeyHook, Rival};
+use crate::engine::key_contexts::Rival;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Function, NONE, Reading};
 use crate::engine::proposals::LayerScores;
 use crate::engine::rule::{Hook, Rule, Topic};

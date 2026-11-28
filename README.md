@@ -53,7 +53,7 @@ Rules are pure functions with a weight, a topic (`chord`, `key` or `function`, t
 
 ### Layout
 
-- `src/engine/` is the core: the two layers' state (`model.rs`, `layers.rs`), the search (`search.rs`, which runs each slice's steps: `proposals.rs` proposes new readings, `exits.rs` scores leaving each hypothesis and finds the ones a new segment opens after, `continuations.rs` extends the beam by the slice, and `pruning.rs` chooses what the beam keeps), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces and rank histories.
+- `src/engine/` is the core: the two layers' state (`model.rs`, `layers.rs`), the search (`search.rs`, which runs each slice's steps: `proposals.rs` proposes new readings, `exits.rs` scores leaving each hypothesis and finds the ones a new segment opens after, `continuations.rs` extends the beam by the slice, and `pruning.rs` chooses what the beam keeps), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and what key hooks receive in `key_contexts.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces and rank histories.
 - `src/rules/` is the rule catalog. Files are prefixed by topic (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
 - `src/theory/` holds keys, chord templates and Roman numeral labels.
 - `src/score/` holds the MusicXML reader, meter and slicing.

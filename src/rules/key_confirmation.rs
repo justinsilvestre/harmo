@@ -1,7 +1,8 @@
 //! Rules about whether a key area was confirmed before the music leaves it.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
+use crate::engine::key_contexts::KeyDepartureContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::KeySegment;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::Slice;

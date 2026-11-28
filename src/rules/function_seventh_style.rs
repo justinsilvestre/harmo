@@ -1,7 +1,8 @@
 //! Rules about which diatonic seventh chords the style favors.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::KeyTransitionContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
@@ -42,7 +43,7 @@ fn rare_seventh(context: &KeyTransitionContext, _: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::key_hooks::History;
+    use crate::engine::key_contexts::History;
     use crate::engine::model::{Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;

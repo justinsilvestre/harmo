@@ -1,7 +1,8 @@
 //! Rules about the chord that opens a piece as evidence for a key.
 
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
-use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::KeyTransitionContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Reading;
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 
@@ -37,7 +38,7 @@ fn is_tonic(reading: &Reading) -> bool {
 mod tests {
     use super::*;
 
-    use crate::engine::key_hooks::History;
+    use crate::engine::key_contexts::History;
     use crate::engine::model::{Function, KeySegment};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;

@@ -1,7 +1,7 @@
 //! What leaving each hypothesis in the beam scores, and which of them a new segment opens after.
 
 use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
-use super::key_hooks::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
+use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
 use super::model::{ChordSegment, HearingId, KeySegment, NONE};
 use super::moment::Moment;
 use super::proposals::{Opening, ProposedChord};

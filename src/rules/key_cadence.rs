@@ -1,7 +1,8 @@
 //! Rules about cadences as evidence for a key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::key_contexts::KeyTransitionContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::KeySegment;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::chord::Quality;
@@ -53,7 +54,7 @@ fn is_root_position_dominant(segment: &KeySegment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::key_hooks::History;
+    use crate::engine::key_contexts::History;
     use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;

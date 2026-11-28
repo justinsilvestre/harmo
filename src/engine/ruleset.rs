@@ -80,7 +80,8 @@ fn find_param(rules: &[Rule], key: &str) -> Option<(usize, usize)> {
 mod tests {
     use super::*;
 
-    use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
+    use crate::engine::key_contexts::{History, KeyDepartureContext, KeyTransitionContext};
+    use crate::engine::key_hooks::KeyHook;
     use crate::engine::model::{Function, Reading};
     use crate::engine::rule::{Param, Topic};
     use crate::engine::test_layers::key_segment;

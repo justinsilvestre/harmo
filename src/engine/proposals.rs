@@ -1,7 +1,7 @@
 //! The new readings that the search proposes for a segment opening on a slice.
 
 use super::chord_hooks::ChordSliceContext;
-use super::key_hooks::KeySliceContext;
+use super::key_contexts::KeySliceContext;
 use super::model::{ChordSegment, Reading};
 use super::moment::Moment;
 use super::ruleset::RuleSet;

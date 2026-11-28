@@ -1,5 +1,6 @@
 use super::*;
-use crate::engine::key_hooks::{KeyHook, Rival, RivalContext};
+use crate::engine::key_contexts::{Rival, RivalContext};
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Function, NONE, Reading};
 use crate::engine::pending::PendingHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};

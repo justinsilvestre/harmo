@@ -5,9 +5,8 @@
 use super::chord_hooks::{
     ChordCloseContext, ChordHook, ChordSliceContext, ChordSliceFn, ChordTransitionContext,
 };
-use super::key_hooks::{
-    History, KeyCloseContext, KeyHook, KeySliceContext, KeySliceFn, KeyTransitionContext,
-};
+use super::key_contexts::{History, KeyCloseContext, KeySliceContext, KeyTransitionContext};
+use super::key_hooks::{KeyHook, KeySliceFn};
 use super::model::{HearingId, NONE};
 use super::path::SegmentReading;
 use super::rule::{Hook, Topic};

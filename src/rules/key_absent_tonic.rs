@@ -2,7 +2,8 @@
 
 use super::key_confirmation::is_tonic;
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
-use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
+use crate::engine::key_contexts::KeyDepartureContext;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 
 pub const RULES: &[Rule] = &[Rule {

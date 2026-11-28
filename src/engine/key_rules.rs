@@ -1,9 +1,11 @@
 //! The key layer's hooks of a rule set, with their weights.
 
+use super::key_contexts::{
+    KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext, Rival, RivalContext,
+};
 use super::key_hooks::{
-    AdmitFn, DistinguishFn, InterpretFn, KeyCloseContext, KeyCloseFn, KeyDepartureContext, KeyDepartureFn,
-    KeyHook, KeySliceContext, KeySliceFn, KeyTransitionContext, KeyTransitionFn, ProposeKeysFn, Rival,
-    RivalCandidateFn, RivalContext, RivalFn,
+    AdmitFn, DistinguishFn, InterpretFn, KeyCloseFn, KeyDepartureFn, KeyHook, KeySliceFn, KeyTransitionFn,
+    ProposeKeysFn, RivalCandidateFn, RivalFn,
 };
 use super::model::KeySegment;
 use super::ruleset::Scorer;
