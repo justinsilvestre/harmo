@@ -6,10 +6,10 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `b1c00e3`, with weights from the defaults
-- **Generated:** 2026-11-28 12:49 UTC
-- **Search settings:** beam width 80, hearings of the chords kept (0: no limit) 40, hypotheses per hearing (0: no limit) 0, candidate readings per slice 48, candidate chords per slice (0: readings cut whole) 0, candidate keys per chord 0, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
-- **Runtime:** 11.7 s in all on 18 threads: 6.2 s for the benchmark and 5.4 s for the diagnosis
+- **Engine:** commit `454a344`, with weights from the defaults
+- **Generated:** 2026-11-28 13:39 UTC
+- **Search settings:** beam width 80, hearings of the chords kept (0: no limit) 40, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
+- **Runtime:** 11.7 s in all on 18 threads: 6.1 s for the benchmark and 5.4 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
 
 ## Accuracy on the test split
@@ -533,35 +533,35 @@ These expert labels lie outside what the rule set's proposers and vocabulary can
 Frames where two analysts differ are classed by what they differ on. **Frames** counts each pair of analysts once. **Top matches either** and **both offered** are percentages of the class's frames, as in the agreement tables. The other columns explain the readings that are not offered. They count readings rather than frames, since a frame can miss both of its analysts' readings:
 - **Cannot produce:** the engine has no way to produce the reading.
 - **In the beam, not offered:** a hypothesis in the beam holds it, but below the offer cut-off. Its mean rank (1 is the best hypothesis) and how far its score lies below the best are given beside it.
-- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**) or because better ones gave their last segments the same readings with other boundaries (**merged by distinct depth**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
+- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**), because the beam already held as many hearings of the chords as it may, each read by a better hypothesis, and they read another (**cut by the hearing limit**), or because better ones gave their last segments the same readings with other boundaries (**merged by distinct depth**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
 
 **`agreement-tune`**
 
-| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: merged by distinct depth | their mean time to pruning | missing: never held |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| same chord, different inversion | 6085 | 65.0 | 11.2 | 96 | 714 | 45.8 | 2.5 | 1728 | 0 | 1.2 | 4185 |
-| different key, same chord | 5976 | 68.1 | 35.5 | 336 | 1662 | 37.3 | 1.9 | 2097 | 0 | 1.2 | 687 |
-| other | 5281 | 58.2 | 15.1 | 612 | 846 | 34.9 | 1.9 | 2495 | 0 | 1.0 | 1894 |
-| seventh vs triad | 4902 | 63.9 | 27.8 | 272 | 1109 | 48.9 | 4.3 | 2278 | 0 | 1.2 | 956 |
-| roots a third apart | 4556 | 52.5 | 14.1 | 430 | 860 | 36.6 | 2.1 | 2572 | 0 | 1.1 | 1562 |
-| tonicization vs modulation | 2728 | 57.3 | 37.0 | 560 | 531 | 31.4 | 2.0 | 796 | 0 | 1.0 | 418 |
-| applied vs diatonic | 512 | 28.9 | 0.0 | 608 | 80 | 42.2 | 2.4 | 132 | 0 | 0.9 | 24 |
-| I64 vs V (cadential six-four) | 501 | 71.7 | 39.7 | 16 | 85 | 36.4 | 2.2 | 145 | 0 | 1.1 | 88 |
-| all | 30541 | 61.2 | 22.3 | 2930 | 5887 | 39.6 | 2.5 | 12243 | 0 | 1.1 | 9814 |
+| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the hearing limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| same chord, different inversion | 6085 | 65.0 | 11.2 | 96 | 714 | 45.8 | 2.5 | 1079 | 649 | 0 | 1.2 | 4185 |
+| different key, same chord | 5976 | 68.1 | 35.5 | 336 | 1662 | 37.3 | 1.9 | 1667 | 430 | 0 | 1.2 | 687 |
+| other | 5281 | 58.2 | 15.1 | 612 | 846 | 34.9 | 1.9 | 1374 | 1121 | 0 | 1.0 | 1894 |
+| seventh vs triad | 4902 | 63.9 | 27.8 | 272 | 1109 | 48.9 | 4.3 | 1396 | 882 | 0 | 1.2 | 956 |
+| roots a third apart | 4556 | 52.5 | 14.1 | 430 | 860 | 36.6 | 2.1 | 1420 | 1152 | 0 | 1.1 | 1562 |
+| tonicization vs modulation | 2728 | 57.3 | 37.0 | 560 | 531 | 31.4 | 2.0 | 441 | 355 | 0 | 1.0 | 418 |
+| applied vs diatonic | 512 | 28.9 | 0.0 | 608 | 80 | 42.2 | 2.4 | 68 | 64 | 0 | 0.9 | 24 |
+| I64 vs V (cadential six-four) | 501 | 71.7 | 39.7 | 16 | 85 | 36.4 | 2.2 | 74 | 71 | 0 | 1.1 | 88 |
+| all | 30541 | 61.2 | 22.3 | 2930 | 5887 | 39.6 | 2.5 | 7519 | 4724 | 0 | 1.1 | 9814 |
 
 **`tune`**
 
-| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: merged by distinct depth | their mean time to pruning | missing: never held |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| same chord, different inversion | 11577 | 64.8 | 14.5 | 604 | 1204 | 41.7 | 2.4 | 3149 | 0 | 1.2 | 7418 |
-| seventh vs triad | 9901 | 62.7 | 26.5 | 432 | 1654 | 47.2 | 3.9 | 5022 | 0 | 1.2 | 2393 |
-| other | 9155 | 56.8 | 14.6 | 1428 | 1419 | 35.7 | 2.0 | 4109 | 0 | 1.0 | 3330 |
-| roots a third apart | 6174 | 48.5 | 12.5 | 926 | 1074 | 36.9 | 2.1 | 3317 | 0 | 1.1 | 2354 |
-| different key, same chord | 6168 | 67.2 | 35.1 | 440 | 1714 | 37.7 | 1.9 | 2153 | 0 | 1.2 | 699 |
-| applied vs diatonic | 2832 | 26.0 | 0.0 | 2932 | 344 | 39.6 | 2.2 | 763 | 0 | 1.2 | 269 |
-| tonicization vs modulation | 2736 | 57.5 | 37.2 | 560 | 531 | 31.4 | 2.0 | 796 | 0 | 1.0 | 418 |
-| I64 vs V (cadential six-four) | 913 | 70.0 | 33.6 | 28 | 165 | 37.6 | 2.2 | 323 | 0 | 1.1 | 204 |
-| all | 49456 | 58.6 | 20.0 | 7350 | 8105 | 39.4 | 2.5 | 19632 | 0 | 1.1 | 17085 |
+| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the hearing limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| same chord, different inversion | 11577 | 64.8 | 14.5 | 604 | 1204 | 41.7 | 2.4 | 2028 | 1121 | 0 | 1.2 | 7418 |
+| seventh vs triad | 9901 | 62.7 | 26.5 | 432 | 1654 | 47.2 | 3.9 | 3241 | 1781 | 0 | 1.2 | 2393 |
+| other | 9155 | 56.8 | 14.6 | 1428 | 1419 | 35.7 | 2.0 | 2244 | 1865 | 0 | 1.0 | 3330 |
+| roots a third apart | 6174 | 48.5 | 12.5 | 926 | 1074 | 36.9 | 2.1 | 1936 | 1381 | 0 | 1.1 | 2354 |
+| different key, same chord | 6168 | 67.2 | 35.1 | 440 | 1714 | 37.7 | 1.9 | 1715 | 438 | 0 | 1.2 | 699 |
+| applied vs diatonic | 2832 | 26.0 | 0.0 | 2932 | 344 | 39.6 | 2.2 | 615 | 148 | 0 | 1.2 | 269 |
+| tonicization vs modulation | 2736 | 57.5 | 37.2 | 560 | 531 | 31.4 | 2.0 | 441 | 355 | 0 | 1.0 | 418 |
+| I64 vs V (cadential six-four) | 913 | 70.0 | 33.6 | 28 | 165 | 37.6 | 2.2 | 179 | 144 | 0 | 1.1 | 204 |
+| all | 49456 | 58.6 | 20.0 | 7350 | 8105 | 39.4 | 2.5 | 12399 | 7233 | 0 | 1.1 | 17085 |
 
 ### Chord accuracy with the key right and wrong
 
