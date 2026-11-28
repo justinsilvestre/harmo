@@ -81,7 +81,7 @@ impl Exits {
     }
 
     fn from_start(moment: &Moment, proposed: &[ProposedChord], rules: &RuleSet) -> Exits {
-        let transitions = chord_transitions(moment, None, proposed, rules);
+        let transitions = chord_transitions(moment, ChordHypothesisId::NONE, proposed, rules);
         let chord =
             ChordExit { chord_hypothesis: ChordHypothesisId::NONE, score: 0.0, close: 0.0, transitions };
         let (departures, rivals) = (Vec::new(), Vec::new());
@@ -127,7 +127,7 @@ impl Exits {
         let exit = &self.keys[position];
         let chord_exit = &self.chords[exit.chord_exit];
         let chord_transition = chord_exit.transitions[opening.chord_index];
-        let (slice, history) = (moment.slice(), moment.history(exit.hypothesis));
+        let (slice, history) = (moment.slice(), moment.key_history(exit.hypothesis));
         let context =
             KeyTransitionContext { previous: exit.segment.as_ref(), next: &opening.reading, slice, history };
         let transition = chord_transition + rules.key.score_transition(&context, &exit.departures);
@@ -149,21 +149,23 @@ fn chord_exit(
 ) -> ChordExit {
     let heard = moment.layers.chord_hypothesis(chord_hypothesis);
     let close = chord_close(moment.slices, &heard.segment, moment.index, rules);
-    let transitions = chord_transitions(moment, Some(&heard.segment), proposed, rules);
+    let transitions = chord_transitions(moment, chord_hypothesis, proposed, rules);
     ChordExit { chord_hypothesis, score: heard.score, close, transitions }
 }
 
-/// Scores, in the chord layer, opening each proposed chord after a segment,
+/// Scores, in the chord layer, opening each proposed chord after a chord hypothesis,
 /// or after nothing at the start of the piece.
 fn chord_transitions(
     moment: &Moment,
-    previous: Option<&ChordSegment>,
+    chord_hypothesis: ChordHypothesisId,
     proposed: &[ProposedChord],
     rules: &RuleSet,
 ) -> Vec<f32> {
-    let (slice, slices) = (moment.slice(), moment.slices);
+    let previous = (chord_hypothesis != ChordHypothesisId::NONE)
+        .then(|| &moment.layers.chord_hypothesis(chord_hypothesis).segment);
+    let (slice, history) = (moment.slice(), moment.chord_history(chord_hypothesis));
     let score = |next: &ProposedChord| {
-        let context = ChordTransitionContext { previous, next: next.chord, slice, slices };
+        let context = ChordTransitionContext { previous, next: next.chord, slice, history };
         rules.chord.score_transition(&context)
     };
     proposed.iter().map(score).collect()
@@ -174,7 +176,7 @@ fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rul
     let departure = KeyDepartureContext {
         previous: &segment,
         slice: moment.slice(),
-        history: moment.history(hypothesis),
+        history: moment.key_history(hypothesis),
     };
     let start = segment.heard.start as usize;
     let rival = RivalContext {

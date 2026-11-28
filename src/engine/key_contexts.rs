@@ -51,7 +51,7 @@ pub struct KeyTransitionContext<'a> {
     pub previous: Option<&'a KeySegment>,
     pub next: &'a Reading,
     pub slice: &'a Slice,
-    pub history: History<'a>,
+    pub history: KeyHistory<'a>,
 }
 
 impl<'a> KeyTransitionContext<'a> {
@@ -67,7 +67,7 @@ pub struct KeyDepartureContext<'a> {
     pub previous: &'a KeySegment,
     /// The slice that opens the new segment.
     pub slice: &'a Slice,
-    pub history: History<'a>,
+    pub history: KeyHistory<'a>,
 }
 
 pub struct KeyCloseContext<'a> {
@@ -89,7 +89,7 @@ pub struct RivalContext<'a> {
 /// Read-only access to the segments preceding a transition, most recent first,
 /// as the key layer reads them.
 #[derive(Clone, Copy)]
-pub struct History<'a> {
+pub struct KeyHistory<'a> {
     pub layers: &'a Layers,
     /// Every slice of the score, so that a past segment's slices can be read from its `start`.
     pub slices: &'a [Slice],
@@ -97,15 +97,15 @@ pub struct History<'a> {
     pub last: KeyHypothesisId,
 }
 
-impl<'a> History<'a> {
+impl<'a> KeyHistory<'a> {
     pub fn segments(self) -> impl Iterator<Item = KeySegment> + 'a {
         let layers = self.layers;
         layers.key_path_back(self.last).map(|hypothesis| layers.segment(hypothesis))
     }
 
     /// A history with no segments before it.
-    pub fn empty(slices: &'a [Slice]) -> History<'a> {
-        History { layers: &NO_LAYERS, slices, last: KeyHypothesisId::NONE }
+    pub fn empty(slices: &'a [Slice]) -> KeyHistory<'a> {
+        KeyHistory { layers: &NO_LAYERS, slices, last: KeyHypothesisId::NONE }
     }
 }
 
@@ -133,7 +133,7 @@ mod tests {
     fn is_departure(previous: Option<&str>) -> bool {
         let (previous, next, slice) =
             (previous.map(|tonic| key_segment(reading(tonic))), reading("C"), slice());
-        let history = History::empty(&[]);
+        let history = KeyHistory::empty(&[]);
         KeyTransitionContext { previous: previous.as_ref(), next: &next, slice: &slice, history }
             .departure()
             .is_some()

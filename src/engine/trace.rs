@@ -3,9 +3,9 @@
 //! Rules are pure, so the search stores only scores and the trace is rebuilt on demand.
 
 use super::chord_hooks::{
-    ChordCloseContext, ChordHook, ChordSliceContext, ChordSliceFn, ChordTransitionContext,
+    ChordCloseContext, ChordHistory, ChordHook, ChordSliceContext, ChordSliceFn, ChordTransitionContext,
 };
-use super::key_contexts::{History, KeyCloseContext, KeySliceContext, KeyTransitionContext};
+use super::key_contexts::{KeyCloseContext, KeyHistory, KeySliceContext, KeyTransitionContext};
 use super::key_hooks::{KeyHook, KeySliceFn};
 use super::model::{ChordHypothesisId, KeyHypothesisId};
 use super::path::SegmentReading;
@@ -46,13 +46,13 @@ pub fn trace_segment(
         previous: previous.as_ref(),
         next: &segment.reading,
         slice: &slices[first],
-        history: History { layers, slices, last: previous_hypothesis },
+        history: KeyHistory { layers, slices, last: previous_hypothesis },
     };
     let chord_transition = ChordTransitionContext {
         previous: previous_chord_hypothesis,
         next: chord_hypothesis.chord,
         slice: &slices[first],
-        slices,
+        history: ChordHistory::new(layers, slices, heard.previous),
     };
     let close = KeyCloseContext { segment: &state, slices: &slices[first..end], next_slice: slices.get(end) };
     let chord_close = ChordCloseContext {

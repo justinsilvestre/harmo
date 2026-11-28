@@ -1,8 +1,9 @@
 //! The point that the search has reached in the score.
 
-use super::key_contexts::History;
+use super::chord_hooks::ChordHistory;
+use super::key_contexts::KeyHistory;
 use super::layers::Layers;
-use super::model::KeyHypothesisId;
+use super::model::{ChordHypothesisId, KeyHypothesisId};
 use crate::score::slicing::Slice;
 
 /// The slice that the search hears now, within the score,
@@ -19,8 +20,13 @@ impl<'a> Moment<'a> {
         &self.slices[self.index]
     }
 
+    /// Returns the history of the chord segments up to and including the last segment of a chord hypothesis.
+    pub fn chord_history(&self, last: ChordHypothesisId) -> ChordHistory<'a> {
+        ChordHistory::new(self.layers, self.slices, last)
+    }
+
     /// Returns the history of the segments up to and including the last segment of a hypothesis.
-    pub fn history(&self, last: KeyHypothesisId) -> History<'a> {
-        History { layers: self.layers, slices: self.slices, last }
+    pub fn key_history(&self, last: KeyHypothesisId) -> KeyHistory<'a> {
+        KeyHistory { layers: self.layers, slices: self.slices, last }
     }
 }

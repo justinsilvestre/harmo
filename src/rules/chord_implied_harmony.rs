@@ -53,7 +53,7 @@ fn implied_harmony(context: &ChordTransitionContext, params: &[f64]) -> f32 {
     if !context.slice.is_single_line() {
         return 0.0;
     }
-    let slices = context.slices;
+    let slices = context.history.slices;
     let index = slices.partition_point(|s| s.start < context.slice.start - EPSILON);
     if slices.get(index).is_none_or(|s| (s.start - context.slice.start).abs() > EPSILON) {
         return 0.0;
@@ -91,6 +91,7 @@ fn line_fit<'a>(line: impl Iterator<Item = (&'a Slice, f64)>, chord: Chord) -> f
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::chord_hooks::ChordHistory;
     use crate::engine::model::ChordSegment;
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
@@ -130,7 +131,7 @@ mod tests {
             previous: Some(&previous),
             next: major("G"),
             slice: &slices[1],
-            slices: &slices,
+            history: ChordHistory::empty(&slices),
         };
         implied_harmony(&context, &RULES[0].default_params())
     }

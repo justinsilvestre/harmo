@@ -2,7 +2,8 @@
 //! never a key.
 
 use super::bass::{Bass, BassNote};
-use super::model::ChordSegment;
+use super::layers::{Layers, NO_LAYERS};
+use super::model::{ChordHypothesisId, ChordSegment};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 
@@ -67,8 +68,7 @@ pub struct ChordTransitionContext<'a> {
     pub previous: Option<&'a ChordSegment>,
     pub next: Chord,
     pub slice: &'a Slice,
-    /// Every slice of the score, so that the previous segment's slices can be read from its `start`.
-    pub slices: &'a [Slice],
+    pub history: ChordHistory<'a>,
 }
 
 pub struct ChordCloseContext<'a> {
@@ -77,4 +77,54 @@ pub struct ChordCloseContext<'a> {
     pub slices: &'a [Slice],
     /// The slice that opens the following segment, if any.
     pub next_slice: Option<&'a Slice>,
+}
+
+/// Read-only access to the chord segments preceding a transition, most recent first.
+/// It gives only the chord layer's state.
+#[derive(Clone, Copy)]
+pub struct ChordHistory<'a> {
+    layers: &'a Layers,
+    /// Every slice of the score, so that a past segment's slices can be read from its `start`.
+    pub slices: &'a [Slice],
+    /// The last chord hypothesis of the most recent segment, or `ChordHypothesisId::NONE`.
+    last: ChordHypothesisId,
+}
+
+impl<'a> ChordHistory<'a> {
+    pub fn new(layers: &'a Layers, slices: &'a [Slice], last: ChordHypothesisId) -> ChordHistory<'a> {
+        ChordHistory { layers, slices, last }
+    }
+
+    pub fn segments(self) -> impl Iterator<Item = ChordSegment> + 'a {
+        let layers = self.layers;
+        layers.chord_path_back(self.last).map(|id| layers.chord_hypothesis(id).segment)
+    }
+
+    /// A history with no segments before it.
+    pub fn empty(slices: &'a [Slice]) -> ChordHistory<'a> {
+        ChordHistory::new(&NO_LAYERS, slices, ChordHypothesisId::NONE)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::model::{Function, Reading};
+    use crate::engine::test_layers::{key_segment, path_of};
+    use crate::pitch::tpc_from_name;
+    use crate::theory::chord::Quality;
+    use crate::theory::key::{Key, Mode};
+
+    #[test]
+    fn a_chord_history_gives_the_chord_segments_most_recent_first() {
+        let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
+        let reading = |root: &str| Reading {
+            chord: Chord::new(tpc_from_name(root).unwrap(), Quality::Major),
+            function: Function::diatonic(key),
+        };
+        let path = path_of(&["C", "F", "G"].map(|root| key_segment(reading(root))));
+        let history = ChordHistory::new(&path, &[], ChordHypothesisId(2));
+        let starts: Vec<u32> = history.segments().map(|s| s.start).collect();
+        assert_eq!(starts, [2, 1, 0]);
+    }
 }

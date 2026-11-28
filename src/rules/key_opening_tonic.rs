@@ -38,7 +38,7 @@ fn is_tonic(reading: &Reading) -> bool {
 mod tests {
     use super::*;
 
-    use crate::engine::key_contexts::History;
+    use crate::engine::key_contexts::KeyHistory;
     use crate::engine::model::{Function, KeySegment};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
@@ -63,7 +63,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History::empty(&[]);
+        let history = KeyHistory::empty(&[]);
         opening_tonic(&KeyTransitionContext { previous, next: &reading(root), slice: &slice, history }, &[])
     }
 

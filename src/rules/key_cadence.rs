@@ -54,7 +54,7 @@ fn is_root_position_dominant(segment: &KeySegment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::key_contexts::History;
+    use crate::engine::key_contexts::KeyHistory;
     use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
@@ -88,7 +88,7 @@ mod tests {
             key_signature: None,
         };
         let next = reading("C", Quality::Major);
-        let history = History::empty(&[]);
+        let history = KeyHistory::empty(&[]);
         let params = RULES[0].default_params();
         cadential_confirmation(
             &KeyTransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },

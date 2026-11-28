@@ -109,6 +109,7 @@ fn is_thin(slice: &Slice, most_pitch_classes: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::chord_hooks::ChordHistory;
     use crate::engine::model::ChordSegment;
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
@@ -142,7 +143,7 @@ mod tests {
             previous: Some(&previous),
             next: major("G"),
             slice: &slice,
-            slices: &[],
+            history: ChordHistory::empty(&[]),
         };
         thin_texture_rhythm(&context, &RULES[2].default_params())
     }

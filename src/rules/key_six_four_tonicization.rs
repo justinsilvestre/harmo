@@ -71,7 +71,7 @@ fn is_dominant_on_bass(context: &KeyTransitionContext, previous: &KeySegment) ->
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::key_contexts::History;
+    use crate::engine::key_contexts::KeyHistory;
     use crate::engine::model::{Category, ChordSegment, Function, KeySegment, Reading};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
@@ -123,7 +123,7 @@ mod tests {
             slice(setting.six_four_level, setting.six_four_bass),
             slice(setting.dominant_level, setting.dominant_bass),
         ];
-        let history = History::empty(&slices);
+        let history = KeyHistory::empty(&slices);
         let context =
             KeyTransitionContext { previous: Some(&previous), next: &next, slice: &slices[1], history };
         six_four_tonicization(&context, &RULES[0].default_params())

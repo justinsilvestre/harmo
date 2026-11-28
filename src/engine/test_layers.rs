@@ -1,7 +1,7 @@
 //! Builders of segments, and of the layers that hold them, for tests.
 
 use super::bass::Bass;
-use super::key_contexts::History;
+use super::key_contexts::KeyHistory;
 use super::layers::Layers;
 use super::model::{
     ChordHypothesis, ChordHypothesisId, ChordSegment, KeyHypothesis, KeyHypothesisId, KeySegment, Reading,
@@ -93,6 +93,6 @@ pub fn i_v_i() -> Vec<Slice> {
 }
 
 /// Returns the history that a transition after the last segment of a path reads.
-pub fn history_after<'a>(path: &'a Layers, slices: &'a [Slice]) -> History<'a> {
-    History { layers: path, slices, last: KeyHypothesisId(path.key_hypotheses.len() as u32 - 1) }
+pub fn history_after<'a>(path: &'a Layers, slices: &'a [Slice]) -> KeyHistory<'a> {
+    KeyHistory { layers: path, slices, last: KeyHypothesisId(path.key_hypotheses.len() as u32 - 1) }
 }

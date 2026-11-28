@@ -43,7 +43,7 @@ fn rare_seventh(context: &KeyTransitionContext, _: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::key_contexts::History;
+    use crate::engine::key_contexts::KeyHistory;
     use crate::engine::model::{Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -63,7 +63,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History::empty(&[]);
+        let history = KeyHistory::empty(&[]);
         rare_seventh(&KeyTransitionContext { previous: None, next: &next, slice: &slice, history }, &[])
     }
 

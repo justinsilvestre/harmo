@@ -88,7 +88,7 @@ fn sounds(slice: &Slice, tpc: Tpc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::key_contexts::History;
+    use crate::engine::key_contexts::KeyHistory;
     use crate::engine::model::Function;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
@@ -122,7 +122,7 @@ mod tests {
         slices.push(slice(opening as f64 + 1.0, after));
         let previous = key_segment(reading("G", dominant));
         let next = reading("C", Quality::Major);
-        let history = History::empty(&slices);
+        let history = KeyHistory::empty(&slices);
         raised_fourth(
             &KeyTransitionContext {
                 previous: Some(&previous),

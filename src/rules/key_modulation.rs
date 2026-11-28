@@ -1,7 +1,7 @@
 //! Rules about changes of key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::key_contexts::{History, KeyDepartureContext, KeyTransitionContext};
+use crate::engine::key_contexts::{KeyDepartureContext, KeyHistory, KeyTransitionContext};
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::key::Key;
@@ -59,7 +59,7 @@ fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
 
 /// Sums the durations of the latest segments in the given key,
 /// stopping once the area is established, since a longer area costs no more.
-fn area_heard(history: History, key: Key, established: f64) -> f64 {
+fn area_heard(history: KeyHistory, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
     for segment in history.segments().take_while(|s| s.function.key == key) {
         area += segment.heard.duration;

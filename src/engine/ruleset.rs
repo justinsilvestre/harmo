@@ -80,7 +80,7 @@ fn find_param(rules: &[Rule], key: &str) -> Option<(usize, usize)> {
 mod tests {
     use super::*;
 
-    use crate::engine::key_contexts::{History, KeyDepartureContext, KeyTransitionContext};
+    use crate::engine::key_contexts::{KeyDepartureContext, KeyHistory, KeyTransitionContext};
     use crate::engine::key_hooks::KeyHook;
     use crate::engine::model::{Function, Reading};
     use crate::engine::rule::{Param, Topic};
@@ -131,7 +131,7 @@ mod tests {
 
     fn transition_with(rules: &RuleSet, tonic: &str) -> f32 {
         let (previous, slice) = (key_segment(reading("C")), slice());
-        let history = History::empty(&[]);
+        let history = KeyHistory::empty(&[]);
         let departures =
             rules.key.score_departures(&KeyDepartureContext { previous: &previous, slice: &slice, history });
         let context =
