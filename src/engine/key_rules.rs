@@ -2,7 +2,7 @@
 
 use super::key_hooks::{
     AdmitFn, DistinguishFn, InterpretFn, KeyCloseContext, KeyCloseFn, KeyDepartureContext, KeyDepartureFn,
-    KeyHook, KeySliceContext, KeySliceFn, KeyTransitionContext, KeyTransitionFn, ProposeKeysFn,
+    KeyHook, KeySliceContext, KeySliceFn, KeyTransitionContext, KeyTransitionFn, ProposeKeysFn, Rival,
     RivalCandidateFn, RivalContext, RivalFn,
 };
 use super::model::KeySegment;
@@ -91,7 +91,7 @@ impl KeyRules {
     }
 
     /// Returns each rival hook's group for a segment, in rule order.
-    pub fn rival_groups(&self, context: &RivalContext) -> Vec<Option<u64>> {
+    pub fn rival_groups(&self, context: &RivalContext) -> Vec<Option<Rival>> {
         self.rival.iter().map(|(f, params)| f(context, params)).collect()
     }
 

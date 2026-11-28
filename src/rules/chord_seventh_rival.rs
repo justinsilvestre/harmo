@@ -1,7 +1,7 @@
 //! Rules that keep a dominant triad and its dominant seventh chord as rival readings of one span.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_hooks::{KeyHook, RivalContext};
+use crate::engine::key_hooks::{KeyHook, Rival, RivalContext};
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::{Chord, Quality};
@@ -36,7 +36,7 @@ pub const RULES: &[Rule] = &[Rule {
 
 /// Groups a segment read as a dominant triad or dominant seventh chord, by its key, tonicized key
 /// and root, when its seventh sounds for part of the segment and is approached like a nonchord tone.
-fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
+fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<Rival> {
     let (chord, function) = (context.segment.heard.chord, context.segment.function);
     let is_dominant = function.tonicized.unwrap_or(function.key).degree_of(chord.root).number == 5;
     if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
@@ -54,7 +54,7 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
     }
     let mut hasher = DefaultHasher::new();
     (function.key, function.tonicized, chord.root).hash(&mut hasher);
-    Some(hasher.finish())
+    Some(Rival { group: hasher.finish(), member: chord.quality as u64 })
 }
 
 /// Reports whether the note is held over from the slice before, or that slice sounds the same pitch
@@ -100,7 +100,7 @@ mod tests {
         let segment =
             KeySegment { heard: ChordSegment { start: 1, duration: 2.0, ..segment.heard }, ..segment };
         let context = RivalContext { segment: &segment, slices, previous_slice: Some(before) };
-        seventh_rival(&context, &[])
+        seventh_rival(&context, &[]).map(|rival| rival.group)
     }
 
     /// G major, then G with a passing F reached from G above it.
@@ -129,6 +129,22 @@ mod tests {
     fn a_seventh_sounding_throughout_has_no_rival() {
         let slices = [slice(&[("G", 43), ("F", 65)]), slice(&[("G", 43), ("F", 65)])];
         assert_eq!(group("G", Quality::Major, &slice(&[("G", 67)]), &slices), None);
+    }
+
+    #[test]
+    fn a_dominant_triad_and_its_seventh_chord_are_rivals() {
+        let rival = |quality: Quality| {
+            let chord = Chord::new(tpc_from_name("G").unwrap(), quality);
+            let key = Key::parse("C", "major").unwrap();
+            let segment = key_segment(Reading { chord, function: Function::diatonic(key) });
+            let segment =
+                KeySegment { heard: ChordSegment { start: 1, duration: 2.0, ..segment.heard }, ..segment };
+            let slices = passing_seventh();
+            let previous_slice = Some(&opening());
+            seventh_rival(&RivalContext { segment: &segment, slices: &slices, previous_slice }, &[])
+        };
+        let (triad, seventh) = (rival(Quality::Major), rival(Quality::DominantSeventh));
+        assert!(triad.zip(seventh).is_some_and(|(t, s)| t.is_rival_of(s)));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! What leaving each hypothesis in the beam scores, and which of them a new segment opens after.
 
 use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
-use super::key_hooks::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, RivalContext};
+use super::key_hooks::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
 use super::model::{ChordSegment, HearingId, KeySegment, NONE};
 use super::moment::Moment;
 use super::proposals::{Opening, ProposedChord};
@@ -37,7 +37,7 @@ pub struct KeyExit {
     pub close: f32,
     pub departures: Vec<f32>,
     /// The rival hooks' groups for the last segment, in rule order.
-    pub rivals: Vec<Option<u64>>,
+    pub rivals: Vec<Option<Rival>>,
 }
 
 /// The exits of every hypothesis in the beam, and one exit for each hearing that they interpret.
@@ -95,7 +95,7 @@ impl Exits {
 
     /// Finds the hypotheses that a new reading opens after: the one that leads into it best and, for
     /// each rival hook that puts that hypothesis's last segment in a group, the best one whose last
-    /// segment has the same group and whose hearing hears another chord there. Returns them best first.
+    /// segment is another member of the group. Returns them best first.
     pub fn predecessors(&self, opening: &Opening, moment: &Moment, rules: &RuleSet) -> Vec<Predecessor> {
         let lead_in = |position: usize| self.lead_in(position, opening, moment, rules);
         let scored: Vec<Predecessor> = (0..self.keys.len()).filter_map(lead_in).collect();
@@ -103,14 +103,12 @@ impl Exits {
             return vec![];
         };
         let exit_of = |i: usize| &self.keys[scored[i].exit];
-        let chord_of = |i: usize| exit_of(i).segment.map(|s| s.heard.chord);
         let mut found = vec![best];
-        for (rule, group) in exit_of(best).rivals.iter().enumerate() {
-            let Some(group) = *group else {
+        for (rule, best_rival) in exit_of(best).rivals.iter().enumerate() {
+            let Some(best_rival) = *best_rival else {
                 continue;
             };
-            let is_rival =
-                |&i: &usize| exit_of(i).rivals[rule] == Some(group) && chord_of(i) != chord_of(best);
+            let is_rival = |&i: &usize| exit_of(i).rivals[rule].is_some_and(|r| r.is_rival_of(best_rival));
             if let Some(rival) =
                 best_of(&scored, (0..scored.len()).filter(is_rival)).filter(|r| !found.contains(r))
             {

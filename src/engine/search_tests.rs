@@ -1,5 +1,5 @@
 use super::*;
-use crate::engine::key_hooks::{KeyHook, RivalContext};
+use crate::engine::key_hooks::{KeyHook, Rival, RivalContext};
 use crate::engine::model::{Function, NONE, Reading};
 use crate::engine::pending::PendingHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};
@@ -36,8 +36,10 @@ fn without_key_scores_a_hypothesis_scores_exactly_its_hearing() {
     assert!(!layers.hypotheses.iter().any(differs));
 }
 
-fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
-    Some(0)
+/// Puts every segment in one rival group, as a member named by its chord.
+fn same_group(context: &RivalContext, _: &[f64]) -> Option<Rival> {
+    let chord = context.segment.heard.chord;
+    Some(Rival { group: 0, member: (chord.root as u64) << 8 | chord.quality as u64 })
 }
 
 /// The default rules, with a rival hook that puts every segment in the same group if `rival_hook`.

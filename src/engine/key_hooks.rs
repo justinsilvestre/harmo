@@ -17,8 +17,8 @@ pub type KeyCloseFn = fn(&KeyCloseContext, &[f64]) -> f32;
 pub type AdmitFn = fn(&KeyTransitionContext) -> bool;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
-/// Returns the rival group of a hypothesis's last segment, or `None` if it has no rival hearing.
-pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<u64>;
+/// Returns the place of a hypothesis's last segment among rival hearings, or `None` if it has none.
+pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<Rival>;
 /// Returns a rival reading of a slice for a candidate reading of it, or `None`.
 pub type RivalCandidateFn = fn(&Reading, &Slice, &[f64]) -> Option<Reading>;
 
@@ -45,9 +45,9 @@ pub enum KeyHook {
     /// distinguish hook, only the best is kept.
     Distinguish(DistinguishFn),
     /// Names rival hearings of the same music. A new segment normally opens after the one hypothesis
-    /// that leads into it best. When the hook puts that hypothesis's last segment in a group, the
-    /// best hypothesis whose last segment has the same group but hears another chord there opens
-    /// the new segment as well, so that the rival hearing stays in the search.
+    /// that leads into it best. When the hook puts that hypothesis's last segment in a group,
+    /// the best hypothesis whose last segment is another member of the same group
+    /// opens the new segment as well, so that the rival hearing stays in the search.
     Rival(RivalFn),
     /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
     /// When the proposers and interpreters produce the rival reading but its fit to the slice falls
@@ -69,6 +69,20 @@ impl KeyHook {
             KeyHook::Rival(_) => "key_rival",
             KeyHook::RivalCandidate(_) => "key_rival_candidate",
         }
+    }
+}
+
+/// A segment's place among rival hearings of the same music. The engine only compares the values
+/// for equality: two segments are rivals when they have the same group and different members.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Rival {
+    pub group: u64,
+    pub member: u64,
+}
+
+impl Rival {
+    pub fn is_rival_of(self, other: Rival) -> bool {
+        self.group == other.group && self.member != other.member
     }
 }
 
