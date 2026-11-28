@@ -100,7 +100,8 @@ pub struct Hypothesis {
     pub key: Key,
     /// The function of the segment's chord in that key.
     pub function: Function,
-    /// The sum of every weighted rule score along the hypothesis, both layers included.
+    /// The sum of every weighted rule score along the hypothesis: its hearing's score plus the
+    /// key layer's rule scores.
     pub score: f32,
 }
 

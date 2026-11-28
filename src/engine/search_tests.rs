@@ -4,6 +4,7 @@ use crate::engine::model::Function;
 use crate::engine::rule::Rule;
 use crate::engine::test_layers::{key_segment, layers_of};
 use crate::pitch::tpc_from_name;
+use crate::score::slicing::SliceNote;
 use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
 
@@ -148,13 +149,15 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
         key_signature: None,
     };
     let slices = vec![slice; 4];
-    let beam = [0, 1];
-    let exits: Vec<Exit> = beam.iter().map(|&b| exit(&slices, 3, &layers, b, &rules)).collect();
-    let opening = Opening { reading: reading("C"), fit: 0.0, chord_fit: 0.0, chord_id: 0 };
-    let transitions =
-        chord_transitions(&slices, 3, &[opening.reading.chord], &exits, &layers.hearings, &rules);
-    let found = predecessors(&opening, &slices, 3, &layers, &beam, &exits, &transitions, &rules);
-    found.iter().map(|&(position, _)| beam[position.unwrap()]).collect()
+    let moment = Moment { slices: &slices, index: 3, layers: &layers };
+    let opening = Opening { reading: reading("C"), fit: LayerScores::default(), chord_id: 0 };
+    let exit_from = |b: u32| {
+        let hearing = layers.hypotheses[b as usize].hearing;
+        exit(&moment, b, chord_transitions(&moment, &[opening.reading.chord], hearing, &rules), &rules)
+    };
+    let exits: Vec<Exit> = [0, 1].into_iter().map(exit_from).collect();
+    let found = predecessors(&opening, &moment, &exits, &rules);
+    found.iter().map(|p| exits[p.exit.unwrap()].hypothesis).collect()
 }
 
 #[test]
@@ -170,4 +173,43 @@ fn a_new_segment_also_opens_after_the_best_rival_reading() {
 #[test]
 fn a_rival_needs_another_reading() {
     assert_eq!(parents(true, ["G", "G"], [0.0, -1.0]), [0]);
+}
+
+/// Analyzes I–V–I in C major, with the given rule weights.
+fn i_v_i(overrides: &[(&str, f32)]) -> Analysis {
+    let note = |name: &str, midi: i32| SliceNote {
+        tpc: tpc_from_name(name).unwrap(),
+        midi,
+        attacked: true,
+        onset_level: 4,
+    };
+    let slice = |start: f64, names: [(&str, i32); 3]| Slice {
+        start,
+        duration: 1.0,
+        notes: names.into_iter().map(|(name, midi)| note(name, midi)).collect(),
+        measure: start as usize,
+        metric_level: 4,
+        phrase: 0,
+        key_signature: None,
+    };
+    let (tonic, dominant) = ([("C", 48), ("E", 64), ("G", 67)], [("G", 43), ("B", 62), ("D", 67)]);
+    let slices = [slice(0.0, tonic), slice(1.0, dominant), slice(2.0, tonic)];
+    let weights = overrides.iter().map(|(id, weight)| (id.to_string(), *weight)).collect();
+    let rules = RuleSet::new(crate::rules::default_rules(), &weights).unwrap();
+    analyze(&slices, &rules, &Config::default())
+}
+
+/// The ids of the default rules of the key layer that score, so that they can be switched off.
+fn key_scoring_rules() -> Vec<(&'static str, f32)> {
+    let scores = |rule: &&Rule| {
+        matches!(rule.hook.kind(), "key_slice" | "key_transition" | "key_departure" | "key_close")
+    };
+    crate::rules::default_rules().iter().filter(scores).map(|rule| (rule.id, 0.0)).collect()
+}
+
+#[test]
+fn without_key_scores_a_hypothesis_scores_exactly_its_hearing() {
+    let layers = i_v_i(&key_scoring_rules()).layers;
+    let differs = |h: &Hypothesis| h.score != layers.hearings[h.hearing as usize].score;
+    assert!(!layers.hypotheses.iter().any(differs));
 }
