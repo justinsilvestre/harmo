@@ -42,10 +42,17 @@ What key the music is in is first judged from the notes and chords. It can be ju
 - **Ranking the chord layer.** Chord hypotheses are ranked only through the key hypotheses that read them, with a limit on how many chord hypotheses the beam may hold. This measured better than quotas per layer, and it stays.
 - **Score bookkeeping.** Each layer's hypotheses store only their own layer's score, and a complete interpretation's score is the sum along it. No running total is stored. The change moved figures by less than 0.1 point, through rounding alone.
 
+- **The key layer's unit is one key reading per chord segment.** A key area is the run of chord segments read in one key, and the key layer already holds it as that run. The evidence:
+  - **The analyses give one key per chord.** In the main analyses of `tune`, every one of the 110,854 labels has a single key, and a key area runs for a median of 8 labels. Temperley's Roman numeral program likewise gives each chord the key of its place in the key analysis (2001, pp. 188–189).
+  - **A key area unit would add nothing that can be read or scored.** The rules that judge areas, such as `key.area_duration` and `key.unconfirmed_departure`, read an area from the key layer's own history, and the function of each chord needs a key for each chord in any case.
+  - **A change of key on a held chord needs no new unit.** Of the 5,649 key changes in those analyses, 240 (4.2%) relabel the same chord in a new key. The search reads these by opening a new segment of the same chord in the new key, which its top readings already do (in one Mozart and one Beethoven movement among five pieces checked). A key therefore never changes within a chord segment.
+- **A later layer that judges a topic again adds hypotheses of its own and never edits those below.** A layer that judged the key again, such as one of cadences or key areas, would read key hypotheses and score them with its own rules. Its judgment changes which key is believed by changing which complete interpretations score best, so it revises the earlier layer's beliefs by promotion, as later music does now. The evidence:
+  - **Revision by promotion is what Temperley's model does,** keeping several provisional analyses and choosing among them as later segments are heard (2001, pp. 205–207).
+  - **It already carries the engine's revisions.** On `tune`, the retrospective reading gets the key right in 83.0% of frames and the reading at the moment in 78.9%, and RN 58.5% against 54.0%, without any layer editing another.
+  - **Editing a stored hypothesis would break the model.** A lower hypothesis is shared by every hypothesis that reads it, so an edit made for one interpretation would change the others, and the beam at a past slice would no longer hold what was believed then. Each layer's own judgment stays in its own hypotheses and in its own rules' traces.
+
 ## Open questions
 
-- **The key layer's unit.** It could stay one key reading per chord, or become a key area spanning several chords. This bears on whether a key may change within a chord segment.
-- **Revising a topic at a later layer.** A later layer that judges the key again could add hypotheses of its own, or revise the earlier layer's. How the two judgments relate in the output and in traces is open.
 - **Hooks in the wrong layer.** The hooks that merge near-duplicate hypotheses and that open rival readings are chord-layer ideas, but they now exist only in the key layer.
 
 ## Constraints

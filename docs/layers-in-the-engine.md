@@ -1,6 +1,6 @@
 # Layers in the engine
 
-This record says how the engine expresses the layers of [the layer model](layers.md) as one ordered sequence, with the same machinery for each. It covers the chord and key layers that exist, and what a further layer would add.
+This record says how the engine expresses the layers of [the layer model](layers.md) as one ordered sequence, with the same machinery for each. It covers the chord and key layers that exist, what a further layer would add, and how the questions settled in `layers.md` limit what the machinery must allow.
 
 ## What a layer is in code
 
@@ -48,9 +48,12 @@ A cadence layer above the key layer, for example, would need:
 
 The shared machinery then gives it links, paths, histories for its hooks, sharing, ranking, pruning records, traces and rank histories. The key layer would become a lower layer, read by cadence hypotheses, and the beam would hold cadence hypotheses.
 
-## How the open questions bear on the structure
+## How the settled questions shape the structure
 
-None of the open questions of `layers.md` has to be settled to build the sequence:
-- **The key layer's unit.** Today a key hypothesis opens exactly when its chord hypothesis does, so a key segment is a chord segment. This is a choice of the key layer's steps, not of the shared machinery. The links allow a key hypothesis to extend while the chord hypothesis it reads opens a new segment, as a key area spanning several chords would, and to open while its chord hypothesis extends, as a change of key within a chord segment would. Either needs the key layer's unit to hold its own start, and its view to give the chord segments the area spans.
-- **Revising a topic at a later layer.** A later layer that judges the key again can add hypotheses of its own, which read key hypotheses, without changing the stores below. A lower layer's hypotheses are shared by many readers and never change once stored, so a later judgment cannot edit them. A later layer's readings sit beside the earlier ones in traces, each rule tagged with its layer. Which layer's key the output reports is a choice for the output, not the engine. A topic would then hook into more than one layer, so the check that each rule hooks into its topic's layer would become a list of the layers each topic may use.
+Two decisions of `layers.md` set how much the shared machinery must allow:
+- **Every layer opens a segment where the layer below does.** The key layer's unit is one key reading per chord segment, so a key hypothesis opens exactly when its chord hypothesis opens, and extends when it extends. The engine therefore opens and extends the layers together, and keeps no segment start of the key layer's own. A layer whose unit spans several segments of the layer below, such as a cadence, would be the first to need a hypothesis that extends while the one it reads opens. The links already allow that, so it would change that layer's steps, not the shared records.
+- **A layer never changes the stores below it.** A later layer that judges a topic again adds hypotheses of its own, which read the layer below and are scored by its own rules. Stored hypotheses are never edited, and a later layer's judgment takes effect through the score of the complete interpretation. A topic could then be judged in more than one layer, so the check that each rule hooks into its topic's layer would list the layers each topic may use.
+
+## How the open question bears on the structure
+
 - **Hooks in the wrong layer.** Rival and distinguish hooks exist only in the key layer. The machinery that uses them, choosing a second predecessor for a rival reading and merging hypotheses whose recent segments are counted as the same, works from the values that hooks give a hypothesis's segments. Each layer can therefore have such hooks of its own: a predecessor's rival groups would be gathered from every layer it reads, and a hypothesis's signature from each layer's own path.
