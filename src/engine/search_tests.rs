@@ -123,8 +123,8 @@ fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
 }
 
 /// Returns the parents that a new reading on slice 3 opens after, from a beam of two hypotheses
-/// whose last segments end on slice 2 with the given roots and scores.
-fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
+/// whose last segments end on slice 2 with the given readings and scores.
+fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u32> {
     let rule = Rule {
         id: "test.rival",
         layer: crate::engine::rule::Layer::Chord,
@@ -135,7 +135,7 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
         hook: crate::engine::rule::Hook::Key(KeyHook::Rival(same_group)),
     };
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
-    let mut layers = layers_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);
+    let mut layers = layers_of(&readings.map(key_segment));
     for (i, score) in scores.into_iter().enumerate() {
         (layers.hypotheses[i].score, layers.hypotheses[i].slice, layers.hearings[i].slice) = (score, 2, 2);
     }
@@ -162,17 +162,23 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
 
 #[test]
 fn a_new_segment_opens_after_the_best_hypothesis_alone() {
-    assert_eq!(parents(false, ["G", "F"], [0.0, -1.0]), [0]);
+    assert_eq!(parents(false, [reading("G"), reading("F")], [0.0, -1.0]), [0]);
 }
 
 #[test]
 fn a_new_segment_also_opens_after_the_best_rival_reading() {
-    assert_eq!(parents(true, ["G", "F"], [0.0, -1.0]), [0, 1]);
+    assert_eq!(parents(true, [reading("G"), reading("F")], [0.0, -1.0]), [0, 1]);
 }
 
 #[test]
 fn a_rival_needs_another_reading() {
-    assert_eq!(parents(true, ["G", "G"], [0.0, -1.0]), [0]);
+    assert_eq!(parents(true, [reading("G"), reading("G")], [0.0, -1.0]), [0]);
+}
+
+#[test]
+fn the_same_chord_in_another_key_is_no_rival() {
+    let in_g = Reading { key: Key::new(tpc_from_name("G").unwrap(), Mode::Major), ..reading("G") };
+    assert_eq!(parents(true, [reading("G"), in_g], [0.0, -1.0]), [0]);
 }
 
 /// Analyzes I–V–I in C major, with the given rule weights.

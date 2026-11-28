@@ -363,7 +363,7 @@ struct Predecessor {
 
 /// Finds the hypotheses that a new reading opens after: the one that leads into it best and, for
 /// each rival hook that puts that hypothesis's last segment in a group, the best one whose last
-/// segment has the same group and another reading. Returns them best first.
+/// segment has the same group and whose hearing hears another chord there. Returns them best first.
 fn predecessors(opening: &Opening, moment: &Moment, exits: &[Exit], rules: &RuleSet) -> Vec<Predecessor> {
     let reading = &opening.reading;
     let evaluate = |previous: Option<&KeySegment>, last: u32, departures: &[f32], chord_transition: f32| {
@@ -401,13 +401,13 @@ fn predecessors(opening: &Opening, moment: &Moment, exits: &[Exit], rules: &Rule
         return vec![];
     };
     let mut found = vec![best];
-    let best_reading = exit_of(best).segment.reading();
+    let best_chord = exit_of(best).segment.chord.chord;
     for (rule, group) in exit_of(best).rivals.iter().enumerate() {
         let Some(group) = *group else {
             continue;
         };
         let is_rival = |&i: &usize| {
-            exit_of(i).rivals[rule] == Some(group) && exit_of(i).segment.reading() != best_reading
+            exit_of(i).rivals[rule] == Some(group) && exit_of(i).segment.chord.chord != best_chord
         };
         if let Some(rival) = best_of(&mut (0..scored.len()).filter(is_rival)).filter(|r| !found.contains(r)) {
             found.push(rival);
