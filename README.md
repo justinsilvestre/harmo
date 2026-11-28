@@ -12,7 +12,7 @@ The engine represents the music and the readings (slices, chords, keys, function
 
 A hypothesis's score is the sum of both layers' rule scores, as Temperley sums the rules of interacting preference rule systems (2001, pp. 157–158). [docs/layered-search.md](docs/layered-search.md) records the decisions behind this model and what was measured.
 
-Rules hook into the engine at fourteen points, five in the chord layer and nine in the key layer. A hook of the chord layer receives only the chord layer's state.
+Rules hook into the engine at fourteen points, five in the chord layer and nine in the key layer. A hook of the chord layer receives only the chord layer's state. Transition hooks of either layer can also read their own layer's earlier segments.
 
 | hook | what it does | example |
 |---|---|---|

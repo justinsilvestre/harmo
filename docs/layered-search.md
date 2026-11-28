@@ -23,6 +23,11 @@ The same probe looked at new segments that open on a slice and stay in the beam.
 
 Several key hypotheses can interpret the same chord hypothesis, so a chord hypothesis is scored once and shared. This is also the order of Temperley's own Roman numeral program, which runs the harmonic analysis first and gives its output to the key analysis (2001, pp. 188–189).
 
+**The same machinery in both layers.** Where nothing musical tells the layers apart, they work alike:
+- **Links.** A hypothesis of either layer is found by a typed index, and links to its own layer's hypothesis at the slice before and to the last hypothesis of the segment before.
+- **Paths.** Paths, traces and the histories that transition hooks read follow each layer's own links.
+- **Hooks.** Transition hooks of either layer can read their own layer's earlier segments.
+
 ## The open questions
 
 **The chord layer's unit is the chord segment.** A segment spans whole slices and holds a chord and a bass. Segmentation stays in the chord layer, since every chord rule that judges a boundary reads only the notes and the chords. Non-chord tones stay a matter for the chord rules that score a slice against a chord.
