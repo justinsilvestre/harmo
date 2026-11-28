@@ -4,7 +4,8 @@ use super::bass::Bass;
 use super::key_contexts::KeyHistory;
 use super::layers::Layers;
 use super::model::{
-    ChordHypothesis, ChordHypothesisId, ChordSegment, KeyHypothesis, KeyHypothesisId, KeySegment, Reading,
+    ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesis, KeyHypothesisId, KeySegment,
+    Reading,
 };
 use crate::pitch::tpc_from_name;
 use crate::score::slicing::{Slice, SliceNote};
@@ -22,34 +23,55 @@ pub fn key_segment(reading: Reading) -> KeySegment {
     KeySegment { heard: chord_segment(reading.chord), function: reading.function }
 }
 
-/// Holds segments in layers: segment i becomes the last segment of hypothesis i,
-/// which interprets chord hypothesis i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`,
-/// or nothing if that is `KeyHypothesisId::NONE`, and its chord hypothesis follows the chord hypothesis with the same index.
-pub fn layers_of(segments: &[KeySegment], previous: &[KeyHypothesisId]) -> Layers {
+/// Holds chord segments in a chord layer: segment i becomes the last segment of chord hypothesis i,
+/// which ends on slice i and opened after chord hypothesis `previous[i]`,
+/// or after nothing if that is `ChordHypothesisId::NONE`.
+pub fn chord_layer_of(segments: &[ChordSegment], previous: &[ChordHypothesisId]) -> Vec<ChordHypothesis> {
+    let chord_hypothesis = |i: usize| ChordHypothesis {
+        parent: previous[i],
+        previous: previous[i],
+        slice: i as u32,
+        segment: segments[i],
+        score: 0.0,
+    };
+    (0..segments.len()).map(chord_hypothesis).collect()
+}
+
+/// Builds a key layer over a chord layer: key hypothesis i reads chord hypothesis `read[i]`
+/// with the function `functions[i]`, and opened after key hypothesis `previous[i]`,
+/// or after nothing if that is `KeyHypothesisId::NONE`.
+/// Several key hypotheses may read the same chord hypothesis.
+pub fn key_layer_of(
+    read: &[ChordHypothesisId],
+    functions: &[Function],
+    previous: &[KeyHypothesisId],
+) -> Vec<KeyHypothesis> {
     let hypothesis = |i: usize| KeyHypothesis {
         parent: previous[i],
         previous: previous[i],
-        chord_hypothesis: ChordHypothesisId(i as u32),
-        function: segments[i].function,
+        chord_hypothesis: read[i],
+        function: functions[i],
         score: 0.0,
     };
-    let previous_chord_hypothesis = |i: usize| {
-        if previous[i] == KeyHypothesisId::NONE {
-            ChordHypothesisId::NONE
-        } else {
-            ChordHypothesisId(previous[i].0)
-        }
+    (0..read.len()).map(hypothesis).collect()
+}
+
+/// Holds segments in layers, one chord hypothesis for each key hypothesis:
+/// segment i becomes the last segment of hypothesis i, which reads chord hypothesis i.
+/// Hypothesis i opened after hypothesis `previous[i]`, or after nothing if that is `KeyHypothesisId::NONE`,
+/// and its chord hypothesis after the chord hypothesis with the same index.
+pub fn layers_of(segments: &[KeySegment], previous: &[KeyHypothesisId]) -> Layers {
+    let chord_index = |id: &KeyHypothesisId| match *id {
+        KeyHypothesisId::NONE => ChordHypothesisId::NONE,
+        KeyHypothesisId(i) => ChordHypothesisId(i),
     };
-    let chord_hypothesis = |i: usize| ChordHypothesis {
-        parent: previous_chord_hypothesis(i),
-        previous: previous_chord_hypothesis(i),
-        slice: i as u32,
-        segment: segments[i].heard,
-        score: 0.0,
-    };
+    let chord_previous: Vec<ChordHypothesisId> = previous.iter().map(chord_index).collect();
+    let heard: Vec<ChordSegment> = segments.iter().map(|s| s.heard).collect();
+    let read: Vec<ChordHypothesisId> = (0..segments.len() as u32).map(ChordHypothesisId).collect();
+    let functions: Vec<Function> = segments.iter().map(|s| s.function).collect();
     Layers {
-        chord_hypotheses: (0..segments.len()).map(chord_hypothesis).collect(),
-        key_hypotheses: (0..segments.len()).map(hypothesis).collect(),
+        chord_hypotheses: chord_layer_of(&heard, &chord_previous),
+        key_hypotheses: key_layer_of(&read, &functions, previous),
     }
 }
 

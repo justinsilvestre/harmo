@@ -1,10 +1,13 @@
 use super::*;
 use crate::engine::key_contexts::Rival;
 use crate::engine::key_hooks::KeyHook;
+use crate::engine::layers::Layers;
 use crate::engine::model::{Function, KeyHypothesisId, Reading};
 use crate::engine::proposals::LayerScores;
 use crate::engine::rule::{Hook, Rule, Topic};
-use crate::engine::test_layers::{chord_segment, key_segment, layers_of, slice_of};
+use crate::engine::test_layers::{
+    chord_layer_of, chord_segment, key_layer_of, key_segment, layers_of, slice_of,
+};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
@@ -80,4 +83,25 @@ fn the_same_chord_in_another_key_is_no_rival() {
         ..reading("G")
     };
     assert_eq!(parents(true, [reading("G"), in_g], [0.0, -1.0]), [0]);
+}
+
+/// Returns the position of the chord exit of each key exit, from a beam of two key hypotheses,
+/// in C major and in G major, that read one G major chord hypothesis.
+fn shared_chord_exits() -> Vec<usize> {
+    let g_major = reading("G").chord;
+    let in_g = Function::diatonic(Key::new(tpc_from_name("G").unwrap(), Mode::Major));
+    let none = KeyHypothesisId::NONE;
+    let layers = Layers {
+        chord_hypotheses: chord_layer_of(&[chord_segment(g_major)], &[ChordHypothesisId::NONE]),
+        key_hypotheses: key_layer_of(&[ChordHypothesisId(0); 2], &[reading("G").function, in_g], &[none; 2]),
+    };
+    let slices = vec![slice_of(0.0, &[]); 2];
+    let moment = Moment { slices: &slices, index: 1, layers: &layers };
+    let exits = Exits::of(&moment, &[KeyHypothesisId(0), KeyHypothesisId(1)], &[], &rules(false));
+    exits.keys.iter().map(|exit| exit.chord_exit).collect()
+}
+
+#[test]
+fn key_hypotheses_that_read_one_chord_hypothesis_share_its_exit() {
+    assert_eq!(shared_chord_exits(), [0, 0]);
 }
