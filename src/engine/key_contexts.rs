@@ -5,21 +5,6 @@ use super::layer_history::History;
 use super::model::{Function, KeySegment, Reading};
 use crate::score::slicing::Slice;
 
-/// A segment's place among rival readings of the same music.
-/// The engine only compares the values for equality:
-/// two segments are rivals when they have the same group and different members.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Rival {
-    pub group: u64,
-    pub member: u64,
-}
-
-impl Rival {
-    pub fn is_rival_of(self, other: Rival) -> bool {
-        self.group == other.group && self.member != other.member
-    }
-}
-
 pub struct KeySliceContext<'a> {
     pub slice: &'a Slice,
     /// The slice after this one in the score, if any.
@@ -76,14 +61,6 @@ pub struct KeyCloseContext<'a> {
     pub slices: &'a [Slice],
     /// The slice that opens the following segment, if any.
     pub next_slice: Option<&'a Slice>,
-}
-
-pub struct RivalContext<'a> {
-    pub segment: &'a KeySegment,
-    /// The slices covered by the segment so far.
-    pub slices: &'a [Slice],
-    /// The slice before the segment, if any.
-    pub previous_slice: Option<&'a Slice>,
 }
 
 /// Read-only access to the segments preceding a transition, most recent first,

@@ -34,7 +34,7 @@ Several key hypotheses can interpret the same chord hypothesis, so a chord hypot
 
 **A tonicized key belongs to the key layer, with function.** The vocabulary gives the tonicization and category together from a key and a chord, and the departure rules already treat a tonicization as staying in the key. Key and function are therefore one layer, as the design note's order (chord, then key and function) puts them. A segment still changes key only where a chord segment begins.
 
-**Interaction rules are rules of the later layer.** A rule that judges a key against the chord heard at the same moment interprets the chord layer, so it belongs to the key layer. The rule survey found that no scoring chord rule reads the key or function, and the engine enforces this: hooks of the chord layer receive only the chord layer's state, and a test checks that every rule hooks into its own layer, except `chord.seventh_rival` (see below). Influence from the key layer back to the chords takes two forms, both traceable:
+**Interaction rules are rules of the later layer.** A rule that judges a key against the chord heard at the same moment interprets the chord layer, so it belongs to the key layer. The rule survey found that no scoring chord rule reads the key or function, and the engine enforces this: hooks of the chord layer receive only the chord layer's state, and a test checks that every rule hooks into its own layer. Influence from the key layer back to the chords takes two forms, both traceable:
 - **Revision.** A new segment opens after the hypothesis that leads into it best, complete interpretation included, so what the key layer hears now can choose between chord hypotheses held before. This is the step that Temperley's dynamic programming takes (2001, pp. 15–19, 206–207).
 - **Ranking.** A chord hypothesis is kept while some interpretation of it is among the best. No rule of an earlier layer reads a later layer's belief at the same moment.
 
@@ -66,4 +66,3 @@ Each stage was measured on `tune` and `agreement-tune` against the one before. C
 
 - A cadence and phrase layer. The interaction rules that judge cadences and progressions are the natural start, but they stay in the key layer for now.
 - Rank histories for chord hypotheses on their own, beside the histories of whole readings. A chord hypothesis now links both to the chord hypothesis it extends at the slice before and to the last chord hypothesis of the segment before it, as a key hypothesis does in its own layer, so such a history can follow the chord layer's own links.
-- `chord.seventh_rival` decides whether a chord is a dominant from its key, so it is not yet a pure chord rule.

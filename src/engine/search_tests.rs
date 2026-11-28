@@ -1,5 +1,5 @@
 use super::*;
-use crate::engine::key_contexts::{Rival, RivalContext};
+use crate::engine::chord_hooks::{ChordHook, ChordRivalContext, Rival};
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{
     ChordHypothesis, ChordSegment, Function, KeyHypothesis, KeyHypothesisId, Reading,
@@ -84,8 +84,8 @@ fn the_chord_path_of_a_final_hypothesis_holds_the_chords_of_its_key_path() {
 }
 
 /// Puts every segment in one rival group, as a member named by its chord.
-fn same_group(context: &RivalContext, _: &[f64]) -> Option<Rival> {
-    let chord = context.segment.heard.chord;
+fn same_group(context: &ChordRivalContext, _: &[f64]) -> Option<Rival> {
+    let chord = context.segment.chord;
     Some(Rival { group: 0, member: (chord.root as u64) << 8 | chord.quality as u64 })
 }
 
@@ -98,7 +98,7 @@ fn rules_with(rival_hook: bool) -> RuleSet {
         citations: &[],
         default_weight: 1.0,
         params: &[],
-        hook: Hook::Key(KeyHook::Rival(same_group)),
+        hook: Hook::Chord(ChordHook::Rival(same_group)),
     };
     let rules = crate::rules::default_rules().into_iter().chain(rival_hook.then_some(rival));
     RuleSet::new(rules.collect(), &Default::default()).unwrap()

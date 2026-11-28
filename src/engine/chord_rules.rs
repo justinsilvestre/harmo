@@ -2,8 +2,8 @@
 
 use super::bass::{Bass, BassNote};
 use super::chord_hooks::{
-    BassFn, ChordCloseContext, ChordCloseFn, ChordHook, ChordSliceContext, ChordSliceFn,
-    ChordTransitionContext, ChordTransitionFn, ProposeChordsFn,
+    BassFn, ChordCloseContext, ChordCloseFn, ChordHook, ChordRivalContext, ChordRivalFn, ChordSliceContext,
+    ChordSliceFn, ChordTransitionContext, ChordTransitionFn, ProposeChordsFn, Rival,
 };
 use super::ruleset::Scorer;
 use crate::score::slicing::Slice;
@@ -17,6 +17,7 @@ pub struct ChordRules {
     pub transition: Vec<Scorer<ChordTransitionFn>>,
     pub close: Vec<Scorer<ChordCloseFn>>,
     pub bass: Vec<(BassFn, Box<[f64]>)>,
+    pub rival: Vec<(ChordRivalFn, Box<[f64]>)>,
 }
 
 impl ChordRules {
@@ -27,6 +28,7 @@ impl ChordRules {
             ChordHook::Transition(f) => self.transition.push((f, weight, params)),
             ChordHook::Close(f) => self.close.push((f, weight, params)),
             ChordHook::Bass(f) => self.bass.push((f, params)),
+            ChordHook::Rival(f) => self.rival.push((f, params)),
         }
     }
 
@@ -49,6 +51,11 @@ impl ChordRules {
 
     pub fn score_close(&self, context: &ChordCloseContext) -> f32 {
         self.close.iter().map(|(f, w, params)| w * f(context, params)).sum()
+    }
+
+    /// Returns each rival hook's group for a segment, in rule order.
+    pub fn rival_groups(&self, context: &ChordRivalContext) -> Vec<Option<Rival>> {
+        self.rival.iter().map(|(f, params)| f(context, params)).collect()
     }
 
     /// Returns a segment's bass evidence after the bass hooks hear one more chord tone.

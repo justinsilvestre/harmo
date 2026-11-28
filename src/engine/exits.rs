@@ -1,7 +1,7 @@
 //! What leaving each hypothesis in the beam scores, and which of them a new segment opens after.
 
-use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
-use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
+use super::chord_hooks::{ChordCloseContext, ChordRivalContext, ChordTransitionContext, Rival};
+use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext};
 use super::model::{ChordHypothesisId, ChordSegment, KeyHypothesisId, KeySegment};
 use super::moment::Moment;
 use super::proposals::{LayerScores, Opening, ProposedChord};
@@ -20,6 +20,8 @@ pub struct ChordExit {
     /// The chord transition rules' score of opening each proposed chord after the chord hypothesis,
     /// in the order of `Proposals::chords`.
     pub transitions: Vec<f32>,
+    /// The chord rival hooks' groups for the last segment, in rule order.
+    pub rivals: Vec<Option<Rival>>,
 }
 
 /// What leaving a hypothesis on the moment's slice scores in the key layer.
@@ -36,8 +38,6 @@ pub struct KeyExit {
     /// The key close rules' score of the last segment.
     pub close: f32,
     pub departures: Vec<f32>,
-    /// The rival hooks' groups for the last segment, in rule order.
-    pub rivals: Vec<Option<Rival>>,
 }
 
 /// The exits of every hypothesis in the beam, and one exit for each chord hypothesis that they interpret.
@@ -82,9 +82,14 @@ impl Exits {
 
     fn from_start(moment: &Moment, proposed: &[ProposedChord], rules: &RuleSet) -> Exits {
         let transitions = chord_transitions(moment, ChordHypothesisId::NONE, proposed, rules);
-        let chord =
-            ChordExit { chord_hypothesis: ChordHypothesisId::NONE, score: 0.0, close: 0.0, transitions };
-        let (departures, rivals) = (Vec::new(), Vec::new());
+        let chord = ChordExit {
+            chord_hypothesis: ChordHypothesisId::NONE,
+            score: 0.0,
+            close: 0.0,
+            transitions,
+            rivals: Vec::new(),
+        };
+        let departures = Vec::new();
         let key = KeyExit {
             hypothesis: KeyHypothesisId::NONE,
             chord_exit: 0,
@@ -92,7 +97,6 @@ impl Exits {
             segment: None,
             close: 0.0,
             departures,
-            rivals,
         };
         Exits { chords: vec![chord], keys: vec![key] }
     }
@@ -106,13 +110,13 @@ impl Exits {
         let Some(best) = best_of(&scored, 0..scored.len()) else {
             return vec![];
         };
-        let exit_of = |i: usize| &self.keys[scored[i].exit];
+        let rival = |i: usize, rule: usize| self.rivals_of(scored[i].exit)[rule];
         let mut found = vec![best];
-        for (rule, best_rival) in exit_of(best).rivals.iter().enumerate() {
+        for (rule, best_rival) in self.rivals_of(scored[best].exit).iter().enumerate() {
             let Some(best_rival) = *best_rival else {
                 continue;
             };
-            let is_rival = |&i: &usize| exit_of(i).rivals[rule].is_some_and(|r| r.is_rival_of(best_rival));
+            let is_rival = |&i: &usize| rival(i, rule).is_some_and(|r| r.is_rival_of(best_rival));
             if let Some(rival) =
                 best_of(&scored, (0..scored.len()).filter(is_rival)).filter(|r| !found.contains(r))
             {
@@ -120,6 +124,11 @@ impl Exits {
             }
         }
         found.into_iter().map(|i| scored[i]).collect()
+    }
+
+    /// Returns the rival groups of the last segment of the chord hypothesis that a hypothesis reads.
+    fn rivals_of(&self, position: usize) -> &[Option<Rival>] {
+        &self.chords[self.keys[position].chord_exit].rivals
     }
 
     /// Scores opening a new reading after the hypothesis of one exit.
@@ -150,7 +159,14 @@ fn chord_exit(
     let heard = moment.layers.chord.get(chord_hypothesis);
     let close = chord_close(moment.slices, &heard.unit, moment.index, rules);
     let transitions = chord_transitions(moment, chord_hypothesis, proposed, rules);
-    ChordExit { chord_hypothesis, score: heard.score, close, transitions }
+    let start = heard.unit.start as usize;
+    let rival = ChordRivalContext {
+        segment: &heard.unit,
+        slices: &moment.slices[start..moment.index],
+        previous_slice: start.checked_sub(1).map(|i| &moment.slices[i]),
+    };
+    let rivals = rules.chord.rival_groups(&rival);
+    ChordExit { chord_hypothesis, score: heard.score, close, transitions, rivals }
 }
 
 /// Scores, in the chord layer, opening each proposed chord after a chord hypothesis,
@@ -178,12 +194,6 @@ fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rul
         slice: moment.slice(),
         history: moment.history(hypothesis),
     };
-    let start = segment.heard.start as usize;
-    let rival = RivalContext {
-        segment: &segment,
-        slices: &moment.slices[start..moment.index],
-        previous_slice: start.checked_sub(1).map(|i| &moment.slices[i]),
-    };
     KeyExit {
         hypothesis,
         chord_exit,
@@ -191,7 +201,6 @@ fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rul
         segment: Some(segment),
         close: key_close(moment.slices, &segment, moment.index, rules),
         departures: rules.key.score_departures(&departure),
-        rivals: rules.key.rival_groups(&rival),
     }
 }
 

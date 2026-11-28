@@ -1,11 +1,9 @@
 //! The key layer's hooks of a rule set, with their weights.
 
-use super::key_contexts::{
-    KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext, Rival, RivalContext,
-};
+use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext};
 use super::key_hooks::{
     DistinguishFn, InterpretFn, KeyCloseFn, KeyDepartureFn, KeyHook, KeySliceFn, KeyTransitionFn,
-    ProposeKeysFn, RivalCandidateFn, RivalFn,
+    ProposeKeysFn, RivalCandidateFn,
 };
 use super::model::KeySegment;
 use super::ruleset::Scorer;
@@ -29,7 +27,6 @@ pub struct KeyRules {
     pub transition: Vec<Scorer<TransitionScorer>>,
     pub close: Vec<Scorer<KeyCloseFn>>,
     pub distinguish: Vec<(DistinguishFn, Box<[f64]>)>,
-    pub rival: Vec<(RivalFn, Box<[f64]>)>,
     pub rival_candidate: Vec<(RivalCandidateFn, Box<[f64]>)>,
 }
 
@@ -43,7 +40,6 @@ impl KeyRules {
             KeyHook::Departure(f) => self.transition.push((TransitionScorer::Departure(f), weight, params)),
             KeyHook::Close(f) => self.close.push((f, weight, params)),
             KeyHook::Distinguish(f) => self.distinguish.push((f, params)),
-            KeyHook::Rival(f) => self.rival.push((f, params)),
             KeyHook::RivalCandidate(f) => self.rival_candidate.push((f, params)),
         }
     }
@@ -84,11 +80,6 @@ impl KeyRules {
 
     pub fn score_close(&self, context: &KeyCloseContext) -> f32 {
         self.close.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    /// Returns each rival hook's group for a segment, in rule order.
-    pub fn rival_groups(&self, context: &RivalContext) -> Vec<Option<Rival>> {
-        self.rival.iter().map(|(f, params)| f(context, params)).collect()
     }
 
     /// Appends each distinguish hook's value for the segment, in rule order.

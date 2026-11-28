@@ -51,7 +51,7 @@ impl<'a> ChordTrace<'a> {
                     params,
                 )
             }
-            ChordHook::Propose(_) | ChordHook::Bass(_) => return None,
+            ChordHook::Propose(_) | ChordHook::Bass(_) | ChordHook::Rival(_) => return None,
         })
     }
 

@@ -50,10 +50,8 @@ The shared machinery then gives it links, paths, histories for its hooks, sharin
 
 ## How the settled questions shape the structure
 
-Two decisions of `layers.md` set how much the shared machinery must allow:
+Three decisions of `layers.md` set how much the shared machinery must allow:
 - **Every layer opens a segment where the layer below does.** The key layer's unit is one key reading per chord segment, so a key hypothesis opens exactly when its chord hypothesis opens, and extends when it extends. The engine therefore opens and extends the layers together, and keeps no segment start of the key layer's own. A layer whose unit spans several segments of the layer below, such as a cadence, would be the first to need a hypothesis that extends while the one it reads opens. The links already allow that, so it would change that layer's steps, not the shared records.
 - **A layer never changes the stores below it.** A later layer that judges a topic again adds hypotheses of its own, which read the layer below and are scored by its own rules. Stored hypotheses are never edited, and a later layer's judgment takes effect through the score of the complete interpretation. A topic could then be judged in more than one layer, so the check that each rule hooks into its topic's layer would list the layers each topic may use.
 
-## How the open question bears on the structure
-
-- **Hooks in the wrong layer.** Rival and distinguish hooks exist only in the key layer. The machinery that uses them, choosing a second predecessor for a rival reading and merging hypotheses whose recent segments are counted as the same, works from the values that hooks give a hypothesis's segments. Each layer can therefore have such hooks of its own: a predecessor's rival groups would be gathered from every layer it reads, and a hypothesis's signature from each layer's own path.
+- **Rival chords are a hook of the chord layer.** A chord exit holds its rival groups, and a new segment's second predecessor is the best hypothesis whose chord hypothesis ends in another member of the group. Rival candidates and distinguish hooks stay in the key layer, which judges whole readings.

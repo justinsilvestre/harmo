@@ -14,6 +14,8 @@ pub type ChordTransitionFn = fn(&ChordTransitionContext, &[f64]) -> f32;
 pub type ChordCloseFn = fn(&ChordCloseContext, &[f64]) -> f32;
 /// Returns a segment's bass evidence after it hears one more chord tone.
 pub type BassFn = fn(Bass, &BassNote, &[f64]) -> Bass;
+/// Returns the place of a chord hypothesis's last segment among rival readings, or `None` if it has none.
+pub type ChordRivalFn = fn(&ChordRivalContext, &[f64]) -> Option<Rival>;
 
 #[derive(Clone, Copy)]
 pub enum ChordHook {
@@ -28,6 +30,11 @@ pub enum ChordHook {
     /// Decides a segment's bass note, and so its inversion, as the segment hears each chord tone.
     /// Bass hooks run in rule order, each on the evidence the previous one returned.
     Bass(BassFn),
+    /// Names rival chords for the same music.
+    /// When the hook puts the last segment of the hypothesis that a new segment opens after in a group,
+    /// the new segment also opens after the best hypothesis whose chord hypothesis's last segment
+    /// is another member of the group, so that the rival chord stays in the search.
+    Rival(ChordRivalFn),
 }
 
 impl ChordHook {
@@ -38,6 +45,7 @@ impl ChordHook {
             ChordHook::Transition(_) => "chord_transition",
             ChordHook::Close(_) => "chord_close",
             ChordHook::Bass(_) => "chord_bass",
+            ChordHook::Rival(_) => "chord_rival",
         }
     }
 }
@@ -69,6 +77,29 @@ pub struct ChordTransitionContext<'a> {
     pub next: Chord,
     pub slice: &'a Slice,
     pub history: ChordHistory<'a>,
+}
+
+/// A segment's place among rival chords for the same music.
+/// The engine only compares the values for equality:
+/// two segments are rivals when they have the same group and different members.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Rival {
+    pub group: u64,
+    pub member: u64,
+}
+
+impl Rival {
+    pub fn is_rival_of(self, other: Rival) -> bool {
+        self.group == other.group && self.member != other.member
+    }
+}
+
+pub struct ChordRivalContext<'a> {
+    pub segment: &'a ChordSegment,
+    /// The slices covered by the segment so far.
+    pub slices: &'a [Slice],
+    /// The slice before the segment, if any.
+    pub previous_slice: Option<&'a Slice>,
 }
 
 pub struct ChordCloseContext<'a> {

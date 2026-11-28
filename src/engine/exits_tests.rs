@@ -1,6 +1,5 @@
 use super::*;
-use crate::engine::key_contexts::Rival;
-use crate::engine::key_hooks::KeyHook;
+use crate::engine::chord_hooks::{ChordHook, ChordRivalContext, Rival};
 use crate::engine::layers::Layers;
 use crate::engine::model::{Function, KeyHypothesisId, Reading};
 use crate::engine::proposals::LayerScores;
@@ -21,8 +20,8 @@ fn reading(root: &str) -> Reading {
 }
 
 /// Puts every segment in one rival group, as a member named by its chord.
-fn same_group(context: &RivalContext, _: &[f64]) -> Option<Rival> {
-    let chord = context.segment.heard.chord;
+fn same_group(context: &ChordRivalContext, _: &[f64]) -> Option<Rival> {
+    let chord = context.segment.chord;
     Some(Rival { group: 0, member: (chord.root as u64) << 8 | chord.quality as u64 })
 }
 
@@ -34,7 +33,7 @@ fn rules(rival_hook: bool) -> RuleSet {
         citations: &[],
         default_weight: 1.0,
         params: &[],
-        hook: Hook::Key(KeyHook::Rival(same_group)),
+        hook: Hook::Chord(ChordHook::Rival(same_group)),
     };
     RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap()
 }

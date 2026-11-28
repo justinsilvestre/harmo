@@ -1,8 +1,6 @@
 //! The hooks of the key layer. What they receive is in `key_contexts.rs`.
 
-use super::key_contexts::{
-    KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext, Rival, RivalContext,
-};
+use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext};
 use super::model::{Function, KeySegment, Reading};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
@@ -17,8 +15,6 @@ pub type KeyDepartureFn = fn(&KeyDepartureContext, &[f64]) -> f32;
 pub type KeyCloseFn = fn(&KeyCloseContext, &[f64]) -> f32;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
-/// Returns the place of a hypothesis's last segment among rival readings, or `None` if it has none.
-pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<Rival>;
 /// Returns a rival reading of a slice for a candidate reading of it, or `None`.
 pub type RivalCandidateFn = fn(&Reading, &Slice, &[f64]) -> Option<Reading>;
 
@@ -42,13 +38,6 @@ pub enum KeyHook {
     /// Of the hypotheses whose last `Config::distinct_depth` segments get the same values
     /// from every distinguish hook, only the best is kept.
     Distinguish(DistinguishFn),
-    /// Names rival readings of the same music.
-    /// A new segment normally opens after the one hypothesis that leads into it best.
-    /// When the hook puts that hypothesis's last segment in a group,
-    /// the best hypothesis whose last segment is another member
-    /// of the same group opens the new segment as well,
-    /// so that the rival reading stays in the search.
-    Rival(RivalFn),
     /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
     /// When the proposers and interpreters produce the rival reading
     /// but its fit to the slice falls below the candidate limit, it is kept as a candidate as well.
@@ -65,7 +54,6 @@ impl KeyHook {
             KeyHook::Departure(_) => "key_departure",
             KeyHook::Close(_) => "key_close",
             KeyHook::Distinguish(_) => "key_distinguish",
-            KeyHook::Rival(_) => "key_rival",
             KeyHook::RivalCandidate(_) => "key_rival_candidate",
         }
     }

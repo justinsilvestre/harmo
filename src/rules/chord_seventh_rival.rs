@@ -1,8 +1,7 @@
-//! Rules that keep a dominant triad and its dominant seventh chord as rival readings of one span.
+//! Rules that keep a major triad and the dominant seventh chord on its root as rival chords of one span.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::key_contexts::{Rival, RivalContext};
-use crate::engine::key_hooks::KeyHook;
+use crate::engine::chord_hooks::{ChordHook, ChordRivalContext, Rival};
 use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::{Chord, Quality};
@@ -11,11 +10,11 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.seventh_rival",
     topic: Topic::Chord,
-    summary: "Keep a dominant triad and its dominant seventh chord as rival readings of a span in which \
+    summary: "Keep a major triad and the dominant seventh chord on its root as rival chords of a span in which \
               the seventh sounds for only part of the span and is approached like a nonchord tone: from \
               the same pitch (a suspension figure) or from a step above or below (a passing or neighbor \
-              figure). Either reading is then correct, so when the next chord opens, it opens after the \
-              best hypothesis with each reading.",
+              figure). Either chord is then correct, so when the next chord opens, it opens after the \
+              best hypothesis with each chord.",
     citations: &[
         Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -33,16 +32,14 @@ pub const RULES: &[Rule] = &[Rule {
     // so both keys are offered less often where analysts disagree on the key.
     default_weight: 0.0,
     params: &[],
-    hook: Hook::Key(KeyHook::Rival(seventh_rival)),
+    hook: Hook::Chord(ChordHook::Rival(seventh_rival)),
 }];
 
-/// Groups a segment read as a dominant triad or dominant seventh chord, by its key,
-/// tonicized key and root,
+/// Groups a segment heard as a major triad or dominant seventh chord, by its root,
 /// when its seventh sounds for part of the segment and is approached like a nonchord tone.
-fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<Rival> {
-    let (chord, function) = (context.segment.heard.chord, context.segment.function);
-    let is_dominant = function.tonicized.unwrap_or(function.key).degree_of(chord.root).number == 5;
-    if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
+fn seventh_rival(context: &ChordRivalContext, _: &[f64]) -> Option<Rival> {
+    let chord = context.segment.chord;
+    if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) {
         return None;
     }
     let seventh = Chord::new(chord.root, Quality::DominantSeventh).members().nth(3)?;
@@ -56,7 +53,7 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<Rival> {
         return None;
     }
     let mut hasher = DefaultHasher::new();
-    (function.key, function.tonicized, chord.root).hash(&mut hasher);
+    chord.root.hash(&mut hasher);
     Some(Rival { group: hasher.finish(), member: chord.quality as u64 })
 }
 
@@ -70,10 +67,9 @@ fn is_approached_by_step(note: &SliceNote, before: Option<&Slice>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
-    use crate::engine::test_layers::key_segment;
+    use crate::engine::model::ChordSegment;
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
-    use crate::theory::key::Key;
 
     /// A one-beat slice sounding the named notes at the given MIDI numbers, all attacked.
     fn slice(notes: &[(&str, i32)]) -> Slice {
@@ -95,15 +91,19 @@ mod tests {
         }
     }
 
-    /// Groups a segment on G in C major over the given slices, after the slice `before`.
+    /// Groups a segment of the given chord, opening on slice 1, over the given slices,
+    /// after the slice `before`.
     fn group(root: &str, quality: Quality, before: &Slice, slices: &[Slice]) -> Option<u64> {
+        rival(root, quality, before, slices).map(|rival| rival.group)
+    }
+
+    /// Places a segment of the given chord, opening on slice 1, over the given slices,
+    /// after the slice `before`.
+    fn rival(root: &str, quality: Quality, before: &Slice, slices: &[Slice]) -> Option<Rival> {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let key = Key::parse("C", "major").unwrap();
-        let segment = key_segment(Reading { chord, function: Function::diatonic(key) });
-        let segment =
-            KeySegment { heard: ChordSegment { start: 1, duration: 2.0, ..segment.heard }, ..segment };
-        let context = RivalContext { segment: &segment, slices, previous_slice: Some(before) };
-        seventh_rival(&context, &[]).map(|rival| rival.group)
+        let segment = ChordSegment { start: 1, duration: 2.0, ..chord_segment(chord) };
+        let context = ChordRivalContext { segment: &segment, slices, previous_slice: Some(before) };
+        seventh_rival(&context, &[])
     }
 
     /// G major, then G with a passing F reached from G above it.
@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn a_dominant_triad_and_its_seventh_chord_share_a_group() {
+    fn a_major_triad_and_its_dominant_seventh_chord_share_a_group() {
         let triad = group("G", Quality::Major, &opening(), &passing_seventh());
         let seventh = group("G", Quality::DominantSeventh, &opening(), &passing_seventh());
         assert!(triad.is_some() && triad == seventh);
@@ -135,25 +135,15 @@ mod tests {
     }
 
     #[test]
-    fn a_dominant_triad_and_its_seventh_chord_are_rivals() {
-        let rival = |quality: Quality| {
-            let chord = Chord::new(tpc_from_name("G").unwrap(), quality);
-            let key = Key::parse("C", "major").unwrap();
-            let segment = key_segment(Reading { chord, function: Function::diatonic(key) });
-            let segment =
-                KeySegment { heard: ChordSegment { start: 1, duration: 2.0, ..segment.heard }, ..segment };
-            let slices = passing_seventh();
-            let previous_slice = Some(&opening());
-            seventh_rival(&RivalContext { segment: &segment, slices: &slices, previous_slice }, &[])
-        };
+    fn a_major_triad_and_its_dominant_seventh_chord_are_rivals() {
+        let rival = |quality: Quality| rival("G", quality, &opening(), &passing_seventh());
         let (triad, seventh) = (rival(Quality::Major), rival(Quality::DominantSeventh));
         assert!(triad.zip(seventh).is_some_and(|(t, s)| t.is_rival_of(s)));
     }
 
     #[test]
-    fn a_chord_that_is_not_the_dominant_has_no_rival() {
-        let slices =
-            [slice(&[("F", 41), ("A", 57)]), slice(&[("F", 41), ("E", 64)]), slice(&[("F", 41), ("Eb", 63)])];
-        assert_eq!(group("F", Quality::Major, &opening(), &slices), None);
+    fn a_minor_triad_has_no_rival() {
+        let slices = [slice(&[("G", 43), ("Bb", 58), ("G", 67)]), slice(&[("G", 43), ("Bb", 58), ("F", 65)])];
+        assert_eq!(group("G", Quality::Minor, &opening(), &slices), None);
     }
 }
