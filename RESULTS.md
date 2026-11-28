@@ -6,10 +6,10 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `454a344`, with weights from the defaults
-- **Generated:** 2026-11-28 13:39 UTC
-- **Search settings:** beam width 80, hearings of the chords kept (0: no limit) 40, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
-- **Runtime:** 11.7 s in all on 18 threads: 6.1 s for the benchmark and 5.4 s for the diagnosis
+- **Engine:** commit `3f3f2b0`, with weights from the defaults
+- **Generated:** 2026-11-28 14:25 UTC
+- **Search settings:** beam width 80, chord hypotheses kept (0: no limit) 40, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
+- **Runtime:** 11.2 s in all on 18 threads: 5.9 s for the benchmark and 5.1 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
 
 ## Accuracy on the test split
@@ -533,11 +533,11 @@ These expert labels lie outside what the rule set's proposers and vocabulary can
 Frames where two analysts differ are classed by what they differ on. **Frames** counts each pair of analysts once. **Top matches either** and **both offered** are percentages of the class's frames, as in the agreement tables. The other columns explain the readings that are not offered. They count readings rather than frames, since a frame can miss both of its analysts' readings:
 - **Cannot produce:** the engine has no way to produce the reading.
 - **In the beam, not offered:** a hypothesis in the beam holds it, but below the offer cut-off. Its mean rank (1 is the best hypothesis) and how far its score lies below the best are given beside it.
-- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**), because the beam already held as many hearings of the chords as it may, each read by a better hypothesis, and they read another (**cut by the hearing limit**), or because better ones gave their last segments the same readings with other boundaries (**merged by distinct depth**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
+- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**), because the beam already held as many chord hypotheses as it may, each read by a better hypothesis, and they read another (**cut by the chord hypothesis limit**), or because better ones gave their last segments the same readings with other boundaries (**merged by distinct depth**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
 
 **`agreement-tune`**
 
-| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the hearing limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
+| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the chord hypothesis limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | same chord, different inversion | 6085 | 65.0 | 11.2 | 96 | 714 | 45.8 | 2.5 | 1079 | 649 | 0 | 1.2 | 4185 |
 | different key, same chord | 5976 | 68.1 | 35.5 | 336 | 1662 | 37.3 | 1.9 | 1667 | 430 | 0 | 1.2 | 687 |
@@ -551,7 +551,7 @@ Frames where two analysts differ are classed by what they differ on. **Frames** 
 
 **`tune`**
 
-| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the hearing limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
+| class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the chord hypothesis limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | same chord, different inversion | 11577 | 64.8 | 14.5 | 604 | 1204 | 41.7 | 2.4 | 2028 | 1121 | 0 | 1.2 | 7418 |
 | seventh vs triad | 9901 | 62.7 | 26.5 | 432 | 1654 | 47.2 | 3.9 | 3241 | 1781 | 0 | 1.2 | 2393 |
