@@ -90,3 +90,51 @@ pub fn trace_segment(
     }
     contributions
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::exits::chord_close;
+    use crate::engine::path::segments_of;
+    use crate::engine::rule::Layer;
+    use crate::engine::search::{Config, analyze};
+    use crate::engine::test_layers::i_v_i;
+
+    /// For each final hypothesis of I–V–I, returns its trace's weighted sum in the given layer
+    /// beside the score it should equal: the ranking score for both layers together, or the
+    /// hearing's score plus its last close for the chord layer.
+    fn sums(layer: Option<Layer>) -> Vec<(f32, f32)> {
+        let (slices, rules) =
+            (i_v_i(), RuleSet::new(crate::rules::default_rules(), &Default::default()).unwrap());
+        let analysis = analyze(&slices, &rules, &Config::default());
+        let layer_of = |id: &str| rules.rules.iter().find(|r| r.id == id).unwrap().hook.layer();
+        let traced = |hypothesis: u32| -> f32 {
+            let segments = segments_of(&analysis, &slices, hypothesis);
+            let contributions = segments.iter().flat_map(|s| trace_segment(&analysis, &slices, &rules, s));
+            contributions.filter(|c| layer.is_none_or(|l| layer_of(c.rule) == l)).map(|c| c.weighted).sum()
+        };
+        let expected = |&(hypothesis, score): &(u32, f32)| match layer {
+            Some(_) => {
+                let hearing = analysis.layers.hearing_of(hypothesis);
+                hearing.score + chord_close(&slices, &hearing.segment, slices.len(), &rules)
+            }
+            None => score,
+        };
+        analysis.ranking.iter().map(|entry| (traced(entry.0), expected(entry))).collect()
+    }
+
+    fn agree(pairs: &[(f32, f32)]) -> bool {
+        !pairs.is_empty()
+            && pairs.iter().all(|(traced, score)| (traced - score).abs() < 1e-3 * score.abs().max(1.0))
+    }
+
+    #[test]
+    fn a_trace_sums_to_the_ranking_score_of_every_final_hypothesis() {
+        assert!(agree(&sums(None)));
+    }
+
+    #[test]
+    fn the_chord_layer_of_a_trace_sums_to_the_hearing_score_and_its_last_close() {
+        assert!(agree(&sums(Some(Layer::Chord))));
+    }
+}
