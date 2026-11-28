@@ -12,8 +12,8 @@ use crate::engine::search::Analysis;
 /// carries every final score back to all of its ancestors.
 pub fn descendant_bests(analysis: &Analysis) -> Vec<f32> {
     let mut bests = vec![f32::NEG_INFINITY; analysis.layers.hypotheses.len()];
-    for &(node, score) in &analysis.ranking {
-        bests[node as usize] = bests[node as usize].max(score);
+    for &(hypothesis, score) in &analysis.ranking {
+        bests[hypothesis as usize] = bests[hypothesis as usize].max(score);
     }
     for index in (0..analysis.layers.hypotheses.len()).rev() {
         let parent = analysis.layers.hypotheses[index].parent;
@@ -53,8 +53,8 @@ mod tests {
     #[test]
     fn a_final_hypothesis_carries_its_own_score() {
         let analysis = analysis();
-        let (node, score) = analysis.ranking[analysis.ranking.len() - 1];
-        assert_eq!(descendant_bests(&analysis)[node as usize], score);
+        let (hypothesis, score) = analysis.ranking[analysis.ranking.len() - 1];
+        assert_eq!(descendant_bests(&analysis)[hypothesis as usize], score);
     }
 
     #[test]

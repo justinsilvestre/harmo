@@ -33,9 +33,9 @@ pub fn trace_segment(
     rules: &RuleSet,
     segment: &SegmentReading,
 ) -> Vec<Contribution> {
-    let state = analysis.segment(segment.node);
+    let state = analysis.segment(segment.hypothesis);
     let layers = &analysis.layers;
-    let heard = layers.hearing_of(segment.node);
+    let heard = layers.hearing_of(segment.hypothesis);
     let hearing = &heard.segment;
     let previous = (state.previous != NONE).then(|| analysis.segment(state.previous));
     let previous_hearing =

@@ -54,21 +54,21 @@ fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalCo
     let Some(&first) = beam.first() else {
         return LayerOffers::default();
     };
-    let score = |node: u32| analysis.layers.hypotheses[node as usize].score;
+    let score = |hypothesis: u32| analysis.layers.hypotheses[hypothesis as usize].score;
     let limits = config.layer_limits();
     let reach = limits.key_margin.max(limits.chord_margin).max(limits.numeral_margin);
     let close = beam.iter().copied().take_while(|&n| score(first) - score(n) <= reach);
     layer_offers(&held_readings(analysis, close, at, score), score(first), &limits)
 }
 
-/// Returns each node's value with its label of slice `at`.
+/// Returns each hypothesis's value with its label of slice `at`.
 fn held_readings(
     analysis: &Analysis,
-    nodes: impl Iterator<Item = u32>,
+    hypotheses: impl Iterator<Item = u32>,
     at: usize,
     value: impl Fn(u32) -> f32,
 ) -> Vec<(f32, Label)> {
-    nodes.filter_map(|n| Some((value(n), reading_at(analysis, n, at)?))).collect()
+    hypotheses.filter_map(|n| Some((value(n), reading_at(analysis, n, at)?))).collect()
 }
 
 impl EvalConfig {

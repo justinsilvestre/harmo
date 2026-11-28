@@ -106,7 +106,7 @@ pub fn build_output(
     options: &OutputOptions,
 ) -> AnalysisOutput {
     let leading = analysis.ranking.iter().take(options.alternatives + 1);
-    let ranked = leading.map(|&(node, s)| (segments_of(analysis, slices, node), s)).collect();
+    let ranked = leading.map(|&(hypothesis, s)| (segments_of(analysis, slices, hypothesis), s)).collect();
     let context = Context {
         score,
         slices,

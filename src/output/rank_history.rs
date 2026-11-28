@@ -57,7 +57,7 @@ pub fn pruned_alternatives(
 ) -> Vec<PrunedAlternativeOutput> {
     let has_left = |h: &&ReadingHistory| h.changes.last().is_some_and(|c| c.rank.is_none());
     let output = |history: &ReadingHistory| PrunedAlternativeOutput {
-        reading: held_reading(history.node, context).expect("a hypothesis covers its own slice"),
+        reading: held_reading(history.hypothesis, context).expect("a hypothesis covers its own slice"),
         rank_history: rank_history_output(history, context),
     };
     histories.iter().filter(has_left).take(count).map(output).collect()
@@ -81,9 +81,9 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
     }
 }
 
-/// Returns the reading that the hypothesis ending at `node` gives the followed slice.
-fn held_reading(node: u32, context: &HistoryContext) -> Option<ReadingOutput> {
-    let segment = segment_at(context.analysis, node, context.at)?;
+/// Returns the reading that the hypothesis ending at `hypothesis` gives the followed slice.
+fn held_reading(hypothesis: u32, context: &HistoryContext) -> Option<ReadingOutput> {
+    let segment = segment_at(context.analysis, hypothesis, context.at)?;
     let reading = segment.reading();
     let label = Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc());
     Some(reading_output(&label, reading.function.category))

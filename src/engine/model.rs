@@ -1,5 +1,5 @@
-//! The engine's state: readings, open chord segments, and the arenas of the chord layer's hearings
-//! and of the key layer's interpretations of them.
+//! What the search's two layers hold: readings, the chord layer's segments and hearings, and the
+//! key layer's segments and hypotheses.
 
 use super::bass::Bass;
 use crate::pitch::Tpc;

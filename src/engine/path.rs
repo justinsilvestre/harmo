@@ -1,4 +1,4 @@
-//! Reconstructs the chord segments of a hypothesis by following parent links.
+//! Reconstructs the segments of a hypothesis, with their readings, by following its links.
 
 use super::model::{NONE, Reading};
 use super::search::Analysis;
@@ -15,13 +15,13 @@ pub struct SegmentReading {
     pub reading: Reading,
     pub label: Label,
     /// Index in the hypotheses of the segment's last hypothesis.
-    pub node: u32,
+    pub hypothesis: u32,
 }
 
-/// Returns the segments of the hypothesis ending at `node`, in chronological order.
-pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<SegmentReading> {
+/// Returns the segments of the hypothesis ending at `hypothesis`, in chronological order.
+pub fn segments_of(analysis: &Analysis, slices: &[Slice], hypothesis: u32) -> Vec<SegmentReading> {
     let mut segments = Vec::new();
-    let mut current = node;
+    let mut current = hypothesis;
     while current != NONE {
         let last = &analysis.layers.hypotheses[current as usize];
         let segment = analysis.segment(current);
@@ -36,7 +36,7 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<Segm
             end: end_time,
             reading,
             label,
-            node: current,
+            hypothesis: current,
         });
         current = segment.previous;
     }
@@ -46,5 +46,9 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<Segm
 
 /// Returns the segments of the best final hypothesis.
 pub fn best_segments(analysis: &Analysis, slices: &[Slice]) -> Vec<SegmentReading> {
-    analysis.ranking.first().map(|&(node, _)| segments_of(analysis, slices, node)).unwrap_or_default()
+    analysis
+        .ranking
+        .first()
+        .map(|&(hypothesis, _)| segments_of(analysis, slices, hypothesis))
+        .unwrap_or_default()
 }

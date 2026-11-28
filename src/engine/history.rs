@@ -22,7 +22,7 @@ pub struct RankChange {
 pub struct ReadingHistory {
     pub reading: Reading,
     /// The best hypothesis holding the reading in the beam of the slice itself.
-    pub node: u32,
+    pub hypothesis: u32,
     pub changes: Vec<RankChange>,
 }
 
@@ -37,11 +37,11 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
     };
     let mut histories: Vec<ReadingHistory> = Vec::new();
     let mut held: Vec<usize> = Vec::with_capacity(first_beam.len());
-    for (position, &node) in first_beam.iter().enumerate() {
-        let reading = reading_at(analysis, node, at).expect("a hypothesis covers its own slice");
+    for (position, &hypothesis) in first_beam.iter().enumerate() {
+        let reading = reading_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice");
         let id = histories.iter().position(|h| h.reading == reading).unwrap_or_else(|| {
             let changes = vec![RankChange { slice: at, rank: Some(position + 1), left_beam: None }];
-            histories.push(ReadingHistory { reading, node, changes });
+            histories.push(ReadingHistory { reading, hypothesis, changes });
             histories.len() - 1
         });
         held.push(id);
@@ -55,7 +55,7 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
         let held_by_parent = |parent: u32| held[(parent - previous[0]) as usize];
         let next: Vec<usize> = beam
             .iter()
-            .map(|&node| held_by_parent(analysis.layers.hypotheses[node as usize].parent))
+            .map(|&hypothesis| held_by_parent(analysis.layers.hypotheses[hypothesis as usize].parent))
             .collect();
         let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
         for (position, &id) in next.iter().enumerate() {
@@ -102,14 +102,14 @@ fn departure(
     })
 }
 
-/// Returns the reading that the hypothesis ending at `node` assigns to slice `at`.
-pub fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Reading> {
-    segment_at(analysis, node, at).map(|s| s.reading())
+/// Returns the reading that the hypothesis ending at `hypothesis` assigns to slice `at`.
+pub fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Reading> {
+    segment_at(analysis, hypothesis, at).map(|s| s.reading())
 }
 
-/// Returns the segment that the hypothesis ending at `node` assigns to slice `at`.
-pub fn segment_at(analysis: &Analysis, node: u32, at: usize) -> Option<KeySegment> {
-    let mut current = node;
+/// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.
+pub fn segment_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<KeySegment> {
+    let mut current = hypothesis;
     while current != NONE {
         let segment = analysis.segment(current);
         if segment.chord.start as usize <= at {

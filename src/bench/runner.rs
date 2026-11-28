@@ -232,12 +232,20 @@ fn layered_frames(
 /// Returns the label of the best final hypothesis at each frame of the piece.
 pub fn top_frames(analysis: &Analysis, piece: &BenchPiece) -> Vec<Option<Label>> {
     let count = piece.analyses[0].1.len();
-    let top = analysis.ranking.first().map(|&(node, _)| hypothesis_frames(analysis, piece, node, count));
+    let top = analysis
+        .ranking
+        .first()
+        .map(|&(hypothesis, _)| hypothesis_frames(analysis, piece, hypothesis, count));
     top.unwrap_or_else(|| vec![None; count])
 }
 
-fn hypothesis_frames(analysis: &Analysis, piece: &BenchPiece, node: u32, count: usize) -> Vec<Option<Label>> {
-    let segments = segments_of(analysis, &piece.slices, node);
+fn hypothesis_frames(
+    analysis: &Analysis,
+    piece: &BenchPiece,
+    hypothesis: u32,
+    count: usize,
+) -> Vec<Option<Label>> {
+    let segments = segments_of(analysis, &piece.slices, hypothesis);
     let timed: Vec<_> = segments.iter().map(|s| (s.start, Some(s.label))).collect();
     let mut frames = frame_labels(&timed, count as f64 * FRAME);
     frames.resize(count, None);
@@ -342,14 +350,15 @@ pub fn offered_from(analysis: &Analysis, beam: &[u32], at: usize, config: &EvalC
         return vec![];
     };
     let best_score = analysis.layers.hypotheses[best as usize].score;
-    let is_close =
-        |node: &&u32| best_score - analysis.layers.hypotheses[**node as usize].score <= config.offer_margin;
+    let is_close = |hypothesis: &&u32| {
+        best_score - analysis.layers.hypotheses[**hypothesis as usize].score <= config.offer_margin
+    };
     let mut labels: Vec<Label> = Vec::new();
-    for &node in beam.iter().filter(is_close) {
+    for &hypothesis in beam.iter().filter(is_close) {
         if labels.len() == config.offer_count {
             break;
         }
-        let Some(label) = reading_at(analysis, node, at) else {
+        let Some(label) = reading_at(analysis, hypothesis, at) else {
             continue;
         };
         if !labels.contains(&label) {
@@ -364,9 +373,9 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
     reading_at(analysis, best, at)
 }
 
-/// Returns the label that the hypothesis `node` gives the slice `at`.
-pub(super) fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Label> {
-    let segment = segment_at(analysis, node, at)?;
+/// Returns the label that the hypothesis `hypothesis` gives the slice `at`.
+pub(super) fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Label> {
+    let segment = segment_at(analysis, hypothesis, at)?;
     let reading = segment.reading();
     Some(Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc()))
 }
