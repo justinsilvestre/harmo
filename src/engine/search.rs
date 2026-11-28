@@ -22,6 +22,7 @@ use super::moment::Moment;
 use super::pending::{Pending, PendingChordHypothesisId, commit};
 use super::proposals::{Opening, Proposals, propose};
 use super::pruning::{Pruned, prune};
+use super::rule::Layer;
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use std::collections::HashMap;
@@ -46,6 +47,17 @@ pub struct Config {
     /// Keeps the hypotheses that pruning drops at every slice, with the reason,
     /// for explaining why readings leave the beam.
     pub record_pruning: bool,
+}
+
+impl Config {
+    /// Returns the most hypotheses of a layer that the beam may hold after each slice:
+    /// for the top layer, the beam width. Zero sets no limit.
+    pub fn width(&self, layer: Layer) -> usize {
+        match layer {
+            Layer::Chord => self.chord_hypothesis_width,
+            Layer::Key => self.beam_width,
+        }
+    }
 }
 
 impl Default for Config {

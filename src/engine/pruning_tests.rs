@@ -122,7 +122,7 @@ fn prune_records_the_hypothesis_kept_in_place_of_a_merged_one() {
 #[test]
 fn prune_records_hypotheses_cut_by_beam_width() {
     let config = Config { beam_width: 1, ..Config::default() };
-    assert_eq!(dropped_causes(fixture("C", "F"), &config), [PruneCause::Width]);
+    assert_eq!(dropped_causes(fixture("C", "F"), &config), [PruneCause::Width { layer: Layer::Key }]);
 }
 
 #[test]
@@ -145,7 +145,10 @@ fn one_chord_hypothesis() -> Config {
 
 #[test]
 fn prune_records_hypotheses_cut_by_the_chord_hypothesis_limit() {
-    assert_eq!(dropped_causes(sharing(), &one_chord_hypothesis()), [PruneCause::ChordHypothesisWidth]);
+    assert_eq!(
+        dropped_causes(sharing(), &one_chord_hypothesis()),
+        [PruneCause::Width { layer: Layer::Chord }]
+    );
 }
 
 #[test]

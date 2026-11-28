@@ -5,6 +5,7 @@ use crate::bench::metrics::is_rn_match;
 use crate::engine::history::segment_at;
 use crate::engine::model::KeySegment;
 use crate::engine::pruning::{PruneCause, Pruned};
+use crate::engine::rule::Layer;
 use crate::engine::search::Analysis;
 use crate::score::slicing::Slice;
 use crate::theory::label::Label;
@@ -47,8 +48,8 @@ pub fn find_pruning(
     let (slice, cause) = last?;
     let after = slices[slice].start - slices[at].start;
     Some(match cause {
-        PruneCause::Width => Absence::Width { after },
-        PruneCause::ChordHypothesisWidth => Absence::ChordHypotheses { after },
+        PruneCause::Width { layer: Layer::Key } => Absence::Width { after },
+        PruneCause::Width { layer: Layer::Chord } => Absence::ChordHypotheses { after },
         PruneCause::Merged { .. } => Absence::Merged { after },
     })
 }

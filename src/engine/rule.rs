@@ -24,11 +24,17 @@ impl Topic {
     }
 }
 
-/// A layer of the search.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
+/// A layer of the search, named for its unit. The layers are listed in order, lowest first:
+/// each reads the one before it, and the last holds complete interpretations.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
 pub enum Layer {
     Chord,
     Key,
+}
+
+impl Layer {
+    /// The layer whose hypotheses are complete interpretations, which the beam holds.
+    pub const TOP: Layer = Layer::Key;
 }
 
 /// A pointer into the source catalog, e.g. a page range in a textbook.

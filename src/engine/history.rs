@@ -91,7 +91,7 @@ fn departure(
     let best = beam.first().map_or(pruned.score, |&first| analysis.layers.score(first));
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
-        PruneCause::Width | PruneCause::ChordHypothesisWidth => None,
+        PruneCause::Width { .. } => None,
     };
     Some(Departure {
         last_rank,

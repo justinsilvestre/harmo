@@ -9,19 +9,21 @@
 use super::layers::Layers;
 use super::model::{KeyHypothesisId, KeySegment};
 use super::pending::{Pending, PendingChordHypothesisId, PendingKeyHypothesis};
+use super::rule::Layer;
 use super::ruleset::RuleSet;
 use super::search::Config;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 /// Why pruning dropped a hypothesis.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PruneCause {
-    /// The beam was already full of better hypotheses.
-    Width,
-    /// The beam already held `Config::chord_hypothesis_width` chord hypotheses,
-    /// each interpreted by a better hypothesis, and this hypothesis interprets another.
-    ChordHypothesisWidth,
+    /// Keeping the hypothesis would take a layer past its width (see `Config::width`):
+    /// for the top layer, the beam was already full of better hypotheses;
+    /// for a lower layer, the hypotheses kept already read as many of its hypotheses as it may hold,
+    /// and this hypothesis reads another.
+    Width { layer: Layer },
     /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
     /// as the same was kept instead.
     Merged { keeper: KeyHypothesisId },
@@ -30,8 +32,8 @@ pub enum PruneCause {
 impl PruneCause {
     pub fn name(self) -> &'static str {
         match self {
-            PruneCause::Width => "beam_width",
-            PruneCause::ChordHypothesisWidth => "chord_hypothesis_width",
+            PruneCause::Width { layer: Layer::Key } => "beam_width",
+            PruneCause::Width { layer: Layer::Chord } => "chord_hypothesis_width",
             PruneCause::Merged { .. } => "distinct_depth",
         }
     }
@@ -88,12 +90,12 @@ pub fn prune(
     ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
     let merges = config.distinct_depth > 0 && !rules.key.distinguish.is_empty();
     let pruner = Pruner { pending, layers, rules, config, merges };
-    let mut kept = Kept::new(layers.key.hypotheses.len() as u32, config.beam_width);
+    let mut kept = Kept::new(layers.key.hypotheses.len() as u32, config);
     let mut dropped = Vec::new();
     for (rank, (score, hypothesis)) in ranked.into_iter().enumerate() {
         match pruner.judge(&kept, &hypothesis) {
             Ok(signature) => kept.add(hypothesis, signature),
-            Err(PruneCause::Width) if !config.record_pruning => break,
+            Err(PruneCause::Width { layer: Layer::TOP }) if !config.record_pruning => break,
             Err(cause) if config.record_pruning => {
                 dropped.push(pruner.record(&hypothesis, score, rank + 1, cause))
             }
@@ -116,8 +118,8 @@ struct Pruner<'a> {
 /// The hypotheses kept so far, best first, with what later ones are compared against.
 struct Kept {
     key_hypotheses: Vec<PendingKeyHypothesis>,
-    /// The chord hypotheses that the kept hypotheses interpret.
-    chord_hypotheses: HashSet<PendingChordHypothesisId>,
+    /// The chord hypotheses that the kept hypotheses read.
+    chord_hypotheses: Held<PendingChordHypothesisId>,
     /// The id that each kept signature's hypothesis will have once stored.
     signatures: HashMap<Vec<u64>, KeyHypothesisId>,
     /// The id that the first kept hypothesis will have once stored.
@@ -127,16 +129,11 @@ struct Kept {
 impl Pruner<'_> {
     /// Returns why the hypothesis cannot join the beam, or else its signature if hypotheses are merged.
     fn judge(&self, kept: &Kept, hypothesis: &PendingKeyHypothesis) -> Result<Option<Vec<u64>>, PruneCause> {
-        let config = self.config;
-        if kept.key_hypotheses.len() == config.beam_width {
-            return Err(PruneCause::Width);
+        if kept.key_hypotheses.len() == self.config.width(Layer::Key) {
+            return Err(PruneCause::Width { layer: Layer::Key });
         }
-        let is_new_chord_hypothesis = !kept.chord_hypotheses.contains(&hypothesis.reads);
-        if config.chord_hypothesis_width > 0
-            && kept.chord_hypotheses.len() == config.chord_hypothesis_width
-            && is_new_chord_hypothesis
-        {
-            return Err(PruneCause::ChordHypothesisWidth);
+        if !kept.chord_hypotheses.admits(hypothesis.reads) {
+            return Err(PruneCause::Width { layer: Layer::Chord });
         }
         if !self.merges {
             return Ok(None);
@@ -175,9 +172,10 @@ impl Pruner<'_> {
 }
 
 impl Kept {
-    fn new(first: u32, beam_width: usize) -> Kept {
-        let (chord_hypotheses, signatures) = (HashSet::new(), HashMap::new());
-        Kept { key_hypotheses: Vec::with_capacity(beam_width), chord_hypotheses, signatures, first }
+    fn new(first: u32, config: &Config) -> Kept {
+        let key_hypotheses = Vec::with_capacity(config.width(Layer::Key));
+        let chord_hypotheses = Held::new(config.width(Layer::Chord));
+        Kept { key_hypotheses, chord_hypotheses, signatures: HashMap::new(), first }
     }
 
     fn add(&mut self, hypothesis: PendingKeyHypothesis, signature: Option<Vec<u64>>) {
@@ -185,8 +183,30 @@ impl Kept {
             self.signatures
                 .insert(signature, KeyHypothesisId::new(self.first + self.key_hypotheses.len() as u32));
         }
-        self.chord_hypotheses.insert(hypothesis.reads);
+        self.chord_hypotheses.add(hypothesis.reads);
         self.key_hypotheses.push(hypothesis);
+    }
+}
+
+/// The hypotheses of a lower layer that the kept hypotheses read, and how many the layer may hold.
+struct Held<Id> {
+    ids: HashSet<Id>,
+    /// Zero sets no limit.
+    width: usize,
+}
+
+impl<Id: Copy + Eq + Hash> Held<Id> {
+    fn new(width: usize) -> Held<Id> {
+        Held { ids: HashSet::new(), width }
+    }
+
+    /// Reports whether a kept hypothesis may read the hypothesis without exceeding the layer's width.
+    fn admits(&self, id: Id) -> bool {
+        self.width == 0 || self.ids.len() < self.width || self.ids.contains(&id)
+    }
+
+    fn add(&mut self, id: Id) {
+        self.ids.insert(id);
     }
 }
 
