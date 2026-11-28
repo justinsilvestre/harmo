@@ -2,6 +2,7 @@
 
 use super::analysis::{ReadingOutput, reading_output};
 use crate::engine::history::{RankChange, ReadingHistory, segment_at};
+use crate::engine::model::KeyHypothesisId;
 use crate::engine::pruning::Departure;
 use crate::engine::search::Analysis;
 use crate::score::model::Score;
@@ -81,7 +82,7 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
 }
 
 /// Returns the reading that the hypothesis ending at `hypothesis` gives the followed slice.
-fn held_reading(hypothesis: u32, context: &HistoryContext) -> Option<ReadingOutput> {
+fn held_reading(hypothesis: KeyHypothesisId, context: &HistoryContext) -> Option<ReadingOutput> {
     let segment = segment_at(context.analysis, hypothesis, context.at)?;
     Some(reading_output(&segment.label(), segment.function.category))
 }

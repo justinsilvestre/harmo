@@ -14,7 +14,7 @@
 use super::continuations::continuations;
 use super::exits::{Exits, Predecessor, chord_close, key_close};
 use super::layers::Layers;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis};
+use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId};
 use super::moment::Moment;
 use super::pending::{Pending, PendingChordHypothesisId, commit};
 use super::proposals::{Opening, Proposals, propose};
@@ -63,17 +63,16 @@ pub struct Analysis {
     /// and every chord hypothesis that one of them interprets.
     pub layers: Layers,
     /// The final hypotheses, best first, each with its score once its last segment is closed.
-    /// Each is given by its index in the hypotheses.
-    pub ranking: Vec<(u32, f32)>,
+    pub ranking: Vec<(KeyHypothesisId, f32)>,
     /// The beam after each slice, best first. Empty unless `Config::record_snapshots` is set.
-    pub snapshots: Vec<Vec<u32>>,
+    pub snapshots: Vec<Vec<KeyHypothesisId>>,
     /// The hypotheses dropped at each slice, best first. Empty unless `Config::record_pruning` is set.
     pub pruned: Vec<Vec<Pruned>>,
 }
 
 pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut layers = Layers::default();
-    let mut beam: Vec<u32> = Vec::new();
+    let mut beam: Vec<KeyHypothesisId> = Vec::new();
     let mut snapshots = Vec::new();
     let mut pruned = Vec::new();
     for index in 0..slices.len() {
@@ -93,7 +92,7 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
 
 /// Proposes the hypotheses of one slice: every hypothesis in the beam extended by the slice,
 /// and every new reading of the slice opened after the hypotheses that lead into it best.
-fn step(moment: &Moment, beam: &[u32], rules: &RuleSet, config: &Config) -> Pending {
+fn step(moment: &Moment, beam: &[KeyHypothesisId], rules: &RuleSet, config: &Config) -> Pending {
     let proposals = propose(moment, rules, config.candidate_limit);
     let exits = Exits::of(moment, beam, &proposals.chords, rules);
     let mut pending = continuations(moment, beam, rules);
@@ -162,14 +161,20 @@ impl Opened<'_> {
 }
 
 /// Ranks the final hypotheses by their scores once their last segments are closed, best first.
-fn rank_final(slices: &[Slice], layers: &Layers, beam: &[u32], rules: &RuleSet) -> Vec<(u32, f32)> {
+fn rank_final(
+    slices: &[Slice],
+    layers: &Layers,
+    beam: &[KeyHypothesisId],
+    rules: &RuleSet,
+) -> Vec<(KeyHypothesisId, f32)> {
     let end = slices.len();
-    let finish = |hypothesis: u32| {
+    let finish = |hypothesis: KeyHypothesisId| {
         let segment = layers.segment(hypothesis);
         let close = chord_close(slices, &segment.heard, end, rules) + key_close(slices, &segment, end, rules);
-        (hypothesis, layers.key_hypotheses[hypothesis as usize].score + close)
+        (hypothesis, layers.key_hypothesis(hypothesis).score + close)
     };
-    let mut ranking: Vec<(u32, f32)> = beam.iter().map(|&hypothesis| finish(hypothesis)).collect();
+    let mut ranking: Vec<(KeyHypothesisId, f32)> =
+        beam.iter().map(|&hypothesis| finish(hypothesis)).collect();
     ranking.sort_by(|a, b| b.1.total_cmp(&a.1));
     ranking
 }

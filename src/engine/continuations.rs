@@ -2,7 +2,7 @@
 
 use super::chord_hooks::ChordSliceContext;
 use super::key_contexts::KeySliceContext;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, Reading};
+use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId, Reading};
 use super::moment::Moment;
 use super::pending::{Pending, PendingChordHypothesisId};
 use super::ruleset::RuleSet;
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 /// Extends every hypothesis in the beam by the moment's slice, and with it the chord hypothesis it interprets.
 /// Each chord hypothesis is extended once, however many hypotheses interpret it.
-pub fn continuations(moment: &Moment, beam: &[u32], rules: &RuleSet) -> Pending {
+pub fn continuations(moment: &Moment, beam: &[KeyHypothesisId], rules: &RuleSet) -> Pending {
     let mut extension = Extension {
         moment,
         rules,
@@ -39,8 +39,8 @@ struct Extension<'a> {
 }
 
 impl Extension<'_> {
-    fn extend(&mut self, parent: u32) {
-        let hypothesis = self.moment.layers.key_hypotheses[parent as usize];
+    fn extend(&mut self, parent: KeyHypothesisId) {
+        let hypothesis = *self.moment.layers.key_hypothesis(parent);
         let chord = self.moment.layers.chord_hypothesis(hypothesis.chord_hypothesis).segment.chord;
         let chord_fit = self.chord_fit(chord);
         let chord_hypothesis = self.extend_chord_hypothesis(hypothesis.chord_hypothesis, chord_fit);

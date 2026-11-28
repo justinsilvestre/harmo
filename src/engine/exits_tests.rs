@@ -1,7 +1,7 @@
 use super::*;
 use crate::engine::key_contexts::Rival;
 use crate::engine::key_hooks::KeyHook;
-use crate::engine::model::{Function, NONE, Reading};
+use crate::engine::model::{Function, KeyHypothesisId, Reading};
 use crate::engine::proposals::LayerScores;
 use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{chord_segment, key_segment, layers_of, slice_of};
@@ -41,7 +41,7 @@ fn rules(rival_hook: bool) -> RuleSet {
 /// and scores.
 fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u32> {
     let rules = rules(rival_hook);
-    let mut layers = layers_of(&readings.map(key_segment), &[NONE, NONE]);
+    let mut layers = layers_of(&readings.map(key_segment), &[KeyHypothesisId::NONE; 2]);
     for (i, score) in scores.into_iter().enumerate() {
         (layers.key_hypotheses[i].score, layers.chord_hypotheses[i].slice) = (score, 2);
     }
@@ -53,9 +53,9 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
         fit: 0.0,
         segment: chord_segment(opening.reading.chord),
     }];
-    let exits = Exits::of(&moment, &[0, 1], &proposed, &rules);
+    let exits = Exits::of(&moment, &[KeyHypothesisId(0), KeyHypothesisId(1)], &proposed, &rules);
     let found = exits.predecessors(&opening, &moment, &rules);
-    found.iter().map(|p| exits.keys[p.exit].hypothesis).collect()
+    found.iter().map(|p| exits.keys[p.exit].hypothesis.0).collect()
 }
 
 #[test]

@@ -7,7 +7,7 @@ use super::chord_hooks::{
 };
 use super::key_contexts::{History, KeyCloseContext, KeySliceContext, KeyTransitionContext};
 use super::key_hooks::{KeyHook, KeySliceFn};
-use super::model::{ChordHypothesisId, NONE};
+use super::model::{ChordHypothesisId, KeyHypothesisId};
 use super::path::SegmentReading;
 use super::rule::{Hook, Topic};
 use super::ruleset::RuleSet;
@@ -34,10 +34,11 @@ pub fn trace_segment(
 ) -> Vec<Contribution> {
     let layers = &analysis.layers;
     let state = layers.segment(segment.hypothesis);
-    let previous_hypothesis = layers.key_hypotheses[segment.hypothesis as usize].previous;
+    let previous_hypothesis = layers.key_hypothesis(segment.hypothesis).previous;
     let heard = layers.chord_hypothesis_of(segment.hypothesis);
     let chord_hypothesis = &heard.segment;
-    let previous = (previous_hypothesis != NONE).then(|| layers.segment(previous_hypothesis));
+    let previous =
+        (previous_hypothesis != KeyHypothesisId::NONE).then(|| layers.segment(previous_hypothesis));
     let previous_chord_hypothesis =
         (heard.previous != ChordHypothesisId::NONE).then(|| &layers.chord_hypothesis(heard.previous).segment);
     let (first, end) = segment.slices;
@@ -111,12 +112,12 @@ mod tests {
             (i_v_i(), RuleSet::new(crate::rules::default_rules(), &Default::default()).unwrap());
         let analysis = analyze(&slices, &rules, &Config::default());
         let layer_of = |id: &str| rules.rules.iter().find(|r| r.id == id).unwrap().hook.layer();
-        let traced = |hypothesis: u32| -> f32 {
+        let traced = |hypothesis: KeyHypothesisId| -> f32 {
             let segments = segments_of(&analysis, &slices, hypothesis);
             let contributions = segments.iter().flat_map(|s| trace_segment(&analysis, &slices, &rules, s));
             contributions.filter(|c| layer.is_none_or(|l| layer_of(c.rule) == l)).map(|c| c.weighted).sum()
         };
-        let expected = |&(hypothesis, score): &(u32, f32)| match layer {
+        let expected = |&(hypothesis, score): &(KeyHypothesisId, f32)| match layer {
             Some(_) => {
                 let chord_hypothesis = analysis.layers.chord_hypothesis_of(hypothesis);
                 chord_hypothesis.score + chord_close(&slices, &chord_hypothesis.segment, slices.len(), &rules)

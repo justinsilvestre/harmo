@@ -7,7 +7,7 @@
 //! when pruning drops the last hypotheses that hold it.
 
 use super::layers::Layers;
-use super::model::KeySegment;
+use super::model::{KeyHypothesisId, KeySegment};
 use super::pending::{Pending, PendingChordHypothesisId, PendingKeyHypothesis};
 use super::ruleset::RuleSet;
 use super::search::Config;
@@ -23,8 +23,8 @@ pub enum PruneCause {
     /// each interpreted by a better hypothesis, and this hypothesis interprets another.
     ChordHypothesisWidth,
     /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
-    /// as the same was kept instead. `keeper` is its index in the hypotheses.
-    Merged { keeper: u32 },
+    /// as the same was kept instead.
+    Merged { keeper: KeyHypothesisId },
 }
 
 impl PruneCause {
@@ -40,10 +40,10 @@ impl PruneCause {
 /// A hypothesis dropped by pruning at the slice it reached.
 #[derive(Clone, Copy, Debug)]
 pub struct Pruned {
-    /// Index in the hypotheses of the hypothesis that it extended or opened after.
-    pub parent: u32,
-    /// Index in the hypotheses of the last hypothesis of the segment before its last segment, or `NONE`.
-    pub previous: u32,
+    /// The hypothesis that it extended or opened after.
+    pub parent: KeyHypothesisId,
+    /// The last hypothesis of the segment before its last segment, or `KeyHypothesisId::NONE`.
+    pub previous: KeyHypothesisId,
     pub score: f32,
     /// Its last segment.
     pub segment: KeySegment,
@@ -65,9 +65,9 @@ pub struct Departure {
     pub cause: &'static str,
     /// For `distinct_depth`, the rank in the new beam of the hypothesis kept in its place.
     pub merged_into_rank: Option<usize>,
-    /// The index of that hypothesis in the hypotheses.
+    /// That hypothesis.
     #[serde(skip)]
-    pub merged_into: Option<u32>,
+    pub merged_into: Option<KeyHypothesisId>,
 }
 
 /// Keeps the best of the pending hypotheses, in order,
@@ -114,9 +114,9 @@ struct Kept {
     key_hypotheses: Vec<PendingKeyHypothesis>,
     /// The chord hypotheses that the kept hypotheses interpret.
     chord_hypotheses: HashSet<PendingChordHypothesisId>,
-    /// The index in the hypotheses that each kept signature's hypothesis will have once stored.
-    signatures: HashMap<Vec<u64>, u32>,
-    /// The index in the hypotheses that the first kept hypothesis will have once stored.
+    /// The id that each kept signature's hypothesis will have once stored.
+    signatures: HashMap<Vec<u64>, KeyHypothesisId>,
+    /// The id that the first kept hypothesis will have once stored.
     first: u32,
 }
 
@@ -171,7 +171,7 @@ impl Kept {
 
     fn add(&mut self, hypothesis: PendingKeyHypothesis, signature: Option<Vec<u64>>) {
         if let Some(signature) = signature {
-            self.signatures.insert(signature, self.first + self.key_hypotheses.len() as u32);
+            self.signatures.insert(signature, KeyHypothesisId(self.first + self.key_hypotheses.len() as u32));
         }
         self.chord_hypotheses.insert(hypothesis.chord_hypothesis);
         self.key_hypotheses.push(hypothesis);

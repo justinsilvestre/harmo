@@ -5,6 +5,7 @@ use super::piece_context::PieceContext;
 use crate::bench::metrics::is_rn_match;
 use crate::bench::runner::{EvalConfig, lagged_beam, lagged_slice};
 use crate::engine::history::segment_at;
+use crate::engine::model::KeyHypothesisId;
 use crate::theory::label::Label;
 
 /// Why an analyst's reading is not among the offered readings.
@@ -31,15 +32,14 @@ pub fn missing_reason(
     let (analysis, slices) = (&context.analysis, &context.piece.slices);
     let at = context.frame_slices[frame];
     let beam = lagged_beam(analysis, slices, at, config.offer_lag).unwrap_or(&[]);
-    let best =
-        beam.first().map_or(0.0, |&hypothesis| analysis.layers.key_hypotheses[hypothesis as usize].score);
-    let holds = |hypothesis: &&u32| {
+    let best = beam.first().map_or(0.0, |&hypothesis| analysis.layers.key_hypothesis(hypothesis).score);
+    let holds = |hypothesis: &&KeyHypothesisId| {
         segment_at(analysis, **hypothesis, at).is_some_and(|s| is_rn_match(&s.label(), label))
     };
     match beam.iter().position(|hypothesis| holds(&hypothesis)) {
         Some(rank) => MissingReason::BelowCutoff {
             rank: rank + 1,
-            gap: best - analysis.layers.key_hypotheses[beam[rank] as usize].score,
+            gap: best - analysis.layers.key_hypothesis(beam[rank]).score,
         },
         None if context.gaps[analyst][frame].is_some() => MissingReason::Unproducible,
         None => {

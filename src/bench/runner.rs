@@ -10,6 +10,7 @@ use super::manifest::{Manifest, ManifestPiece};
 use super::metrics::{Accuracy, Agreement, EquivalentMatches};
 use super::offer_delay::{OfferDelays, offer_delays};
 use crate::engine::history::segment_at;
+use crate::engine::model::KeyHypothesisId;
 use crate::engine::path::segments_of;
 use crate::engine::ruleset::RuleSet;
 use crate::engine::search::{Analysis, Config, analyze};
@@ -242,7 +243,7 @@ pub fn top_frames(analysis: &Analysis, piece: &BenchPiece) -> Vec<Option<Label>>
 fn hypothesis_frames(
     analysis: &Analysis,
     piece: &BenchPiece,
-    hypothesis: u32,
+    hypothesis: KeyHypothesisId,
     count: usize,
 ) -> Vec<Option<Label>> {
     let segments = segments_of(analysis, &piece.slices, hypothesis);
@@ -327,7 +328,12 @@ pub(super) fn slice_values_by_frame<T: Clone + Default>(
 
 /// Returns the beam as it stood `lag` quarter notes after the slice `at` began, best first.
 /// Requires an analysis run with `Config::record_snapshots`.
-pub fn lagged_beam<'a>(analysis: &'a Analysis, slices: &[Slice], at: usize, lag: f64) -> Option<&'a [u32]> {
+pub fn lagged_beam<'a>(
+    analysis: &'a Analysis,
+    slices: &[Slice],
+    at: usize,
+    lag: f64,
+) -> Option<&'a [KeyHypothesisId]> {
     analysis.snapshots.get(lagged_slice(slices, at, lag)).map(Vec::as_slice)
 }
 
@@ -346,13 +352,18 @@ fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalCon
 }
 
 /// Returns the distinct readings of slice `at` that `beam` offers under the offer count and margin.
-pub fn offered_from(analysis: &Analysis, beam: &[u32], at: usize, config: &EvalConfig) -> Vec<Label> {
+pub fn offered_from(
+    analysis: &Analysis,
+    beam: &[KeyHypothesisId],
+    at: usize,
+    config: &EvalConfig,
+) -> Vec<Label> {
     let Some(&best) = beam.first() else {
         return vec![];
     };
-    let best_score = analysis.layers.key_hypotheses[best as usize].score;
-    let is_close = |hypothesis: &&u32| {
-        best_score - analysis.layers.key_hypotheses[**hypothesis as usize].score <= config.offer_margin
+    let best_score = analysis.layers.key_hypothesis(best).score;
+    let is_close = |hypothesis: &&KeyHypothesisId| {
+        best_score - analysis.layers.key_hypothesis(**hypothesis).score <= config.offer_margin
     };
     let mut labels: Vec<Label> = Vec::new();
     for &hypothesis in beam.iter().filter(is_close) {
@@ -375,6 +386,6 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
 }
 
 /// Returns the label that the hypothesis `hypothesis` gives the slice `at`.
-pub(super) fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Label> {
+pub(super) fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<Label> {
     segment_at(analysis, hypothesis, at).map(|segment| segment.label())
 }

@@ -2,7 +2,7 @@
 //! as a later layer interprets an earlier one.
 
 use super::layers::{Layers, NO_LAYERS};
-use super::model::{KeySegment, NONE, Reading};
+use super::model::{KeyHypothesisId, KeySegment, Reading};
 use crate::score::slicing::Slice;
 
 /// A segment's place among rival readings of the same music.
@@ -93,8 +93,8 @@ pub struct History<'a> {
     pub layers: &'a Layers,
     /// Every slice of the score, so that a past segment's slices can be read from its `start`.
     pub slices: &'a [Slice],
-    /// Index in the hypotheses of the last hypothesis of the most recent segment, or `NONE`.
-    pub last: u32,
+    /// The last hypothesis of the most recent segment, or `KeyHypothesisId::NONE`.
+    pub last: KeyHypothesisId,
 }
 
 impl<'a> History<'a> {
@@ -105,7 +105,7 @@ impl<'a> History<'a> {
 
     /// A history with no segments before it.
     pub fn empty(slices: &'a [Slice]) -> History<'a> {
-        History { layers: &NO_LAYERS, slices, last: NONE }
+        History { layers: &NO_LAYERS, slices, last: KeyHypothesisId::NONE }
     }
 }
 

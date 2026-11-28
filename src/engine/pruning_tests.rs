@@ -1,6 +1,6 @@
 use super::*;
 use crate::engine::model::{
-    ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesis, NONE, Reading,
+    ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesis, KeyHypothesisId, Reading,
 };
 use crate::engine::test_layers::{key_segment, layers_of};
 use crate::pitch::tpc_from_name;
@@ -24,6 +24,7 @@ fn segment(root: &str, start: u32) -> KeySegment {
 /// that reads pending chord hypothesis `chord_hypothesis`.
 fn to_g(previous: u32, chord_hypothesis: u32, score: f32) -> PendingKeyHypothesis {
     let (function, chord_hypothesis) = (reading("G").function, PendingChordHypothesisId(chord_hypothesis));
+    let previous = KeyHypothesisId(previous);
     KeyHypothesis { parent: previous, previous, chord_hypothesis, function, score }
 }
 
@@ -37,7 +38,7 @@ struct Fixture {
 }
 
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
-    let layers = layers_of(&[segment(first_root, 0), segment(second_root, 0)], &[NONE, NONE]);
+    let layers = layers_of(&[segment(first_root, 0), segment(second_root, 0)], &[KeyHypothesisId::NONE; 2]);
     let chord_hypothesis = |previous: u32, start: u32| ChordHypothesis {
         previous: ChordHypothesisId(previous),
         slice: start,
@@ -111,7 +112,10 @@ fn prune_looks_back_no_further_than_distinct_depth() {
 
 #[test]
 fn prune_records_the_hypothesis_kept_in_place_of_a_merged_one() {
-    assert_eq!(dropped_causes(fixture("C", "C"), &merging()), [PruneCause::Merged { keeper: 2 }]);
+    assert_eq!(
+        dropped_causes(fixture("C", "C"), &merging()),
+        [PruneCause::Merged { keeper: KeyHypothesisId(2) }]
+    );
 }
 
 #[test]

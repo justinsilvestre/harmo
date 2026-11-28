@@ -27,7 +27,8 @@ fn all_histories(analysis: &Analysis, slices: usize) -> Vec<Vec<RankChange>> {
 /// Ranks found by looking up each hypothesis's path, slice by slice.
 fn walked_ranks(analysis: &Analysis, at: usize) -> Vec<Vec<Option<usize>>> {
     let histories = rank_histories(analysis, at);
-    let rank_of = |beam: &Vec<u32>, h: &harmo::engine::history::ReadingHistory| {
+    let rank_of = |beam: &Vec<harmo::engine::model::KeyHypothesisId>,
+                   h: &harmo::engine::history::ReadingHistory| {
         beam.iter().position(|&n| reading_at(analysis, n, at) == Some(h.reading)).map(|r| r + 1)
     };
     histories.iter().map(|h| analysis.snapshots[at..].iter().map(|beam| rank_of(beam, h)).collect()).collect()

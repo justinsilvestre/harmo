@@ -1,7 +1,7 @@
 //! Reconstructs the segments of a hypothesis, with their readings, by following its links.
 
 use super::layers::Layers;
-use super::model::Reading;
+use super::model::{KeyHypothesisId, Reading};
 use super::search::Analysis;
 use crate::score::model::Offset;
 use crate::score::slicing::Slice;
@@ -15,12 +15,16 @@ pub struct SegmentReading {
     pub end: Offset,
     pub reading: Reading,
     pub label: Label,
-    /// Index in the hypotheses of the segment's last hypothesis.
-    pub hypothesis: u32,
+    /// The segment's last hypothesis.
+    pub hypothesis: KeyHypothesisId,
 }
 
 /// Returns the segments of the hypothesis ending at `hypothesis`, in chronological order.
-pub fn segments_of(analysis: &Analysis, slices: &[Slice], hypothesis: u32) -> Vec<SegmentReading> {
+pub fn segments_of(
+    analysis: &Analysis,
+    slices: &[Slice],
+    hypothesis: KeyHypothesisId,
+) -> Vec<SegmentReading> {
     let layers = &analysis.layers;
     let mut segments: Vec<SegmentReading> =
         layers.path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
@@ -29,7 +33,7 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], hypothesis: u32) -> Ve
 }
 
 /// Returns the segment whose last hypothesis is `last`.
-fn segment_reading(layers: &Layers, slices: &[Slice], last: u32) -> SegmentReading {
+fn segment_reading(layers: &Layers, slices: &[Slice], last: KeyHypothesisId) -> SegmentReading {
     let segment = layers.segment(last);
     let (first, end) = (segment.heard.start as usize, layers.chord_hypothesis_of(last).slice as usize + 1);
     let last_slice = &slices[end - 1];

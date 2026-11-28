@@ -8,9 +8,6 @@ use crate::theory::key::Key;
 use crate::theory::label::Label;
 use serde::Serialize;
 
-/// Marks the absence of an index into the hypotheses.
-pub const NONE: u32 = u32::MAX;
-
 /// The index of a chord hypothesis in the chord layer's store.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ChordHypothesisId(pub u32);
@@ -18,6 +15,15 @@ pub struct ChordHypothesisId(pub u32);
 impl ChordHypothesisId {
     /// Marks the absence of a chord hypothesis.
     pub const NONE: ChordHypothesisId = ChordHypothesisId(u32::MAX);
+}
+
+/// The index of a key hypothesis in the key layer's store.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct KeyHypothesisId(pub u32);
+
+impl KeyHypothesisId {
+    /// Marks the absence of a key hypothesis.
+    pub const NONE: KeyHypothesisId = KeyHypothesisId(u32::MAX);
 }
 
 /// How a chord relates to the key it is read in.
@@ -101,10 +107,10 @@ pub struct ChordHypothesis {
 /// and indexes those with a type of its own.
 #[derive(Clone, Copy, Debug)]
 pub struct KeyHypothesis<H = ChordHypothesisId> {
-    /// Index in the key hypotheses of the hypothesis up to the slice before, or `NONE`.
-    pub parent: u32,
-    /// Index in the key hypotheses of the last hypothesis of the preceding segment, or `NONE`.
-    pub previous: u32,
+    /// The hypothesis up to the slice before, or `KeyHypothesisId::NONE`.
+    pub parent: KeyHypothesisId,
+    /// The last hypothesis of the preceding segment, or `KeyHypothesisId::NONE`.
+    pub previous: KeyHypothesisId,
     /// The chord hypothesis that this key hypothesis interprets.
     pub chord_hypothesis: H,
     /// The function of the chord hypothesis's latest chord, in the key the hypothesis hears it in.

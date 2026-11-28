@@ -2,6 +2,7 @@
 
 use super::key_contexts::History;
 use super::layers::Layers;
+use super::model::KeyHypothesisId;
 use crate::score::slicing::Slice;
 
 /// The slice that the search hears now, within the score,
@@ -19,7 +20,7 @@ impl<'a> Moment<'a> {
     }
 
     /// Returns the history of the segments up to and including the last segment of a hypothesis.
-    pub fn history(&self, last: u32) -> History<'a> {
+    pub fn history(&self, last: KeyHypothesisId) -> History<'a> {
         History { layers: self.layers, slices: self.slices, last }
     }
 }

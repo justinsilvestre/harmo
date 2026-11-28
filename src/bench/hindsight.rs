@@ -2,7 +2,7 @@
 //!
 //! This is a report on the finished analysis. No rule and no in-the-moment figure may use it.
 
-use crate::engine::model::NONE;
+use crate::engine::model::KeyHypothesisId;
 use crate::engine::search::Analysis;
 
 /// Returns, for every hypothesis,
@@ -14,13 +14,13 @@ use crate::engine::search::Analysis;
 pub fn descendant_bests(analysis: &Analysis) -> Vec<f32> {
     let mut bests = vec![f32::NEG_INFINITY; analysis.layers.key_hypotheses.len()];
     for &(hypothesis, score) in &analysis.ranking {
-        bests[hypothesis as usize] = bests[hypothesis as usize].max(score);
+        bests[hypothesis.0 as usize] = bests[hypothesis.0 as usize].max(score);
     }
     for index in (0..analysis.layers.key_hypotheses.len()).rev() {
         let parent = analysis.layers.key_hypotheses[index].parent;
-        if parent != NONE {
-            debug_assert!((parent as usize) < index, "a parent precedes its children");
-            bests[parent as usize] = bests[parent as usize].max(bests[index]);
+        if parent != KeyHypothesisId::NONE {
+            debug_assert!((parent.0 as usize) < index, "a parent precedes its children");
+            bests[parent.0 as usize] = bests[parent.0 as usize].max(bests[index]);
         }
     }
     bests
@@ -47,7 +47,7 @@ mod tests {
         let analysis = analysis();
         let bests = descendant_bests(&analysis);
         let first =
-            analysis.snapshots[0].iter().map(|&n| bests[n as usize]).fold(f32::NEG_INFINITY, f32::max);
+            analysis.snapshots[0].iter().map(|&n| bests[n.0 as usize]).fold(f32::NEG_INFINITY, f32::max);
         assert_eq!(first, analysis.ranking[0].1);
     }
 
@@ -55,14 +55,15 @@ mod tests {
     fn a_final_hypothesis_carries_its_own_score() {
         let analysis = analysis();
         let (hypothesis, score) = analysis.ranking[analysis.ranking.len() - 1];
-        assert_eq!(descendant_bests(&analysis)[hypothesis as usize], score);
+        assert_eq!(descendant_bests(&analysis)[hypothesis.0 as usize], score);
     }
 
     #[test]
     fn every_parent_precedes_its_children() {
         let analysis = analysis();
         let hypotheses = &analysis.layers.key_hypotheses;
-        let precedes = |i: usize| hypotheses[i].parent == NONE || (hypotheses[i].parent as usize) < i;
+        let precedes =
+            |i: usize| hypotheses[i].parent == KeyHypothesisId::NONE || (hypotheses[i].parent.0 as usize) < i;
         assert!((0..hypotheses.len()).all(precedes));
     }
 
@@ -76,7 +77,7 @@ mod tests {
             .rev()
             .skip(1)
             .flatten()
-            .any(|&n| bests[n as usize] == f32::NEG_INFINITY);
+            .any(|&n| bests[n.0 as usize] == f32::NEG_INFINITY);
         assert!(pruned_away);
     }
 }

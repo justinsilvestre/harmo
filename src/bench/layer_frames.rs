@@ -3,6 +3,7 @@
 
 use super::layer_offers::{LayerLimits, LayerOffers, by_shortfall, layer_offers};
 use super::runner::{BenchPiece, EvalConfig, lagged_beam, reading_at, slice_values_by_frame};
+use crate::engine::model::KeyHypothesisId;
 use crate::engine::search::Analysis;
 use crate::theory::label::Label;
 
@@ -40,7 +41,7 @@ pub fn hindsight_frames(
         let Some(beam) = lagged_beam(analysis, slices, at, config.offer_lag) else {
             return LayerOffers::default();
         };
-        let held = held_readings(analysis, beam.iter().copied(), at, |n| bests[n as usize]);
+        let held = held_readings(analysis, beam.iter().copied(), at, |n| bests[n.0 as usize]);
         let numerals = by_shortfall(held.iter().copied(), best, config.offer_margin, config.offer_count);
         let offers = layer_offers(&held, best, &config.layer_limits());
         LayerOffers { numerals: numerals.into_iter().map(|(label, _)| label).collect(), ..offers }
@@ -56,7 +57,7 @@ fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalCo
     let Some(&first) = beam.first() else {
         return LayerOffers::default();
     };
-    let score = |hypothesis: u32| analysis.layers.key_hypotheses[hypothesis as usize].score;
+    let score = |hypothesis: KeyHypothesisId| analysis.layers.key_hypothesis(hypothesis).score;
     let limits = config.layer_limits();
     let reach = limits.key_margin.max(limits.chord_margin).max(limits.numeral_margin);
     let close = beam.iter().copied().take_while(|&n| score(first) - score(n) <= reach);
@@ -66,9 +67,9 @@ fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalCo
 /// Returns each hypothesis's value with its label of slice `at`.
 fn held_readings(
     analysis: &Analysis,
-    hypotheses: impl Iterator<Item = u32>,
+    hypotheses: impl Iterator<Item = KeyHypothesisId>,
     at: usize,
-    value: impl Fn(u32) -> f32,
+    value: impl Fn(KeyHypothesisId) -> f32,
 ) -> Vec<(f32, Label)> {
     hypotheses.filter_map(|n| Some((value(n), reading_at(analysis, n, at)?))).collect()
 }

@@ -2,7 +2,7 @@
 //! and how the hypotheses that pruning keeps are stored.
 
 use super::layers::Layers;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeySegment};
+use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId, KeySegment};
 
 /// The index of a chord hypothesis among those proposed at one slice, before they are stored.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -45,7 +45,7 @@ pub fn commit(
     layers: &mut Layers,
     chord_hypotheses: &[ChordHypothesis],
     kept: Vec<PendingKeyHypothesis>,
-) -> Vec<u32> {
+) -> Vec<KeyHypothesisId> {
     let first = layers.key_hypotheses.len() as u32;
     let mut stored = vec![ChordHypothesisId::NONE; chord_hypotheses.len()];
     for hypothesis in kept {
@@ -64,13 +64,13 @@ pub fn commit(
             score,
         });
     }
-    (first..layers.key_hypotheses.len() as u32).collect()
+    (first..layers.key_hypotheses.len() as u32).map(KeyHypothesisId).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Function, NONE};
+    use crate::engine::model::Function;
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
@@ -93,8 +93,8 @@ mod tests {
         let mut layers =
             Layers { chord_hypotheses: chord_hypotheses()[..1].to_vec(), key_hypotheses: vec![] };
         let pending = |&chord_hypothesis: &u32| KeyHypothesis {
-            parent: NONE,
-            previous: NONE,
+            parent: KeyHypothesisId::NONE,
+            previous: KeyHypothesisId::NONE,
             chord_hypothesis: PendingChordHypothesisId(chord_hypothesis),
             function,
             score: 0.0,

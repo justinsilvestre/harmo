@@ -1,7 +1,7 @@
 use super::*;
 use crate::engine::key_contexts::{Rival, RivalContext};
 use crate::engine::key_hooks::KeyHook;
-use crate::engine::model::{Function, NONE, Reading};
+use crate::engine::model::{Function, KeyHypothesisId, Reading};
 use crate::engine::pending::PendingKeyHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{i_v_i, key_segment, layers_of, slice_of};
@@ -61,7 +61,7 @@ fn rules_with(rival_hook: bool) -> RuleSet {
 /// Proposes the hypotheses of a C major slice after a beam that holds the given readings
 /// of the slice before, best first.
 fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
-    let previous = vec![NONE; readings.len()];
+    let previous = vec![KeyHypothesisId::NONE; readings.len()];
     let mut layers = layers_of(&readings.iter().map(|&r| key_segment(r)).collect::<Vec<_>>(), &previous);
     for (i, hypothesis) in layers.key_hypotheses.iter_mut().enumerate() {
         hypothesis.score = -(i as f32);
@@ -70,12 +70,12 @@ fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
         slice_of(0.0, &[("G", 43), ("B", 62), ("D", 67)]),
         slice_of(1.0, &[("C", 48), ("E", 64), ("G", 67)]),
     ];
-    let beam: Vec<u32> = (0..readings.len() as u32).collect();
+    let beam: Vec<KeyHypothesisId> = (0..readings.len() as u32).map(KeyHypothesisId).collect();
     step(&Moment { slices: &slices, index: 1, layers: &layers }, &beam, rules, &Config::default())
 }
 
 /// Returns the pending chord hypothesis of each hypothesis that opens a C major chord after `parent`.
-fn c_major_chord_hypotheses(pending: &Pending, parent: u32) -> Vec<PendingChordHypothesisId> {
+fn c_major_chord_hypotheses(pending: &Pending, parent: KeyHypothesisId) -> Vec<PendingChordHypothesisId> {
     let c_major = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
     let opens_c = |h: &&PendingKeyHypothesis| {
         h.parent == parent
@@ -88,7 +88,7 @@ fn c_major_chord_hypotheses(pending: &Pending, parent: u32) -> Vec<PendingChordH
 #[test]
 fn readings_of_one_chord_after_one_chord_hypothesis_share_a_chord_hypothesis() {
     let pending = step_after(&[in_c("G", Quality::Major)], &rules_with(false));
-    let chord_hypotheses = c_major_chord_hypotheses(&pending, 0);
+    let chord_hypotheses = c_major_chord_hypotheses(&pending, KeyHypothesisId(0));
     assert!(chord_hypotheses.len() > 1 && chord_hypotheses.iter().all(|&h| h == chord_hypotheses[0]));
 }
 
@@ -96,7 +96,9 @@ fn readings_of_one_chord_after_one_chord_hypothesis_share_a_chord_hypothesis() {
 fn a_new_segment_after_a_rival_has_a_chord_hypothesis_of_its_own() {
     let rules = rules_with(true);
     let pending = step_after(&[in_c("G", Quality::Major), in_c("G", Quality::DominantSeventh)], &rules);
-    let (after_best, after_rival) =
-        (c_major_chord_hypotheses(&pending, 0), c_major_chord_hypotheses(&pending, 1));
+    let (after_best, after_rival) = (
+        c_major_chord_hypotheses(&pending, KeyHypothesisId(0)),
+        c_major_chord_hypotheses(&pending, KeyHypothesisId(1)),
+    );
     assert!(!after_rival.is_empty() && after_rival.iter().all(|h| !after_best.contains(h)));
 }

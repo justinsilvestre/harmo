@@ -1,6 +1,6 @@
 //! Tracks how a reading's standing in the beam changes as the music unfolds.
 
-use super::model::{KeySegment, Reading};
+use super::model::{KeyHypothesisId, KeySegment, Reading};
 use super::pruning::{Departure, PruneCause};
 use super::search::Analysis;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub struct RankChange {
 pub struct ReadingHistory {
     pub reading: Reading,
     /// The best hypothesis holding the reading in the beam of the slice itself.
-    pub hypothesis: u32,
+    pub hypothesis: KeyHypothesisId,
     pub changes: Vec<RankChange>,
 }
 
@@ -52,10 +52,10 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
             break;
         }
         let (previous, beam) = (&analysis.snapshots[slice - 1], &analysis.snapshots[slice]);
-        let held_by_parent = |parent: u32| held[(parent - previous[0]) as usize];
+        let held_by_parent = |parent: KeyHypothesisId| held[(parent.0 - previous[0].0) as usize];
         let next: Vec<usize> = beam
             .iter()
-            .map(|&hypothesis| held_by_parent(analysis.layers.key_hypotheses[hypothesis as usize].parent))
+            .map(|&hypothesis| held_by_parent(analysis.layers.key_hypothesis(hypothesis).parent))
             .collect();
         let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
         for (position, &id) in next.iter().enumerate() {
@@ -84,12 +84,11 @@ fn departure(
     analysis: &Analysis,
     slice: usize,
     last_rank: usize,
-    holds: impl Fn(u32) -> bool,
+    holds: impl Fn(KeyHypothesisId) -> bool,
 ) -> Option<Departure> {
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
     let beam = &analysis.snapshots[slice];
-    let best =
-        beam.first().map_or(pruned.score, |&first| analysis.layers.key_hypotheses[first as usize].score);
+    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.key_hypothesis(first).score);
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
         PruneCause::Width | PruneCause::ChordHypothesisWidth => None,
@@ -99,18 +98,18 @@ fn departure(
         competing_rank: pruned.rank,
         score_gap: best - pruned.score,
         cause: pruned.cause.name(),
-        merged_into_rank: keeper.map(|k| (k - beam[0]) as usize + 1),
+        merged_into_rank: keeper.map(|k| (k.0 - beam[0].0) as usize + 1),
         merged_into: keeper,
     })
 }
 
 /// Returns the reading that the hypothesis ending at `hypothesis` assigns to slice `at`.
-pub fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Reading> {
+pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<Reading> {
     segment_at(analysis, hypothesis, at).map(|s| s.reading())
 }
 
 /// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.
-pub fn segment_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<KeySegment> {
+pub fn segment_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<KeySegment> {
     let layers = &analysis.layers;
     layers.path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
 }

@@ -2,7 +2,7 @@
 
 use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
 use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
-use super::model::{ChordHypothesisId, ChordSegment, KeySegment, NONE};
+use super::model::{ChordHypothesisId, ChordSegment, KeyHypothesisId, KeySegment};
 use super::moment::Moment;
 use super::proposals::{Opening, ProposedChord};
 use super::ruleset::RuleSet;
@@ -25,8 +25,8 @@ pub struct ChordExit {
 /// What leaving a hypothesis on the moment's slice scores in the key layer.
 /// Its departure scores count only for new readings in another key.
 pub struct KeyExit {
-    /// The hypothesis, or `NONE` at the start of the piece.
-    pub hypothesis: u32,
+    /// The hypothesis, or `KeyHypothesisId::NONE` at the start of the piece.
+    pub hypothesis: KeyHypothesisId,
     /// The position in `Exits::chords` of the exit of the chord hypothesis that the hypothesis interprets.
     pub chord_exit: usize,
     /// The hypothesis's score before it is left.
@@ -58,14 +58,19 @@ pub struct Predecessor {
 impl Exits {
     /// Returns the exits of the hypotheses in the beam,
     /// or the exit from the start of the piece when the beam is empty.
-    pub fn of(moment: &Moment, beam: &[u32], proposed: &[ProposedChord], rules: &RuleSet) -> Exits {
+    pub fn of(
+        moment: &Moment,
+        beam: &[KeyHypothesisId],
+        proposed: &[ProposedChord],
+        rules: &RuleSet,
+    ) -> Exits {
         if beam.is_empty() {
             return Exits::from_start(moment, proposed, rules);
         }
         let (mut chords, mut keys) = (Vec::new(), Vec::with_capacity(beam.len()));
         let mut positions: HashMap<ChordHypothesisId, usize> = HashMap::new();
         for &hypothesis in beam {
-            let chord_hypothesis = moment.layers.key_hypotheses[hypothesis as usize].chord_hypothesis;
+            let chord_hypothesis = moment.layers.key_hypothesis(hypothesis).chord_hypothesis;
             let chord_exit = *positions.entry(chord_hypothesis).or_insert_with(|| {
                 chords.push(chord_exit(moment, chord_hypothesis, proposed, rules));
                 chords.len() - 1
@@ -81,7 +86,7 @@ impl Exits {
             ChordExit { chord_hypothesis: ChordHypothesisId::NONE, score: 0.0, close: 0.0, transitions };
         let (departures, rivals) = (Vec::new(), Vec::new());
         let key = KeyExit {
-            hypothesis: NONE,
+            hypothesis: KeyHypothesisId::NONE,
             chord_exit: 0,
             score: 0.0,
             segment: None,
@@ -164,7 +169,7 @@ fn chord_transitions(
     proposed.iter().map(score).collect()
 }
 
-fn key_exit(moment: &Moment, hypothesis: u32, chord_exit: usize, rules: &RuleSet) -> KeyExit {
+fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rules: &RuleSet) -> KeyExit {
     let segment = moment.layers.segment(hypothesis);
     let departure = KeyDepartureContext {
         previous: &segment,
@@ -180,7 +185,7 @@ fn key_exit(moment: &Moment, hypothesis: u32, chord_exit: usize, rules: &RuleSet
     KeyExit {
         hypothesis,
         chord_exit,
-        score: moment.layers.key_hypotheses[hypothesis as usize].score,
+        score: moment.layers.key_hypothesis(hypothesis).score,
         segment: Some(segment),
         close: key_close(moment.slices, &segment, moment.index, rules),
         departures: rules.key.score_departures(&departure),
