@@ -31,16 +31,21 @@ pub fn trace_segment(
     segment: &SegmentReading,
 ) -> Vec<Contribution> {
     let state = analysis.segment(segment.node);
-    let hearing = &analysis.chords[analysis.arena[segment.node as usize].chord as usize].segment;
+    let hearing = &analysis.hearings[analysis.hypotheses[segment.node as usize].hearing as usize].segment;
     let previous = (state.previous != NONE).then(|| analysis.segment(state.previous));
     let previous_hearing =
-        (hearing.previous != NONE).then(|| &analysis.chords[hearing.previous as usize].segment);
+        (hearing.previous != NONE).then(|| &analysis.hearings[hearing.previous as usize].segment);
     let (first, end) = segment.slices;
     let transition = TransitionContext {
         previous: previous.as_ref(),
         next: &segment.reading,
         slice: &slices[first],
-        history: History { arena: &analysis.arena, chords: &analysis.chords, slices, last: state.previous },
+        history: History {
+            hypotheses: &analysis.hypotheses,
+            hearings: &analysis.hearings,
+            slices,
+            last: state.previous,
+        },
     };
     let chord_transition = ChordTransitionContext {
         previous: previous_hearing,

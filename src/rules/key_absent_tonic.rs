@@ -71,11 +71,11 @@ mod tests {
     /// Scores leaving the key of the path's last segment.
     fn depart(chords: &[(&str, &str)]) -> f32 {
         let segments = path(chords);
-        let (arena, chords) = arenas_of(&segments);
-        let last = arena.len() as u32 - 1;
+        let (hypotheses, hearings) = arenas_of(&segments);
+        let last = hypotheses.len() as u32 - 1;
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         let slice = Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None };
-        let history = History { arena: &arena, chords: &chords, slices: &[], last };
+        let history = History { hypotheses: &hypotheses, hearings: &hearings, slices: &[], last };
         absent_tonic(&DepartureContext { previous: &segments[last as usize], slice: &slice, history }, &[])
     }
 

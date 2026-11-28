@@ -1,7 +1,7 @@
 //! The interface between the engine and the rules it hooks into.
 
 use super::bass::{Bass, BassNote};
-use super::model::{Category, ChordNode, ChordSegment, NONE, Node, Reading, Segment, segment_of};
+use super::model::{Category, ChordSegment, Hearing, Hypothesis, NONE, Reading, Segment, segment_of};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -245,40 +245,40 @@ pub struct RivalContext<'a> {
 /// read them.
 #[derive(Clone, Copy)]
 pub struct History<'a> {
-    pub arena: &'a [Node],
-    pub chords: &'a [ChordNode],
+    pub hypotheses: &'a [Hypothesis],
+    pub hearings: &'a [Hearing],
     /// Every slice of the score, so that a past segment's slices can be read from its `start`.
     pub slices: &'a [Slice],
-    /// Arena index of the last node of the most recent segment, or `NONE`.
+    /// Index in the hypotheses of the last hypothesis of the most recent segment, or `NONE`.
     pub last: u32,
 }
 
 impl<'a> History<'a> {
     pub fn segments(self) -> impl Iterator<Item = Segment> + 'a {
-        let (arena, chords) = (self.arena, self.chords);
-        let at = move |node: u32| (node != NONE).then(|| segment_of(arena, chords, node));
+        let (hypotheses, hearings) = (self.hypotheses, self.hearings);
+        let at = move |node: u32| (node != NONE).then(|| segment_of(hypotheses, hearings, node));
         std::iter::successors(at(self.last), move |s| at(s.previous))
     }
 
     /// A history with no segments before it.
     pub fn empty(slices: &'a [Slice]) -> History<'a> {
-        History { arena: &[], chords: &[], slices, last: NONE }
+        History { hypotheses: &[], hearings: &[], slices, last: NONE }
     }
 }
 
 /// Builds the arenas of a chain of segments, for tests: segment i becomes node i, whose `previous`
 /// is taken from the segment.
 #[cfg(test)]
-pub fn arenas_of(segments: &[Segment]) -> (Vec<Node>, Vec<ChordNode>) {
-    let node = |(i, s): (usize, &Segment)| Node {
+pub fn arenas_of(segments: &[Segment]) -> (Vec<Hypothesis>, Vec<Hearing>) {
+    let node = |(i, s): (usize, &Segment)| Hypothesis {
         parent: s.previous,
         slice: i as u32,
-        chord: i as u32,
+        hearing: i as u32,
         reading: s.reading.key_reading(),
         previous: s.previous,
         score: 0.0,
     };
-    let chord = |(i, s): (usize, &Segment)| ChordNode {
+    let chord = |(i, s): (usize, &Segment)| Hearing {
         parent: s.previous,
         slice: i as u32,
         segment: s.chord_segment(s.previous),

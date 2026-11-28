@@ -216,7 +216,7 @@ pub fn print_timing(results: &[PieceResult]) {
         sum(|r| r.seconds)
     );
     let slices = results.iter().map(|r| r.slices).sum::<usize>().max(1) as f64;
-    let (hypotheses, hearings) = (sum(|r| r.timing.arena.0 as f64), sum(|r| r.timing.arena.1 as f64));
+    let (hypotheses, hearings) = (sum(|r| r.timing.hypotheses as f64), sum(|r| r.timing.hearings as f64));
     println!(
         "search kept per slice: {:.1} hypotheses, {:.1} chord hearings",
         hypotheses / slices,

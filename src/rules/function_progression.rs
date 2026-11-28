@@ -210,7 +210,7 @@ mod tests {
     /// Scores reading D major as V/V in C major after the given chords.
     fn secondary_dominant_after(chords: &[(&str, Quality, Option<&str>)]) -> f32 {
         let segments = path(chords);
-        let (arena, chords) = arenas_of(&segments);
+        let (hypotheses, hearings) = arenas_of(&segments);
         let mut next = reading("C", "D", Quality::Major, Category::Applied);
         next.tonicized = Key::parse("G", "major");
         let slice = Slice {
@@ -222,8 +222,8 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let last = arena.len() as u32 - 1;
-        let history = History { arena: &arena, chords: &chords, slices: &[], last };
+        let last = hypotheses.len() as u32 - 1;
+        let history = History { hypotheses: &hypotheses, hearings: &hearings, slices: &[], last };
         let previous = Some(&segments[last as usize]);
         diatonic_preference(
             &TransitionContext { previous, next: &next, slice: &slice, history },

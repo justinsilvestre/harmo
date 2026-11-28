@@ -54,7 +54,7 @@ fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalCo
     let Some(&first) = beam.first() else {
         return LayerOffers::default();
     };
-    let score = |node: u32| analysis.arena[node as usize].score;
+    let score = |node: u32| analysis.hypotheses[node as usize].score;
     let limits = config.layer_limits();
     let reach = limits.key_margin.max(limits.chord_margin).max(limits.numeral_margin);
     let close = beam.iter().copied().take_while(|&n| score(first) - score(n) <= reach);

@@ -167,8 +167,13 @@ mod tests {
     /// phrases (one more slice than the path, for the new segment).
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
         let segments = path(chords);
-        let (arena, chords) = arenas_of(&segments);
-        let history = History { arena: &arena, chords: &chords, slices, last: arena.len() as u32 - 1 };
+        let (hypotheses, hearings) = arenas_of(&segments);
+        let history = History {
+            hypotheses: &hypotheses,
+            hearings: &hearings,
+            slices,
+            last: hypotheses.len() as u32 - 1,
+        };
         unconfirmed_departure(
             &DepartureContext {
                 previous: &segments[segments.len() - 1],

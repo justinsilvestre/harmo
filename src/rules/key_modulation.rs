@@ -104,9 +104,14 @@ mod tests {
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
         let segments = arena(segments);
-        let (arena, chords) = arenas_of(&segments);
+        let (hypotheses, hearings) = arenas_of(&segments);
         area_heard(
-            History { arena: &arena, chords: &chords, slices: &[], last: arena.len() as u32 - 1 },
+            History {
+                hypotheses: &hypotheses,
+                hearings: &hearings,
+                slices: &[],
+                last: hypotheses.len() as u32 - 1,
+            },
             reading("C").key,
             16.0,
         )
@@ -115,8 +120,8 @@ mod tests {
     /// Scores leaving the key of the given segments.
     fn leaving(segments: &[(&str, f64)]) -> f32 {
         let segments = arena(segments);
-        let (arena, chords) = arenas_of(&segments);
-        let last = arena.len() as u32 - 1;
+        let (hypotheses, hearings) = arenas_of(&segments);
+        let last = hypotheses.len() as u32 - 1;
         let slice = Slice {
             start: 0.0,
             duration: 1.0,
@@ -129,7 +134,7 @@ mod tests {
         let context = DepartureContext {
             previous: &segments[last as usize],
             slice: &slice,
-            history: History { arena: &arena, chords: &chords, slices: &[], last },
+            history: History { hypotheses: &hypotheses, hearings: &hearings, slices: &[], last },
         };
         area_duration(&context, &RULES[1].default_params())
     }

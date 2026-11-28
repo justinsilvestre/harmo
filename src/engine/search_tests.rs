@@ -22,22 +22,22 @@ fn segment(root: &str, start: u32, previous: u32) -> Segment {
     }
 }
 
-/// Two opening segments with the given roots (arena nodes 0 and 1), and two hypotheses that move to
+/// Two opening segments with the given roots (hypotheses 0 and 1), and two hypotheses that move to
 /// G after the first and the second of them respectively, with scores -2 and -1.
 struct Fixture {
-    arena: Vec<Node>,
-    chords: Vec<ChordNode>,
-    pending: Vec<Node>,
+    hypotheses: Vec<Hypothesis>,
+    hearings: Vec<Hearing>,
+    pending: Vec<Hypothesis>,
 }
 
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
     let segments =
         [segment(first_root, 0, NONE), segment(second_root, 0, NONE), segment("G", 1, 0), segment("G", 2, 1)];
-    let (mut arena, chords) = arenas_of(&segments);
-    let mut pending = arena.split_off(2);
+    let (mut hypotheses, hearings) = arenas_of(&segments);
+    let mut pending = hypotheses.split_off(2);
     pending[0].score = -2.0;
     pending[1].score = -1.0;
-    Fixture { arena, chords, pending }
+    Fixture { hypotheses, hearings, pending }
 }
 
 /// A rule set whose only rule counts segments with equal readings as the same.
@@ -47,9 +47,9 @@ fn distinguishing_rules() -> RuleSet {
 }
 
 fn pruned(fixture: Fixture, rules: &RuleSet, config: &Config) -> (Vec<u32>, Vec<PruneCause>) {
-    let Fixture { arena, chords, pending } = fixture;
-    let (kept, dropped) = prune(pending, &arena, &chords, rules, config);
-    let starts = kept.iter().map(|n| chords[n.chord as usize].segment.start).collect();
+    let Fixture { hypotheses, hearings, pending } = fixture;
+    let (kept, dropped) = prune(pending, &hypotheses, &hearings, rules, config);
+    let starts = kept.iter().map(|n| hearings[n.hearing as usize].segment.start).collect();
     (starts, dropped.iter().map(|p| p.cause).collect())
 }
 
@@ -114,11 +114,11 @@ fn prune_keeps_at_most_beam_width_hypotheses() {
 
 #[test]
 fn hearings_that_no_kept_hypothesis_interprets_are_dropped() {
-    let Fixture { mut chords, mut pending, .. } = fixture("C", "F");
+    let Fixture { mut hearings, mut pending, .. } = fixture("C", "F");
     pending.truncate(1);
-    pending[0].chord = 3;
-    keep_heard_chords(&mut chords, 2, &mut pending);
-    assert_eq!((chords.len(), pending[0].chord, chords[2].segment.start), (3, 2, 2));
+    pending[0].hearing = 3;
+    keep_interpreted_hearings(&mut hearings, 2, &mut pending);
+    assert_eq!((hearings.len(), pending[0].hearing, hearings[2].segment.start), (3, 2, 2));
 }
 
 fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
@@ -138,9 +138,9 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
         hook: crate::engine::rule::Hook::Rival(same_group),
     };
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
-    let (mut arena, mut chords) = arenas_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);
+    let (mut hypotheses, mut hearings) = arenas_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);
     for (i, score) in scores.into_iter().enumerate() {
-        (arena[i].score, arena[i].slice, chords[i].slice) = (score, 2, 2);
+        (hypotheses[i].score, hypotheses[i].slice, hearings[i].slice) = (score, 2, 2);
     }
     let slice = Slice {
         start: 0.0,
@@ -153,10 +153,11 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
     };
     let slices = vec![slice; 4];
     let beam = [0, 1];
-    let exits: Vec<Exit> = beam.iter().map(|&b| exit(&slices, 3, &arena, &chords, b, &rules)).collect();
+    let exits: Vec<Exit> =
+        beam.iter().map(|&b| exit(&slices, 3, &hypotheses, &hearings, b, &rules)).collect();
     let opening = Opening { reading: reading("C"), fit: 0.0, chord_fit: 0.0, chord_id: 0 };
-    let transitions = chord_transitions(&slices, 3, &[opening.reading.chord], &exits, &chords, &rules);
-    let layers = (arena.as_slice(), chords.as_slice());
+    let transitions = chord_transitions(&slices, 3, &[opening.reading.chord], &exits, &hearings, &rules);
+    let layers = (hypotheses.as_slice(), hearings.as_slice());
     let found = predecessors(&opening, &slices, 3, layers, &beam, &exits, &transitions, &rules);
     found.iter().map(|&(position, _)| beam[position.unwrap()]).collect()
 }

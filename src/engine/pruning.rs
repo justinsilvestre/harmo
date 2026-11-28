@@ -4,7 +4,7 @@
 //! the search by being pruned. A reading that the beam holds for some slice therefore leaves it
 //! exactly when pruning drops the last hypotheses that hold it.
 
-use super::model::{Node, Segment};
+use super::model::{Hypothesis, Segment};
 use serde::Serialize;
 
 /// Why pruning dropped a hypothesis.
@@ -16,7 +16,7 @@ pub enum PruneCause {
     /// better hypothesis, and this hypothesis interprets another.
     HearingWidth,
     /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
-    /// as the same was kept instead. `keeper` is its arena index.
+    /// as the same was kept instead. `keeper` is its index in the hypotheses.
     Merged { keeper: u32 },
 }
 
@@ -35,7 +35,7 @@ impl PruneCause {
 pub struct Pruned {
     /// The hypothesis. Its `chord` index is not meaningful, since the hearing it interpreted may
     /// have been dropped with it.
-    pub node: Node,
+    pub node: Hypothesis,
     /// Its last segment, as both layers read it.
     pub segment: Segment,
     /// Its rank (1 = best) among all the hypotheses that competed for the beam at that slice.
@@ -56,7 +56,7 @@ pub struct Departure {
     pub cause: &'static str,
     /// For `distinct_depth`, the rank in the new beam of the hypothesis kept in its place.
     pub merged_into_rank: Option<usize>,
-    /// The arena index of that hypothesis.
+    /// The index of that hypothesis in the hypotheses.
     #[serde(skip)]
     pub merged_into: Option<u32>,
 }

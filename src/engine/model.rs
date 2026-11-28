@@ -7,7 +7,7 @@ use crate::theory::chord::Chord;
 use crate::theory::key::Key;
 use serde::Serialize;
 
-/// Marks the absence of a node index.
+/// Marks the absence of an index into the hypotheses or the hearings.
 pub const NONE: u32 = u32::MAX;
 
 /// How a chord relates to the key it is read in.
@@ -55,7 +55,7 @@ pub struct ChordSegment {
     pub chord: Chord,
     /// Index of the first slice in the segment.
     pub start: u32,
-    /// Index in the chord arena of the last chord node of the preceding segment, or `NONE`.
+    /// Index in the hearings of the last hearing of the preceding segment, or `NONE`.
     pub previous: u32,
     pub duration: f64,
     /// Bit i is set once chord member i (root, third, fifth, seventh) has sounded.
@@ -65,8 +65,8 @@ pub struct ChordSegment {
 
 /// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
-pub struct ChordNode {
-    /// Index in the chord arena of the hearing up to the slice before, or `NONE`.
+pub struct Hearing {
+    /// Index in the hearings of the hearing up to the slice before, or `NONE`.
     pub parent: u32,
     pub slice: u32,
     pub segment: ChordSegment,
@@ -74,17 +74,17 @@ pub struct ChordNode {
     pub score: f32,
 }
 
-/// A hypothesis, or complete interpretation: a key node, which reads the latest segment of one
+/// A hypothesis, or complete interpretation, which reads the latest segment of one
 /// hearing of the chords in a key, and through its parents every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
-pub struct Node {
-    /// Index in the arena of the hypothesis up to the slice before, or `NONE`.
+pub struct Hypothesis {
+    /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
     pub parent: u32,
     pub slice: u32,
-    /// Index in the chord arena of the hearing of the chords that this hypothesis interprets.
-    pub chord: u32,
+    /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
+    pub hearing: u32,
     pub reading: KeyReading,
-    /// Index in the arena of the last node of the preceding segment, or `NONE`.
+    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
     /// The sum of every weighted rule score along the hypothesis, both layers included.
     pub score: f32,
@@ -97,7 +97,7 @@ pub struct Segment {
     pub reading: Reading,
     /// Index of the first slice in the segment.
     pub start: u32,
-    /// Arena index of the last node of the preceding segment, or `NONE`.
+    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
     pub duration: f64,
     /// Bit i is set once chord member i (root, third, fifth, seventh) has sounded.
@@ -106,14 +106,14 @@ pub struct Segment {
 }
 
 /// Returns the segment that the hypothesis `node` ends in, as both layers read it.
-pub fn segment_of(arena: &[Node], chords: &[ChordNode], node: u32) -> Segment {
-    let hypothesis = &arena[node as usize];
-    Segment::join(&chords[hypothesis.chord as usize].segment, hypothesis.reading, hypothesis.previous)
+pub fn segment_of(hypotheses: &[Hypothesis], hearings: &[Hearing], node: u32) -> Segment {
+    let hypothesis = &hypotheses[node as usize];
+    Segment::join(&hearings[hypothesis.hearing as usize].segment, hypothesis.reading, hypothesis.previous)
 }
 
 impl Segment {
-    /// Joins a chord segment with its reading in a key; `previous` is the arena index of the last
-    /// node of the preceding segment.
+    /// Joins a chord segment with its reading in a key; `previous` is the index in the hypotheses
+    /// of the last hypothesis of the preceding segment.
     pub fn join(chord: &ChordSegment, reading: KeyReading, previous: u32) -> Segment {
         Segment {
             reading: Reading::of(chord.chord, reading),

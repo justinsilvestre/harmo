@@ -17,11 +17,11 @@ The same probe looked at new segments that open on a slice and stay in the beam.
 ## The model
 
 **Two layers, two arenas.**
-- **The chord layer** holds hearings of the chords: where segments begin, each segment's chord and its bass. A chord node records the chord layer's state at one slice and its score from the chord rules alone.
-- **The key layer** holds interpretations of those hearings: each key node reads one chord node's latest segment in a key, with its function there (the tonicized key, if any, and the category). Its score adds the key and function rules.
-- **A complete interpretation** is a key node. Its score is the chord node's score plus the key layer's, the sum that Temperley uses for interacting preference rule systems (2001, pp. 157–158).
+- **The chord layer** holds hearings of the chords: where segments begin, each segment's chord and its bass. A hearing records the chord layer's state at one slice and its score from the chord rules alone.
+- **The key layer** holds hypotheses that interpret those hearings: each hypothesis reads one hearing's latest segment in a key, with its function there (the tonicized key, if any, and the category). Its own score comes from the key and function rules.
+- **A complete interpretation** is a hypothesis. Its score is its hearing's score plus the key layer's, the sum that Temperley uses for interacting preference rule systems (2001, pp. 157–158).
 
-Several key nodes can interpret the same chord node, so a chord hearing is scored once and shared. This is also the order of Temperley's own Roman numeral program, which runs the harmonic analysis first and gives its output to the key analysis (2001, pp. 188–189).
+Several hypotheses can interpret the same hearing, so a hearing is scored once and shared. This is also the order of Temperley's own Roman numeral program, which runs the harmonic analysis first and gives its output to the key analysis (2001, pp. 188–189).
 
 ## The open questions
 

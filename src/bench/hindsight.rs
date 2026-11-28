@@ -5,20 +5,20 @@
 use crate::engine::model::NONE;
 use crate::engine::search::Analysis;
 
-/// Returns, for every node of the arena, the best final score among the final hypotheses that
+/// Returns, for every hypothesis, the best final score among the final hypotheses that
 /// descend from it (itself included), or negative infinity when none survived to the end.
 ///
-/// A node is added to the arena after its parent, so one sweep from the last node to the first
+/// A hypothesis is added after its parent, so one sweep from the last hypothesis to the first
 /// carries every final score back to all of its ancestors.
 pub fn descendant_bests(analysis: &Analysis) -> Vec<f32> {
-    let mut bests = vec![f32::NEG_INFINITY; analysis.arena.len()];
+    let mut bests = vec![f32::NEG_INFINITY; analysis.hypotheses.len()];
     for &(node, score) in &analysis.ranking {
         bests[node as usize] = bests[node as usize].max(score);
     }
-    for index in (0..analysis.arena.len()).rev() {
-        let parent = analysis.arena[index].parent;
+    for index in (0..analysis.hypotheses.len()).rev() {
+        let parent = analysis.hypotheses[index].parent;
         if parent != NONE {
-            debug_assert!((parent as usize) < index, "a parent precedes its children in the arena");
+            debug_assert!((parent as usize) < index, "a parent precedes its children");
             bests[parent as usize] = bests[parent as usize].max(bests[index]);
         }
     }
@@ -60,8 +60,9 @@ mod tests {
     #[test]
     fn every_parent_precedes_its_children() {
         let analysis = analysis();
-        let arena = &analysis.arena;
-        assert!((0..arena.len()).all(|i| arena[i].parent == NONE || (arena[i].parent as usize) < i));
+        let hypotheses = &analysis.hypotheses;
+        let precedes = |i: usize| hypotheses[i].parent == NONE || (hypotheses[i].parent as usize) < i;
+        assert!((0..hypotheses.len()).all(precedes));
     }
 
     #[test]

@@ -14,7 +14,7 @@ pub struct SegmentReading {
     pub end: Offset,
     pub reading: Reading,
     pub label: Label,
-    /// Arena index of the segment's last node.
+    /// Index in the hypotheses of the segment's last hypothesis.
     pub node: u32,
 }
 
@@ -23,7 +23,7 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<Segm
     let mut segments = Vec::new();
     let mut current = node;
     while current != NONE {
-        let last = &analysis.arena[current as usize];
+        let last = &analysis.hypotheses[current as usize];
         let segment = analysis.segment(current);
         let (first, end) = (segment.start as usize, last.slice as usize + 1);
         let reading = segment.reading;
