@@ -3,13 +3,13 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
 use crate::engine::model::Category;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "function.rare_mediant",
-    layer: Layer::Function,
+    topic: Topic::Function,
     summary: "Avoid reading the mediant triad (iii) in major, the least used diatonic triad. A third or \
               sixth over the third degree in the bass is almost always I6 rather than iii. In minor, \
               the mediant is the major triad III; the augmented III+ is rare.",

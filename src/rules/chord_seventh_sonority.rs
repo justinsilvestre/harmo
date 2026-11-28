@@ -2,14 +2,14 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.seventh_sonority",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Read a seventh chord other than the dominant and diminished sevenths only when its root \
               and seventh sound together for a substantial share of the span (five eighths or \
               more costs nothing). Otherwise the seventh, or the root, is better read as a nonchord tone.",

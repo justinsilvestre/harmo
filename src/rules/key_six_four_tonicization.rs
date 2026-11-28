@@ -3,12 +3,12 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.six_four_tonicization",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer not to hear a cadential six-four only as a tonicization. A major or minor triad \
               in second inversion on a strong beat, followed on a weaker beat by a root-position \
               major triad or dominant seventh over the same bass, is a cadential six-four: the pair \

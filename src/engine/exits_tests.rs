@@ -2,7 +2,7 @@ use super::*;
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Function, NONE, Reading};
 use crate::engine::proposals::LayerScores;
-use crate::engine::rule::{Hook, Layer, Rule};
+use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{chord_segment, key_segment, layers_of, slice_of};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
@@ -23,7 +23,7 @@ fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
 fn rules(rival_hook: bool) -> RuleSet {
     let rule = Rule {
         id: "test.rival",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "",
         citations: &[],
         default_weight: 1.0,

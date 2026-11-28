@@ -2,13 +2,13 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
 use crate::engine::chord_hooks::{ChordHook, ChordSliceContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 
 pub const RULES: &[Rule] = &[
     Rule {
         id: "chord.compatibility",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Prefer chords whose members account for the sounding notes, valuing chord members in \
                   the order root, fifth, third, seventh. Each slice scores the mean value of its chord \
                   tones, times its duration.",
@@ -21,7 +21,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "chord.ornamental_dissonance",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Notes outside the chord cost less when a note a step away is attacked in the next \
                   slice, and more when they are attacked on a beat or held into a stronger beat \
                   (suspensions).",

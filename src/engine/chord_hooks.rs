@@ -32,11 +32,11 @@ pub enum ChordHook {
 impl ChordHook {
     pub fn kind(&self) -> &'static str {
         match self {
-            ChordHook::Propose(_) => "propose_chords",
+            ChordHook::Propose(_) => "chord_propose",
             ChordHook::Slice(_) => "chord_slice",
             ChordHook::Transition(_) => "chord_transition",
             ChordHook::Close(_) => "chord_close",
-            ChordHook::Bass(_) => "bass",
+            ChordHook::Bass(_) => "chord_bass",
         }
     }
 }

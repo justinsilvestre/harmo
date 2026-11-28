@@ -2,13 +2,13 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "function.rare_seventh",
-    layer: Layer::Function,
+    topic: Topic::Function,
     summary: "Avoid reading the rarest diatonic seventh chords: those on the tonic, mediant and \
               submediant (IM7, iii7 and vi7 in major; i7, III7 and VI7 in minor).",
     citations: &[Citation {

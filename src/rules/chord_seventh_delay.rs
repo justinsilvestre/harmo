@@ -2,13 +2,13 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.seventh_delay",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Avoid a dominant seventh chord whose seventh first sounds in a later bar than the one in \
               which the chord begins. The dominant is then heard as a triad for a bar or more, and the \
               seventh as a new event, so the triad and the seventh chord are better read as two chords.",

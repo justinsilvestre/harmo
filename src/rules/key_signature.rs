@@ -4,7 +4,7 @@ use super::sources::{
     BURSTEIN_STRAUS_2016, CAPLIN_2024, KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001, TEMPERLEY_2007,
 };
 use crate::engine::key_hooks::{KeyHook, KeySliceContext};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::model::KeySignature;
 use crate::score::slicing::Slice;
@@ -12,7 +12,7 @@ use crate::theory::key::{Key, Mode};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.signature",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer the keys of the key signature in force: its major key and its relative \
               minor. Each slice in either key earns its duration. The signature names the main key \
               of a piece and is usually kept through its modulations, so other keys must be \

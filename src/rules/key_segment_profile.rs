@@ -3,7 +3,7 @@
 use super::key_profile::profile_proportions;
 use super::sources::{CAPLIN_2024, TEMPERLEY_2001, TEMPERLEY_2007};
 use crate::engine::key_hooks::{KeyHook, KeySliceContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
@@ -12,7 +12,7 @@ use std::cell::Cell;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.segment_profile",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys under which the set of pitch classes heard in a slice's measure is likely. \
               The set holds every pitch class sounding in the measure, from its start to at most two \
               quarter notes past the slice and within the phrase, each counted once however long or \

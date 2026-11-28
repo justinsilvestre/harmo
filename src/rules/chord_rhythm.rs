@@ -2,14 +2,14 @@
 
 use super::sources::TEMPERLEY_2001;
 use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 
 pub const RULES: &[Rule] = &[
     Rule {
         id: "chord.strong_beat",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Prefer chord changes on strong beats. Every change costs something; a change on a \
                   downbeat costs nothing and one on the weakest positions costs the most.",
         citations: &[Citation { source: TEMPERLEY_2001, locator: "pp. 151, 157 (HPR 2, Strong Beat Rule)" }],
@@ -19,7 +19,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "chord.harmonic_variance",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Prefer roots close to the previous root on the line of fifths.",
         citations: &[Citation {
             source: TEMPERLEY_2001,
@@ -31,7 +31,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "chord.thin_texture_rhythm",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "In a thin texture, where the slice sounds no more than two pitch classes (a single \
                   line, octaves or two voices), avoid chord changes between beats. Each note of a \
                   line fits several chords, so a change there is weakly supported; a change on a beat \

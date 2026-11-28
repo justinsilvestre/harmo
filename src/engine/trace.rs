@@ -10,7 +10,7 @@ use super::key_hooks::{
 };
 use super::model::{HearingId, NONE};
 use super::path::SegmentReading;
-use super::rule::{Hook, Layer};
+use super::rule::{Hook, Topic};
 use super::ruleset::RuleSet;
 use super::search::Analysis;
 use crate::score::slicing::Slice;
@@ -20,7 +20,7 @@ use serde::Serialize;
 pub struct Contribution {
     pub rule: &'static str,
     pub hook: &'static str,
-    pub layer: Layer,
+    pub topic: Topic,
     /// The rule's unweighted evidence, summed over the segment.
     pub raw: f32,
     pub weighted: f32,
@@ -83,7 +83,7 @@ pub fn trace_segment(
         contributions.push(Contribution {
             rule: rule.id,
             hook: rule.hook.kind(),
-            layer: rule.layer,
+            topic: rule.topic,
             raw,
             weighted: raw * weight,
         });

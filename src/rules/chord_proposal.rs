@@ -2,14 +2,14 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::ChordHook;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, QUALITIES};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.propose_templates",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Propose every triad and seventh-chord type that contains at least two of the slice's \
               pitches as spelled (or its only pitch, when there is just one).",
     citations: &[Citation {

@@ -46,7 +46,7 @@ pub fn run(args: &Args) -> Result<(), String> {
 
 pub fn print_rules() {
     for rule in default_rules() {
-        println!("{} [{:?}, {}] weight {}", rule.id, rule.layer, rule.hook.kind(), rule.default_weight);
+        println!("{} [{:?}, {}] weight {}", rule.id, rule.topic, rule.hook.kind(), rule.default_weight);
         println!("    {}", rule.summary);
         for citation in rule.citations {
             println!("    - {} {}", citation.source, citation.locator);

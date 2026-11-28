@@ -3,13 +3,13 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.unconfirmed_departure",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer not to leave a key area that no cadence has confirmed. Leaving a key area costs \
               unless it holds a phrase ending (a fermata), a root-position V–I with the tonic on a \
               strong beat, or a cadential six-four resolving to V. An area left unconfirmed is \

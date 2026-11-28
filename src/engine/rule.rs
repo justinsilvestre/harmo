@@ -4,12 +4,31 @@ use super::chord_hooks::ChordHook;
 use super::key_hooks::KeyHook;
 use serde::Serialize;
 
-/// The layer that a rule belongs to. Function rules belong to the key layer of the search.
+/// What a rule judges: chords, keys, or the functions of chords in keys. A rule's id and file
+/// are prefixed by its topic.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
+pub enum Topic {
+    Chord,
+    Key,
+    Function,
+}
+
+impl Topic {
+    /// Returns the layer of the search whose rules judge the topic. Function rules belong to the
+    /// key layer, which hears keys and functions together.
+    pub fn layer(self) -> Layer {
+        match self {
+            Topic::Chord => Layer::Chord,
+            Topic::Key | Topic::Function => Layer::Key,
+        }
+    }
+}
+
+/// A layer of the search.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
 pub enum Layer {
     Chord,
     Key,
-    Function,
 }
 
 /// A pointer into the source catalog, e.g. a page range in a textbook.
@@ -26,7 +45,7 @@ pub struct Citation {
 #[derive(Clone, Copy)]
 pub struct Rule {
     pub id: &'static str,
-    pub layer: Layer,
+    pub topic: Topic,
     pub summary: &'static str,
     pub citations: &'static [Citation],
     pub default_weight: f32,
@@ -73,7 +92,7 @@ pub enum Hook {
 }
 
 impl Hook {
-    /// Returns the layer of the search whose state the hook receives: `Chord` or `Key`.
+    /// Returns the layer of the search whose state the hook receives.
     pub fn layer(&self) -> Layer {
         match self {
             Hook::Chord(_) => Layer::Chord,
@@ -81,6 +100,7 @@ impl Hook {
         }
     }
 
+    /// Returns the name of the hook's kind, prefixed by its layer, such as `chord_slice`.
     pub fn kind(&self) -> &'static str {
         match self {
             Hook::Chord(hook) => hook.kind(),

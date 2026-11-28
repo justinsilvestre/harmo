@@ -1,4 +1,4 @@
-//! The rule catalog. Each file holds the rules of one layer and topic, prefixed by layer.
+//! The rule catalog. Each file holds the rules of one topic, and its name is prefixed by the topic.
 
 pub mod chord_augmented_sixth;
 pub mod chord_bass;
@@ -86,11 +86,9 @@ mod tests {
         assert!(default_rules().iter().all(is_in_place));
     }
 
-    /// Returns the rules whose hook receives the state of another layer than the rule's own.
+    /// Returns the rules whose hook receives the state of another layer than that of the rule's topic.
     fn rules_outside_their_layer() -> Vec<&'static str> {
-        use crate::engine::rule::Layer;
-        let search_layer = |layer: Layer| if layer == Layer::Function { Layer::Key } else { layer };
-        let is_outside = |rule: &&Rule| rule.hook.layer() != search_layer(rule.layer);
+        let is_outside = |rule: &&Rule| rule.hook.layer() != rule.topic.layer();
         default_rules().iter().filter(is_outside).map(|rule| rule.id).collect()
     }
 

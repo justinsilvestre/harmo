@@ -2,13 +2,13 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
 use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.implied_harmony",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Where a single line sounds alone (one pitch class, in unison or octaves), keep the \
               harmony already heard unless the line's notes from here to shortly ahead fit the new \
               chord better than the old. A new segment, even one restating the same chord, costs 1, \

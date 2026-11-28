@@ -2,13 +2,13 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.augmented_sixth_bass",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Prefer augmented sixth chords with the lowered sixth degree in the bass.",
     citations: &[Citation {
         source: KOSTKA_PAYNE_ALMEN_2023,

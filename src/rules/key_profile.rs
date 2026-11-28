@@ -2,14 +2,14 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001, TEMPERLEY_2007};
 use crate::engine::key_hooks::{KeyHook, KeySliceContext};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::theory::key::{Key, Mode};
 use std::sync::LazyLock;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.profile",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys whose key profile favors the sounding pitch classes. Each slice scores the mean \
               log profile value of its distinct pitch classes, relative to the profile's average, times \
               its duration. The profiles are Temperley's counts from the Kostka-Payne corpus. An \

@@ -2,13 +2,13 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.bass_change",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Start a new segment when the bass moves to another chord tone on a beat and stays there \
               until the next beat, so that each bass position gets its own inversion. Faster \
               arpeggiations in the bass, and leaps above the bass's register, do not count.",

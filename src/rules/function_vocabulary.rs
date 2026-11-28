@@ -6,13 +6,13 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Category, Function};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "function.vocabulary",
-    layer: Layer::Function,
+    topic: Topic::Function,
     summary: "Read chords as diatonic triads and seventh chords, mixture chords, the Neapolitan, \
               augmented sixths, or applied dominants and leading-tone chords of diatonic triads. In minor, \
               the dominant seventh on the subtonic is read as V7/III, not as VII7.",

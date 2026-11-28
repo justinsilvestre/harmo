@@ -3,14 +3,14 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.raised_fourth",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer not to hear a dominant triad moving to its tonic as V–I of a key whose fourth \
               degree was last heard raised. The raised fourth degree is the leading tone of the \
               dominant key, so after it the same two chords are better heard as I–IV in that key, \

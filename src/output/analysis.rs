@@ -7,7 +7,7 @@ use super::rank_history::{
 use crate::engine::history::{ReadingHistory, rank_histories};
 use crate::engine::model::{Category, Reading};
 use crate::engine::path::{SegmentReading, segments_of};
-use crate::engine::rule::{Citation, Layer, Rule};
+use crate::engine::rule::{Citation, Rule, Topic};
 use crate::engine::ruleset::RuleSet;
 use crate::engine::search::Analysis;
 use crate::engine::trace::{Contribution, trace_segment};
@@ -28,7 +28,7 @@ pub struct AnalysisOutput {
 #[derive(Serialize)]
 pub struct RuleInfo {
     pub id: &'static str,
-    pub layer: Layer,
+    pub topic: Topic,
     pub hook: &'static str,
     pub summary: &'static str,
     pub citations: &'static [Citation],
@@ -200,7 +200,7 @@ pub fn reading_output(label: &Label, category: Category) -> ReadingOutput {
 fn rule_infos(rules: &RuleSet) -> Vec<RuleInfo> {
     let info = |(rule, weight): (&Rule, &f32)| RuleInfo {
         id: rule.id,
-        layer: rule.layer,
+        topic: rule.topic,
         hook: rule.hook.kind(),
         summary: rule.summary,
         citations: rule.citations,

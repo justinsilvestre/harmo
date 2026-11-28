@@ -3,11 +3,11 @@
 use super::key_confirmation::is_tonic;
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
 use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.absent_tonic",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer not to leave a key area in which the key's tonic chord never sounded, in any \
               inversion. A key is established by its tonic; an area that holds only other chords \
               of the key, such as a prolonged dominant or leading-tone chord, is better heard as \

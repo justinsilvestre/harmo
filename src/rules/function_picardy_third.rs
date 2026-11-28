@@ -4,13 +4,13 @@ use super::key_phrase_close::ends_phrase;
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "function.picardy_third",
-    layer: Layer::Function,
+    topic: Topic::Function,
     summary: "Hear a major tonic triad that ends a phrase in minor as a Picardy third rather than \
               as a change of mode. A phrase ends at a fermata or at the end of the piece. The rule \
               repays the cost of the borrowed chord, so that the cadence stays in the minor key.",

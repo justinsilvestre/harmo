@@ -3,11 +3,11 @@
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.opening_tonic",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys in which the first chord of the piece is the tonic. A piece begins in its \
               main key, and its first chord is usually that key's tonic.",
     citations: &[

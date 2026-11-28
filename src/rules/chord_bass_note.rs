@@ -3,12 +3,12 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::bass::{Bass, BassNote};
 use crate::engine::chord_hooks::ChordHook;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.bass_note",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Take the lowest chord tone of a segment as its bass, except when that tone is the fifth, \
               never sounds as an accented bass note, and a root that does lies at most an octave above \
               it: the fifth then belongs to an arpeggiation over the root, and the root is the bass. \

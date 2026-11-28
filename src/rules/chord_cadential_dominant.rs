@@ -5,7 +5,7 @@ use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::ChordHook;
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
@@ -20,7 +20,7 @@ const CADENTIAL_SIX_FOUR: Citation = Citation {
 pub const RULES: &[Rule] = &[
     Rule {
         id: "chord.propose_cadential_dominant",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Where a slice sounds only a six-four (the bass with a perfect fourth above it, and \
                   perhaps a sixth), also propose the major triad and the dominant seventh chord on the \
                   bass. A cadential six-four delays the dominant on its bass, and it can be labeled as \
@@ -32,7 +32,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "function.cadential_rival",
-        layer: Layer::Function,
+        topic: Topic::Function,
         summary: "Where a slice sounds only a six-four, keep the tonic six-four and the dominant on its \
                   bass, in the same key, as rival candidates for a chord opening there, whichever of \
                   the two fits the slice better. Either reading of a cadential six-four is a correct \

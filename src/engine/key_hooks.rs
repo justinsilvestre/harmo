@@ -58,16 +58,16 @@ pub enum KeyHook {
 impl KeyHook {
     pub fn kind(&self) -> &'static str {
         match self {
-            KeyHook::Propose(_) => "propose_keys",
-            KeyHook::Interpret(_) => "interpret",
+            KeyHook::Propose(_) => "key_propose",
+            KeyHook::Interpret(_) => "key_interpret",
             KeyHook::Slice(_) => "key_slice",
             KeyHook::Transition(_) => "key_transition",
             KeyHook::Departure(_) => "key_departure",
             KeyHook::Close(_) => "key_close",
-            KeyHook::Admit(_) => "admit",
-            KeyHook::Distinguish(_) => "distinguish",
-            KeyHook::Rival(_) => "rival",
-            KeyHook::RivalCandidate(_) => "rival_candidate",
+            KeyHook::Admit(_) => "key_admit",
+            KeyHook::Distinguish(_) => "key_distinguish",
+            KeyHook::Rival(_) => "key_rival",
+            KeyHook::RivalCandidate(_) => "key_rival_candidate",
         }
     }
 }

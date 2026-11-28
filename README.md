@@ -49,12 +49,12 @@ These choices define what a reading can be, not which reading is right, so they 
 
 Which readings count as the same when the beam is pruned is decided by `Distinguish` rules, and which note is a segment's bass, and so its inversion, by `Bass` rules: the engine hands them each chord tone with whether it is its slice's lowest note, the slice's metric level and whether the slice opens the segment.
 
-Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a summary and citations. A rule may also declare **parameters**: the thresholds, durations and ratios inside it, each with a default, a unit and its provenance (the source that gives the value, or the measurement that set it). The engine passes a scoring hook its rule's parameter values. Because rules are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
+Rules are pure functions with a weight, a topic (`chord`, `key` or `function`, the prefix of the rule's id), a summary and citations. A rule's hook decides the layer of the search it belongs to; function rules belong to the key layer. A rule may also declare **parameters**: the thresholds, durations and ratios inside it, each with a default, a unit and its provenance (the source that gives the value, or the measurement that set it). The engine passes a scoring hook its rule's parameter values. Because rules are pure, the search stores only scores, and traces are rebuilt on demand by evaluating the rules again along a path. Run `harmo rules` to list the catalog.
 
 ### Layout
 
 - `src/engine/` is the core: the two layers' state (`model.rs`, `layers.rs`), the search (`search.rs`, which runs each slice's steps: `proposals.rs` proposes new readings, `exits.rs` scores leaving each hypothesis and finds the ones a new segment opens after, `continuations.rs` extends the beam by the slice, and `pruning.rs` chooses what the beam keeps), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces and rank histories.
-- `src/rules/` is the rule catalog. Files are prefixed by layer (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
+- `src/rules/` is the rule catalog. Files are prefixed by topic (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
 - `src/theory/` holds keys, chord templates and Roman numeral labels.
 - `src/score/` holds the MusicXML reader, meter and slicing.
 - `src/output/` builds the analysis document: readings, alternatives, `Determined`/`Interpretive` status, traces and rank histories.

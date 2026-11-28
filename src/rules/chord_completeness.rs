@@ -2,14 +2,14 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
 use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::score::slicing::{Slice, SliceNote};
 
 pub const RULES: &[Rule] = &[
     Rule {
         id: "chord.completeness",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Prefer segments in which the root and third are heard. The fifth is often omitted; \
               the root and third rarely are.",
         citations: &[
@@ -28,7 +28,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "chord.seventh_evidence",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "Read a seventh chord only when the seventh sounds for a substantial share of the span \
                   (half or more costs nothing; a passing seventh is better read as a nonchord tone), \
                   or when it is struck together with the root, as part of the sonority rather than \

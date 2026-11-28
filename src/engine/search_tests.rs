@@ -2,7 +2,7 @@ use super::*;
 use crate::engine::key_hooks::{KeyHook, RivalContext};
 use crate::engine::model::{Function, NONE, Reading};
 use crate::engine::pending::PendingHypothesis;
-use crate::engine::rule::{Hook, Layer, Rule};
+use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{i_v_i, key_segment, layers_of, slice_of};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
@@ -44,7 +44,7 @@ fn same_group(_: &RivalContext, _: &[f64]) -> Option<u64> {
 fn rules_with(rival_hook: bool) -> RuleSet {
     let rival = Rule {
         id: "test.rival",
-        layer: Layer::Chord,
+        topic: Topic::Chord,
         summary: "",
         citations: &[],
         default_weight: 1.0,

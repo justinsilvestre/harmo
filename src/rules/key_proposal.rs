@@ -2,13 +2,13 @@
 
 use super::sources::TEMPERLEY_2001;
 use crate::engine::key_hooks::KeyHook;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::score::slicing::Slice;
 use crate::theory::key::{Key, all_keys};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.propose_all",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Consider every key on every slice, from B𝄫 to B♯ in both modes, so that the keys \
               available never depend on music not yet heard. Enharmonically equivalent keys are \
               distinct keys, told apart by spelling. Against admitting only the keys a piece spells, \

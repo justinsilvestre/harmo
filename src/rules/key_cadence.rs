@@ -3,12 +3,12 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.cadential_confirmation",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys confirmed by a perfect authentic cadence: a root-position V or V7 followed by \
               a root-position I on a strong beat. A cadence in a new key is what confirms a modulation, \
               while the same chords heard as applied chords of the old key earn nothing here.",

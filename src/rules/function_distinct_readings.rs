@@ -3,13 +3,13 @@
 use super::sources::TEMPERLEY_2001;
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Category, KeySegment};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::theory::chord::Quality;
 use crate::theory::key::{Key, Mode};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "function.distinct_readings",
-    layer: Layer::Function,
+    topic: Topic::Function,
     summary: "Count two hypotheses as the same interpretation when they give their recent segments \
               the same readings (chord, key, tonicized key and category), whatever the segments' \
               boundaries. Of such hypotheses the search keeps only the best, leaving room for \

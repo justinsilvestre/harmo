@@ -2,12 +2,12 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
 use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.phrase_close",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys in which the chord that ends a phrase is the tonic, or else the dominant. \
               A phrase ends at a fermata or at the end of the piece, and its last chord is a \
               cadence: an authentic cadence ends on the tonic and a half cadence on the dominant, \

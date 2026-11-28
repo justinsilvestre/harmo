@@ -82,7 +82,7 @@ mod tests {
 
     use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
     use crate::engine::model::{Function, Reading};
-    use crate::engine::rule::{Layer, Param};
+    use crate::engine::rule::{Param, Topic};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -98,7 +98,7 @@ mod tests {
     fn rule_set_with(overrides: &[(&str, f32)]) -> Result<RuleSet, String> {
         let rule = Rule {
             id: "test.departure",
-            layer: Layer::Key,
+            topic: Topic::Key,
             summary: "",
             citations: &[],
             default_weight: 0.5,

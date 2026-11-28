@@ -6,7 +6,7 @@ use super::sources::{
     BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001, TEMPERLEY_2007,
 };
 use crate::engine::key_hooks::{KeyHook, KeySliceContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::key::Mode;
@@ -14,7 +14,7 @@ use std::cell::Cell;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.context_profile",
-    layer: Layer::Key,
+    topic: Topic::Key,
     summary: "Prefer keys that fit the music heard so far, not only the slice itself. Each slice \
               scores the key profile against the pitch classes sounding in the slice, in the music \
               before it, and in at most the next two quarter notes, the same lag the benchmark \

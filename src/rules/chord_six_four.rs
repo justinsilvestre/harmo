@@ -3,14 +3,14 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
 use crate::engine::model::ChordSegment;
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::pitch::pitch_class;
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.six_four",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Avoid second-inversion triads, in proportion to how long the fifth is the lowest note. \
               A six-four chord costs nothing when its bass is held or repeated into the next chord \
               (cadential and pedal six-fours) or moves on by step (passing six-fours).",

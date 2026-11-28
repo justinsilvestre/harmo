@@ -2,13 +2,13 @@
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
 use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::theory::key::Key;
 
 pub const RULES: &[Rule] = &[
     Rule {
         id: "key.modulation",
-        layer: Layer::Key,
+        topic: Topic::Key,
         summary: "Prefer to stay in the same key from one chord to the next.",
         citations: &[
             Citation { source: TEMPERLEY_2001, locator: "p. 188 (KPR 2, Modulation Rule)" },
@@ -20,7 +20,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "key.area_duration",
-        layer: Layer::Key,
+        topic: Topic::Key,
         summary: "Prefer key areas that last. Leaving a key that has lasted less than four quarter-note \
                   measures costs in proportion to the shortfall; briefer areas are better heard as \
                   tonicizations.",

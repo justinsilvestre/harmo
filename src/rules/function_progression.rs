@@ -3,14 +3,14 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::{Category, KeySegment, Reading};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Param, Rule, Topic};
 use crate::pitch::Tpc;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[
     Rule {
         id: "function.diatonic_preference",
-        layer: Layer::Function,
+        topic: Topic::Function,
         summary: "Prefer diatonic readings. Altered chords (applied chords, mixture, the Neapolitan and \
                   augmented sixths) are read only when the notes call for them. Mixture chords whose only \
                   borrowed tone is the lowered sixth degree, the most common kind, cost half as much. \
@@ -39,7 +39,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "function.applied_resolution",
-        layer: Layer::Function,
+        topic: Topic::Function,
         summary: "An applied chord should be followed by the chord it tonicizes.",
         citations: &[Citation {
             source: KOSTKA_PAYNE_ALMEN_2023,
@@ -51,7 +51,7 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "function.dominant_resolution",
-        layer: Layer::Function,
+        topic: Topic::Function,
         summary: "Prefer readings in which a dominant-function chord (V, V7, or the leading-tone triad \
                   or seventh chord) is followed by I (or i) of the same key. A tonic six-four does not \
                   count, since the cadential I64 delays V rather than resolving it.",

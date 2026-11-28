@@ -2,14 +2,14 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::{KeyHook, RivalContext};
-use crate::engine::rule::{Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Rule, Topic};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::{Chord, Quality};
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "chord.seventh_rival",
-    layer: Layer::Chord,
+    topic: Topic::Chord,
     summary: "Keep a dominant triad and its dominant seventh chord as rival readings of a span in which \
               the seventh sounds for only part of the span and is approached like a nonchord tone: from \
               the same pitch (a suspension figure) or from a step above or below (a passing or neighbor \
