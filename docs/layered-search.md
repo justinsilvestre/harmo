@@ -37,14 +37,24 @@ Several key nodes can interpret the same chord node, so a chord hearing is score
 
 **How alternatives are counted in coverage is left to the user.** The bench reports both whole readings and readings offered by layer. With layers, offering by layer follows the model: keys are offered from the key layer and chords from the chord layer, so a second reading of the same chord takes no place from a key. Whole readings stay as the yardstick that round 8 used.
 
-## Stages
+## What was measured
 
-1. **Restructure only.** Split the arena into the two layers and give chord rules a context without a key. The search makes the same choices as before, so the figures should not change beyond rounding.
-2. **Prune and cut by layer.** Keep a number of chord hearings, and for each a number of key interpretations, instead of one beam of whole readings. Cut the chords proposed for a slice by their chord fit and each chord's keys by their key fit, instead of cutting whole readings by their joint fit.
-3. **Re-judge the rivals.** Measure the dominant seventh rival and rival basses as alternatives inside the chord layer.
+Each stage was measured on `tune` and `agreement-tune` against the one before. Coverage is compared at an equal mean number offered.
+
+**Splitting the layers changed nothing measurable** (commit dba10d3). Every figure stayed within 0.1 of round 8, since scores are now summed in another order, and the search took 10% less CPU time, since a hearing's chord scores are computed once for all the hypotheses that read it.
+
+**A limit on hearings helps a little; per-layer cuts and quotas do not** (commit 46c5c6b).
+- **At most 40 hearings in the beam of 80** left RN and RN eq unchanged and offered keys by layer about 1.4 points more often where the analysts disagree, with chords by layer about 0.5 higher. The search took 4% less time. It is now the default.
+- **A fixed number of hypotheses per hearing** cost RN at equal CPU time. A beam of 32 hearings, each with up to 4 hypotheses, lost 0.3 RN, and only 64 by 4, at 1.7 times the CPU time, matched the flat beam.
+- **Cutting the candidates by layer** (the chords that best fit the opening slice, then each chord's best keys) cost 0.7 to 1.5 RN. A chord and key that fit the opening slice together remain the better guide to which readings to consider, so whole readings are still cut by their joint fit. This is the cost of separating the layers that the design note foresaw.
+
+**The dominant seventh rival passes when coverage is counted by layer.** With `chord.seventh_rival` on, a triad and its seventh chord are two hearings of the same span. Where the analysts disagree on `agreement-tune`, RN offered by layer rose 2.8 points and chords 4.0, while keys by layer did not fall (-0.1, interval -0.7 to +0.4). Counted as whole readings, keys offered still fell 0.7 (-1.3 to -0.2), because the two readings take two of the four offered places. RN on `tune` did not change. The rule stays off until the yardstick is chosen.
+
+**Rival basses still fail** (branch `bass-layered`, commit 7bd3fef, not merged). Each rival bass became a hearing of its own. Where the analysts disagree on the inversion, both readings were offered 20% of the time instead of 11%. But keys offered fell 6.0 points as whole readings and 2.6 by layer, and RN on `tune` fell 0.26. A rival ties with the hearing it came from, so it takes an offered place from a reading in another key, and it also takes one of the 40 hearing places in the beam.
 
 ## Still open
 
 - Whether a key may change within a chord segment.
 - A cadence and phrase layer. The interaction rules that judge cadences and progressions are the natural start, but they stay in the key layer for now.
 - Rank histories for chord hearings on their own, beside the histories of whole readings.
+- `chord.seventh_rival` decides whether a chord is a dominant from its key, so it is not yet a pure chord rule.
