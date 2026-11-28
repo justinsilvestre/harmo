@@ -1,7 +1,8 @@
 //! Rules about the chord that ends a phrase as evidence for a key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
+use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -23,7 +24,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[HALF_CADENCE],
-    hook: Hook::Close(phrase_close),
+    hook: Hook::Key(KeyHook::Close(phrase_close)),
 }];
 
 /// The score of a phrase that ends on the dominant, relative to one that ends on the tonic.
@@ -35,7 +36,7 @@ const HALF_CADENCE: Param = Param {
     provenance: "measured: e332070, round 2 (0 and 1 gained less tune RN than 0.5); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.75 / 1: tune RN +0.00 / -0.01 / -0.04 / -0.07; kept)",
 };
 
-fn phrase_close(context: &CloseContext, params: &[f64]) -> f32 {
+fn phrase_close(context: &KeyCloseContext, params: &[f64]) -> f32 {
     let reading = context.segment.reading();
     if !ends_phrase(context) || reading.function.tonicized.is_some() {
         return 0.0;
@@ -52,7 +53,7 @@ fn phrase_close(context: &CloseContext, params: &[f64]) -> f32 {
 }
 
 /// Reports whether a segment ends a phrase: it reaches a fermata or the end of the piece.
-pub fn ends_phrase(context: &CloseContext) -> bool {
+pub fn ends_phrase(context: &KeyCloseContext) -> bool {
     let Some(last) = context.slices.last() else { return false };
     context.next_slice.is_none_or(|next| next.phrase != last.phrase)
 }
@@ -88,7 +89,7 @@ mod tests {
         let segment = key_segment(reading);
         let next = next_phrase.map(slice);
         phrase_close(
-            &CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
+            &KeyCloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
             &RULES[0].default_params(),
         )
     }

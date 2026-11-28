@@ -1,8 +1,9 @@
 //! Rules about the raised fourth degree as evidence that the music has moved to the dominant key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -29,7 +30,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[LOOK_AHEAD],
-    hook: Hook::Transition(raised_fourth),
+    hook: Hook::Key(KeyHook::Transition(raised_fourth)),
 }];
 
 /// How far past the tonic's arrival the key's own fourth degree may sound to waive the charge.
@@ -43,7 +44,7 @@ const LOOK_AHEAD: Param = Param {
 
 const EPSILON: f64 = 1e-6;
 
-fn raised_fourth(context: &TransitionContext, params: &[f64]) -> f32 {
+fn raised_fourth(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let key = previous.key;
     if !is_dominant_triad_to_tonic(&previous.reading(), context.next) {
@@ -83,8 +84,8 @@ fn sounds(slice: &Slice, tpc: Tpc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::key_hooks::History;
     use crate::engine::model::Function;
-    use crate::engine::rule::History;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
@@ -119,7 +120,12 @@ mod tests {
         let next = reading("C", Quality::Major);
         let history = History::empty(&slices);
         raised_fourth(
-            &TransitionContext { previous: Some(&previous), next: &next, slice: &slices[opening], history },
+            &KeyTransitionContext {
+                previous: Some(&previous),
+                next: &next,
+                slice: &slices[opening],
+                history,
+            },
             &RULES[0].default_params(),
         )
     }

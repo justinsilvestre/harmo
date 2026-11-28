@@ -1,6 +1,7 @@
 //! Proposes candidate chords from the notes of the slice where a segment would open.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::chord_hooks::ChordHook;
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
@@ -17,7 +18,7 @@ pub const RULES: &[Rule] = &[Rule {
     }],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::ProposeChords(propose_templates),
+    hook: Hook::Chord(ChordHook::Propose(propose_templates)),
 }];
 
 fn propose_templates(slice: &Slice) -> Vec<Chord> {

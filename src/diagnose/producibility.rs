@@ -57,7 +57,7 @@ pub fn find_gap(rules: &RuleSet, label: &Label, slices: &[Slice]) -> Option<Gap>
 
 fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
     let readings: Vec<_> =
-        rules.interpreters.iter().flat_map(|interpret| interpret(label.key, chord)).collect();
+        rules.key.interpreters.iter().flat_map(|interpret| interpret(label.key, chord)).collect();
     if readings.iter().any(|function| has_same_numeral(label, function.tonicized, chord)) {
         return None;
     }
@@ -80,8 +80,8 @@ fn has_same_numeral(label: &Label, tonicized: Option<Key>, chord: Chord) -> bool
 
 fn proposal_gap(rules: &RuleSet, label: &Label, chord: Chord, slices: &[Slice]) -> Option<Gap> {
     let is_proposed = |slice: &Slice| {
-        rules.propose_keys(slice).contains(&label.key)
-            && rules.proposers.iter().any(|propose| propose(slice).contains(&chord))
+        rules.key.propose(slice).contains(&label.key)
+            && rules.chord.proposers.iter().any(|propose| propose(slice).contains(&chord))
     };
     (!slices.iter().any(is_proposed)).then_some(Gap::NotProposed)
 }

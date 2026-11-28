@@ -1,7 +1,8 @@
 //! Rules about which diatonic seventh chords the style favors.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
@@ -16,14 +17,14 @@ pub const RULES: &[Rule] = &[Rule {
     }],
     default_weight: 1.5,
     params: &[],
-    hook: Hook::Transition(rare_seventh),
+    hook: Hook::Key(KeyHook::Transition(rare_seventh)),
 }];
 
 /// Roots of the rare seventh chords, in fifths above the tonic: tonic, mediant and submediant.
 const MAJOR_RARE_ROOTS: [i32; 3] = [0, 4, 3];
 const MINOR_RARE_ROOTS: [i32; 3] = [0, -3, -4];
 
-fn rare_seventh(context: &TransitionContext, _: &[f64]) -> f32 {
+fn rare_seventh(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     let reading = context.next;
     let is_nondominant_seventh = matches!(
         reading.chord.quality,
@@ -41,8 +42,8 @@ fn rare_seventh(context: &TransitionContext, _: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::key_hooks::History;
     use crate::engine::model::{Function, Reading};
-    use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -62,7 +63,7 @@ mod tests {
             key_signature: None,
         };
         let history = History::empty(&[]);
-        rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history }, &[])
+        rare_seventh(&KeyTransitionContext { previous: None, next: &next, slice: &slice, history }, &[])
     }
 
     #[test]

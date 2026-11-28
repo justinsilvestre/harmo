@@ -1,9 +1,9 @@
 //! Builders of segments, and of the layers that hold them, for tests.
 
 use super::bass::Bass;
+use super::key_hooks::History;
 use super::layers::Layers;
 use super::model::{ChordSegment, Hearing, Hypothesis, KeySegment, NONE, Reading};
-use super::rule::History;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 

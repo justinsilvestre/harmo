@@ -1,8 +1,9 @@
 //! A rule about the rare forms of the mediant triad: iii in major and III+ in minor.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
 use crate::engine::model::Category;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
@@ -28,7 +29,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::Close(rare_mediant),
+    hook: Hook::Key(KeyHook::Close(rare_mediant)),
 }];
 
 /// The mediant root in major, in fifths above the tonic.
@@ -36,7 +37,7 @@ const MEDIANT: i32 = 4;
 /// The mediant root in minor, in fifths above the tonic.
 const MINOR_MEDIANT: i32 = -3;
 
-fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
+fn rare_mediant(context: &KeyCloseContext, _: &[f64]) -> f32 {
     let reading = context.segment.reading();
     if reading.function.category != Category::Diatonic || reading.function.tonicized.is_some() {
         return 0.0;
@@ -65,7 +66,7 @@ mod tests {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = key_segment(reading);
-        rare_mediant(&CloseContext { segment: &segment, slices: &[], next_slice: None }, &[])
+        rare_mediant(&KeyCloseContext { segment: &segment, slices: &[], next_slice: None }, &[])
     }
 
     #[test]

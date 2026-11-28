@@ -1,7 +1,8 @@
 //! Rules that keep a dominant triad and its dominant seventh chord as rival readings of one span.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, Hook, Layer, RivalContext, Rule};
+use crate::engine::key_hooks::{KeyHook, RivalContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::{Chord, Quality};
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -30,7 +31,7 @@ pub const RULES: &[Rule] = &[Rule {
     // other keys, so both keys are offered less often where analysts disagree on the key.
     default_weight: 0.0,
     params: &[],
-    hook: Hook::Rival(seventh_rival),
+    hook: Hook::Key(KeyHook::Rival(seventh_rival)),
 }];
 
 /// Groups a segment read as a dominant triad or dominant seventh chord, by its key, tonicized key

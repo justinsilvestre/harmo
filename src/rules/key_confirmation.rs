@@ -1,8 +1,9 @@
 //! Rules about whether a key area was confirmed before the music leaves it.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Param, Rule};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
@@ -26,7 +27,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[STRONG_BEAT],
-    hook: Hook::Departure(unconfirmed_departure),
+    hook: Hook::Key(KeyHook::Departure(unconfirmed_departure)),
 }];
 
 /// The weakest metric level on which a cadential tonic may arrive (3 = mid-measure in duple meters).
@@ -38,7 +39,7 @@ const STRONG_BEAT: Param = Param {
     provenance: "chosen: 1a69a17, round 4 (as in key.cadential_confirmation); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN +0.01 / -0.05; kept)",
 };
 
-fn unconfirmed_departure(context: &DepartureContext, params: &[f64]) -> f32 {
+fn unconfirmed_departure(context: &KeyDepartureContext, params: &[f64]) -> f32 {
     match find_confirmation(context, STRONG_BEAT.read(params) as u8) {
         Confirmation::Confirmed | Confirmation::FirstArea => 0.0,
         Confirmation::Unconfirmed => -1.0,
@@ -54,7 +55,7 @@ enum Confirmation {
 
 /// Walks back through the key area being left, most recent segment first, and stops at the first
 /// event that confirms it. A cadential tonic must arrive at `strong_beat` or a stronger metric level.
-fn find_confirmation(context: &DepartureContext, strong_beat: u8) -> Confirmation {
+fn find_confirmation(context: &KeyDepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
     let key = context.previous.key;
     let mut later: Option<KeySegment> = None;
@@ -163,7 +164,7 @@ mod tests {
         let history = history_after(&path, slices);
         let previous = path.segment(history.last);
         unconfirmed_departure(
-            &DepartureContext { previous: &previous, slice: &slices[chords.len()], history },
+            &KeyDepartureContext { previous: &previous, slice: &slices[chords.len()], history },
             &RULES[0].default_params(),
         )
     }

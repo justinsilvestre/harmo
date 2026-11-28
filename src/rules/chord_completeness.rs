@@ -1,7 +1,8 @@
 //! Rules about which chord members a segment must contain.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::{Slice, SliceNote};
 
@@ -23,7 +24,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.5,
         params: &[MISSING_THIRD],
-        hook: Hook::ChordClose(completeness),
+        hook: Hook::Chord(ChordHook::Close(completeness)),
     },
     Rule {
         id: "chord.seventh_evidence",
@@ -49,7 +50,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.0,
         params: &[SEVENTH_SHARE_TARGET, LEAPING_SEVENTH_FACTOR],
-        hook: Hook::ChordClose(seventh_evidence),
+        hook: Hook::Chord(ChordHook::Close(seventh_evidence)),
     },
 ];
 

@@ -1,8 +1,9 @@
 //! Rules about how chords function in succession.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::{Category, KeySegment, Reading};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::theory::chord::Quality;
 
@@ -34,7 +35,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.0,
         params: &[LOWERED_SIXTH_MIXTURE, CONTINUED_TONICIZATION],
-        hook: Hook::Transition(diatonic_preference),
+        hook: Hook::Key(KeyHook::Transition(diatonic_preference)),
     },
     Rule {
         id: "function.applied_resolution",
@@ -46,7 +47,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.75,
         params: &[UNRESOLVED_COST],
-        hook: Hook::Transition(applied_resolution),
+        hook: Hook::Key(KeyHook::Transition(applied_resolution)),
     },
     Rule {
         id: "function.dominant_resolution",
@@ -71,7 +72,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 0.75,
         params: &[],
-        hook: Hook::Transition(dominant_resolution),
+        hook: Hook::Key(KeyHook::Transition(dominant_resolution)),
     },
 ];
 
@@ -102,7 +103,7 @@ const UNRESOLVED_COST: Param = Param {
     provenance: "chosen: 4e0fbe2, round 1 (not swept); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.5 / 2: tune RN -0.00 / +0.02 / -0.08 / -0.21; kept)",
 };
 
-fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
+fn diatonic_preference(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let next = context.next;
     match next.function.category {
         Category::Diatonic => 0.0,
@@ -115,7 +116,7 @@ fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
 /// Reports whether an applied chord continues a tonicization already under way: the chord just
 /// before it, in the same key, is applied to the same degree, or is that degree's own chord
 /// following a chord applied to it.
-fn continues_tonicization(context: &TransitionContext) -> bool {
+fn continues_tonicization(context: &KeyTransitionContext) -> bool {
     let next = context.next;
     let Some(target) = next.function.tonicized else { return false };
     let mut recent = context.history.segments().take_while(|s| s.key == next.key);
@@ -138,7 +139,7 @@ fn borrows_only_lowered_sixth(reading: &Reading) -> bool {
     reading.chord.members().filter(is_altered).all(|tpc| reading.key.degree_of(tpc).number == 6)
 }
 
-fn applied_resolution(context: &TransitionContext, params: &[f64]) -> f32 {
+fn applied_resolution(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
@@ -149,7 +150,7 @@ fn applied_resolution(context: &TransitionContext, params: &[f64]) -> f32 {
     }
 }
 
-fn dominant_resolution(context: &TransitionContext, _: &[f64]) -> f32 {
+fn dominant_resolution(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
@@ -214,7 +215,7 @@ mod tests {
         let history = history_after(&path, &[]);
         let previous = path.segment(history.last);
         diatonic_preference(
-            &TransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
+            &KeyTransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
             &RULES[0].default_params(),
         )
     }

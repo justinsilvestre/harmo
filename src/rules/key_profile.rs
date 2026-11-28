@@ -1,7 +1,8 @@
 //! Scores how well the notes of a slice fit the key of a reading.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001, TEMPERLEY_2007};
-use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
+use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::pitch_class;
 use crate::theory::key::{Key, Mode};
 use std::sync::LazyLock;
@@ -27,7 +28,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.0,
     params: &[],
-    hook: Hook::Slice(profile_fit),
+    hook: Hook::Key(KeyHook::Slice(profile_fit)),
 }];
 
 /// How much of an applied chord's score comes from the key it tonicizes rather than the main key.
@@ -68,7 +69,7 @@ pub fn natural_minor_logs() -> &'static [f32; 12] {
     &CENTERED_LOGS[2]
 }
 
-fn profile_fit(context: &SliceContext, _: &[f64]) -> f32 {
+fn profile_fit(context: &KeySliceContext, _: &[f64]) -> f32 {
     let home = key_fit(context.reading.key, context);
     match context.reading.function.tonicized {
         Some(local) => TONICIZED_SHARE * key_fit(local, context) + (1.0 - TONICIZED_SHARE) * home,
@@ -76,7 +77,7 @@ fn profile_fit(context: &SliceContext, _: &[f64]) -> f32 {
     }
 }
 
-fn key_fit(key: Key, context: &SliceContext) -> f32 {
+fn key_fit(key: Key, context: &KeySliceContext) -> f32 {
     let profile = profile_logs(key.mode);
     let mut seen = [false; 12];
     let (mut total, mut count) = (0.0, 0);
@@ -126,7 +127,7 @@ mod tests {
             function: Function { tonicized, category: Category::Applied },
         };
         let slices = [slice];
-        let context = SliceContext {
+        let context = KeySliceContext {
             slice: &slices[0],
             next_slice: None,
             slices: &slices,

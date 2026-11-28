@@ -86,13 +86,19 @@ mod tests {
         assert!(default_rules().iter().all(is_in_place));
     }
 
+    /// Returns the rules whose hook receives the state of another layer than the rule's own.
+    fn rules_outside_their_layer() -> Vec<&'static str> {
+        use crate::engine::rule::Layer;
+        let search_layer = |layer: Layer| if layer == Layer::Function { Layer::Key } else { layer };
+        let is_outside = |rule: &&Rule| rule.hook.layer() != search_layer(rule.layer);
+        default_rules().iter().filter(is_outside).map(|rule| rule.id).collect()
+    }
+
+    /// `chord.seventh_rival` is the one known exception: it reads the key, through a rival hook of
+    /// the key layer, to tell whether a chord is a dominant.
     #[test]
-    fn no_chord_rule_scores_through_a_hook_that_sees_the_key() {
-        use crate::engine::rule::{Hook, Layer};
-        let sees_key = |rule: &Rule| {
-            matches!(rule.hook, Hook::Slice(_) | Hook::Transition(_) | Hook::Departure(_) | Hook::Close(_))
-        };
-        assert!(!default_rules().iter().any(|r| r.layer == Layer::Chord && sees_key(r)));
+    fn every_rule_but_the_seventh_rival_hooks_into_its_own_layer() {
+        assert_eq!(rules_outside_their_layer(), ["chord.seventh_rival"]);
     }
 
     #[test]

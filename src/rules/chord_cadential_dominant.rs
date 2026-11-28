@@ -2,6 +2,8 @@
 //! delays.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::chord_hooks::ChordHook;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Reading;
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::Tpc;
@@ -26,7 +28,7 @@ pub const RULES: &[Rule] = &[
         citations: &[CADENTIAL_SIX_FOUR],
         default_weight: 1.0,
         params: &[],
-        hook: Hook::ProposeChords(propose_cadential_dominant),
+        hook: Hook::Chord(ChordHook::Propose(propose_cadential_dominant)),
     },
     Rule {
         id: "function.cadential_rival",
@@ -38,7 +40,7 @@ pub const RULES: &[Rule] = &[
         citations: &[CADENTIAL_SIX_FOUR],
         default_weight: 1.0,
         params: &[],
-        hook: Hook::RivalCandidate(cadential_rival),
+        hook: Hook::Key(KeyHook::RivalCandidate(cadential_rival)),
     },
 ];
 

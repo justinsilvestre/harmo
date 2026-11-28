@@ -1,6 +1,7 @@
 //! Rules that tell the search which hypotheses hold the same interpretation.
 
 use super::sources::TEMPERLEY_2001;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Category, KeySegment};
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::Quality;
@@ -21,7 +22,7 @@ pub const RULES: &[Rule] = &[Rule {
     }],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::Distinguish(reading_identity),
+    hook: Hook::Key(KeyHook::Distinguish(reading_identity)),
 }];
 
 /// Packs the segment's whole reading into one value, so that two segments get the same value

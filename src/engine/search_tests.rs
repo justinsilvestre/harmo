@@ -1,4 +1,5 @@
 use super::*;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::Function;
 use crate::engine::rule::Rule;
 use crate::engine::test_layers::{key_segment, layers_of};
@@ -130,7 +131,7 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
         citations: &[],
         default_weight: 1.0,
         params: &[],
-        hook: crate::engine::rule::Hook::Rival(same_group),
+        hook: crate::engine::rule::Hook::Key(KeyHook::Rival(same_group)),
     };
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
     let mut layers = layers_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);

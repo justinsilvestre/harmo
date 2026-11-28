@@ -1,8 +1,9 @@
 //! Rules about a cadential six-four as evidence that the music has moved to a new key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -26,7 +27,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[STRONG_BEAT],
-    hook: Hook::Transition(six_four_tonicization),
+    hook: Hook::Key(KeyHook::Transition(six_four_tonicization)),
 }];
 
 /// The weakest metric level on which a cadential six-four may begin (3 = mid-measure in duple meters).
@@ -38,7 +39,7 @@ const STRONG_BEAT: Param = Param {
     provenance: "measured: b52a2e8, round 6 (any stronger beat / level 3 / level 4, each at weight 0.5: tune RN 57.99 / 57.98 / 57.97); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN +0.02 / -0.00; kept)",
 };
 
-fn six_four_tonicization(context: &TransitionContext, params: &[f64]) -> f32 {
+fn six_four_tonicization(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let opening = context.history.slices.get(previous.chord.start as usize).map_or(0, |s| s.metric_level);
     let is_on_stronger_beat =
@@ -58,7 +59,7 @@ fn is_six_four(segment: &KeySegment) -> bool {
 
 /// Reports whether the new chord is a major triad or dominant seventh in root position on the bass
 /// of the previous segment.
-fn is_dominant_on_bass(context: &TransitionContext, previous: &KeySegment) -> bool {
+fn is_dominant_on_bass(context: &KeyTransitionContext, previous: &KeySegment) -> bool {
     let bass = previous.chord.bass_tpc();
     let keeps_bass = context.slice.bass().is_some_and(|note| note.tpc == bass);
     let chord = context.next.chord;
@@ -69,8 +70,8 @@ fn is_dominant_on_bass(context: &TransitionContext, previous: &KeySegment) -> bo
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
+    use crate::engine::key_hooks::History;
     use crate::engine::model::{Category, ChordSegment, Function, KeySegment, Reading};
-    use crate::engine::rule::History;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
@@ -123,7 +124,7 @@ mod tests {
         ];
         let history = History::empty(&slices);
         let context =
-            TransitionContext { previous: Some(&previous), next: &next, slice: &slices[1], history };
+            KeyTransitionContext { previous: Some(&previous), next: &next, slice: &slices[1], history };
         six_four_tonicization(&context, &RULES[0].default_params())
     }
 

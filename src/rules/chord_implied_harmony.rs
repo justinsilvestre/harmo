@@ -1,7 +1,8 @@
 //! Scores chord changes in a single melodic line by the harmony that the line's coming notes imply.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{ChordTransitionContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 
@@ -30,7 +31,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.25,
     params: &[LOOKAHEAD],
-    hook: Hook::ChordTransition(implied_harmony),
+    hook: Hook::Chord(ChordHook::Transition(implied_harmony)),
 }];
 
 /// How far past the start of the slice the line is read. A listener may look ahead about two

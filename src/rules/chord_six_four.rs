@@ -1,8 +1,9 @@
 //! Rules about triads in second inversion (six-four chords).
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
 use crate::engine::model::ChordSegment;
-use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Quality;
@@ -22,7 +23,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[],
-    hook: Hook::ChordClose(six_four),
+    hook: Hook::Chord(ChordHook::Close(six_four)),
 }];
 
 /// The largest bass motion, in semitones, that counts as a step.

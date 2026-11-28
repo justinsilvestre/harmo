@@ -5,7 +5,8 @@ use super::key_profile::{natural_minor_logs, profile_logs};
 use super::sources::{
     BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018, TEMPERLEY_2001, TEMPERLEY_2007,
 };
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
+use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::key::Mode;
@@ -63,7 +64,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[LOOK_AHEAD, HALF_LIFE, REACH, MODAL_LOOK_BACK],
-    hook: Hook::Slice(context_fit),
+    hook: Hook::Key(KeyHook::Slice(context_fit)),
 }];
 
 /// How far the window reaches past the end of the slice. It is at most the lag the benchmark allows
@@ -109,7 +110,7 @@ struct Window {
     reach: f64,
 }
 
-fn context_fit(context: &SliceContext, params: &[f64]) -> f32 {
+fn context_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     let window = Window {
         look_ahead: LOOK_AHEAD.read(params),
         half_life: HALF_LIFE.read(params),
@@ -235,7 +236,7 @@ mod tests {
     fn fit_in(slices: &[Slice], index: usize, key: Key) -> f32 {
         let chord = Chord::new(tpc_from_name("F").unwrap(), Quality::Major);
         let reading = Reading { key, chord, function: Function::DIATONIC };
-        let context = SliceContext {
+        let context = KeySliceContext {
             slice: &slices[index],
             next_slice: slices.get(index + 1),
             slices,

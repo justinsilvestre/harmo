@@ -1,7 +1,8 @@
 //! Rules about where chord changes happen.
 
 use super::sources::TEMPERLEY_2001;
-use crate::engine::rule::{ChordTransitionContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 
@@ -14,7 +15,7 @@ pub const RULES: &[Rule] = &[
         citations: &[Citation { source: TEMPERLEY_2001, locator: "pp. 151, 157 (HPR 2, Strong Beat Rule)" }],
         default_weight: 0.5,
         params: &[],
-        hook: Hook::ChordTransition(strong_beat),
+        hook: Hook::Chord(ChordHook::Transition(strong_beat)),
     },
     Rule {
         id: "chord.harmonic_variance",
@@ -26,7 +27,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.1875,
         params: &[MAX_DISTANCE],
-        hook: Hook::ChordTransition(harmonic_variance),
+        hook: Hook::Chord(ChordHook::Transition(harmonic_variance)),
     },
     Rule {
         id: "chord.thin_texture_rhythm",
@@ -42,7 +43,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.5,
         params: &[THIN_PITCH_CLASSES, SUBDIVISION_LEVEL],
-        hook: Hook::ChordTransition(thin_texture_rhythm),
+        hook: Hook::Chord(ChordHook::Transition(thin_texture_rhythm)),
     },
 ];
 

@@ -4,6 +4,7 @@
 //! hard constraint on readings.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Category, Function};
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::{Chord, Quality};
@@ -36,7 +37,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::Interpret(interpret),
+    hook: Hook::Key(KeyHook::Interpret(interpret)),
 }];
 
 use Category::{Chromatic, Diatonic, Mixture};

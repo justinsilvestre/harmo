@@ -2,8 +2,9 @@
 
 use super::key_phrase_close::ends_phrase;
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyCloseContext, KeyHook};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::Quality;
 use crate::theory::key::Mode;
 
@@ -25,10 +26,10 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::Close(picardy_third),
+    hook: Hook::Key(KeyHook::Close(picardy_third)),
 }];
 
-fn picardy_third(context: &CloseContext, _: &[f64]) -> f32 {
+fn picardy_third(context: &KeyCloseContext, _: &[f64]) -> f32 {
     if ends_phrase(context) && is_major_tonic_in_minor(&context.segment.reading()) { 1.0 } else { 0.0 }
 }
 
@@ -72,7 +73,7 @@ mod tests {
         let segment = key_segment(reading);
         let next = next_phrase.map(slice);
         picardy_third(
-            &CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
+            &KeyCloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },
             &[],
         )
     }

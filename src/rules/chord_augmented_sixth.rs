@@ -1,7 +1,8 @@
 //! Rules about the bass of augmented sixth chords.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{ChordTransitionContext, Citation, Hook, Layer, Rule};
+use crate::engine::chord_hooks::{ChordHook, ChordTransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::pitch_class;
 use crate::theory::chord::Quality;
 
@@ -15,7 +16,7 @@ pub const RULES: &[Rule] = &[Rule {
     }],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::ChordTransition(augmented_sixth_bass),
+    hook: Hook::Chord(ChordHook::Transition(augmented_sixth_bass)),
 }];
 
 fn augmented_sixth_bass(context: &ChordTransitionContext, _: &[f64]) -> f32 {

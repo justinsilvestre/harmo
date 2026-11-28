@@ -1,7 +1,8 @@
 //! Scores how well the notes of a slice fit the chord of a reading.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{ChordSliceContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordHook, ChordSliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 
 pub const RULES: &[Rule] = &[
@@ -16,7 +17,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 1.0,
         params: &[THIRD_VALUE, FIFTH_VALUE, SEVENTH_VALUE, ENHARMONIC_SHARE],
-        hook: Hook::ChordSlice(compatibility),
+        hook: Hook::Chord(ChordHook::Slice(compatibility)),
     },
     Rule {
         id: "chord.ornamental_dissonance",
@@ -34,7 +35,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 2.625,
         params: &[STEP_RESOLUTION, ACCENT],
-        hook: Hook::ChordSlice(ornamental_dissonance),
+        hook: Hook::Chord(ChordHook::Slice(ornamental_dissonance)),
     },
 ];
 

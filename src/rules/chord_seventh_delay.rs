@@ -1,7 +1,8 @@
 //! Rules about a dominant seventh chord whose seventh is first heard only in a later bar.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
@@ -26,7 +27,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[MIN_DELAY],
-    hook: Hook::ChordClose(seventh_delay),
+    hook: Hook::Chord(ChordHook::Close(seventh_delay)),
 }];
 
 /// The least time, from the start of the chord, after which a seventh first heard in a later bar costs.

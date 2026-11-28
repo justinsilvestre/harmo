@@ -1,7 +1,8 @@
 //! Rules about changes of key.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, DepartureContext, History, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::theory::key::Key;
 
 pub const RULES: &[Rule] = &[
@@ -15,7 +16,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.0,
         params: &[],
-        hook: Hook::Transition(modulation),
+        hook: Hook::Key(KeyHook::Transition(modulation)),
     },
     Rule {
         id: "key.area_duration",
@@ -29,7 +30,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.1875,
         params: &[ESTABLISHED_AREA],
-        hook: Hook::Departure(area_duration),
+        hook: Hook::Key(KeyHook::Departure(area_duration)),
     },
 ];
 
@@ -42,14 +43,14 @@ const ESTABLISHED_AREA: Param = Param {
     provenance: "chosen: 4e0fbe2, round 1 (four measures of common time; Kostka, Payne and Almen 2023, p. 299, name the time spent in the new key as evidence but give no length); measured: sweeps/round7-constants.json, round 7 (4 / 8 / 12 / 24 / 32: tune RN -0.03 / -0.03 / +0.01 / -0.00 / +0.02; kept)",
 };
 
-fn modulation(context: &TransitionContext, _: &[f64]) -> f32 {
+fn modulation(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     match context.previous {
         Some(previous) if previous.key != context.next.key => -1.0,
         _ => 0.0,
     }
 }
 
-fn area_duration(context: &DepartureContext, params: &[f64]) -> f32 {
+fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
     let key = context.previous.key;
     let established = ESTABLISHED_AREA.read(params);
     -((1.0 - area_heard(context.history, key, established) / established).max(0.0) as f32)
@@ -111,7 +112,7 @@ mod tests {
             key_signature: None,
         };
         let history = history_after(&path, &[]);
-        let context = DepartureContext { previous: &path.segment(history.last), slice: &slice, history };
+        let context = KeyDepartureContext { previous: &path.segment(history.last), slice: &slice, history };
         area_duration(&context, &RULES[1].default_params())
     }
 

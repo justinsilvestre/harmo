@@ -1,8 +1,9 @@
 //! Rules about cadences as evidence for a key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::KeySegment;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
@@ -17,7 +18,7 @@ pub const RULES: &[Rule] = &[Rule {
     }],
     default_weight: 0.375,
     params: &[STRONG_BEAT],
-    hook: Hook::Transition(cadential_confirmation),
+    hook: Hook::Key(KeyHook::Transition(cadential_confirmation)),
 }];
 
 /// The weakest metric level on which a cadential tonic may arrive (3 = mid-measure in duple meters).
@@ -29,7 +30,7 @@ const STRONG_BEAT: Param = Param {
     provenance: "chosen: 15273b4, round 2 (Kostka, Payne and Almen 2023, p. 149: the last chord of a cadence usually falls on a stronger beat than the one before it, but no level is given); measured: sweeps/round7-constants.json, round 7 (2 / 4: tune RN -0.05 / -0.08; kept)",
 };
 
-fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {
+fn cadential_confirmation(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let tonic = context.next;
     let key = tonic.key;
@@ -51,8 +52,8 @@ fn is_root_position_dominant(segment: &KeySegment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
+    use crate::engine::key_hooks::History;
     use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
-    use crate::engine::rule::History;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
@@ -88,7 +89,7 @@ mod tests {
         let history = History::empty(&[]);
         let params = RULES[0].default_params();
         cadential_confirmation(
-            &TransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
+            &KeyTransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
             &params,
         )
     }

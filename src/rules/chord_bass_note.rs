@@ -2,6 +2,7 @@
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::bass::{Bass, BassNote};
+use crate::engine::chord_hooks::ChordHook;
 use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 
@@ -30,7 +31,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[ACCENT_LEVEL, ROOT_REGISTER],
-    hook: Hook::Bass(hear),
+    hook: Hook::Chord(ChordHook::Bass(hear)),
 }];
 
 /// The weakest metric level on which a slice's lowest note counts as an accented bass note.

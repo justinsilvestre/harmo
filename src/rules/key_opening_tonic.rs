@@ -1,8 +1,9 @@
 //! Rules about the chord that opens a piece as evidence for a key.
 
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
+use crate::engine::key_hooks::{KeyHook, KeyTransitionContext};
 use crate::engine::model::Reading;
-use crate::engine::rule::{Citation, Hook, Layer, Rule, TransitionContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.opening_tonic",
@@ -21,10 +22,10 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.25,
     params: &[],
-    hook: Hook::Transition(opening_tonic),
+    hook: Hook::Key(KeyHook::Transition(opening_tonic)),
 }];
 
-fn opening_tonic(context: &TransitionContext, _: &[f64]) -> f32 {
+fn opening_tonic(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     if context.previous.is_none() && is_tonic(context.next) { 1.0 } else { 0.0 }
 }
 
@@ -36,8 +37,8 @@ fn is_tonic(reading: &Reading) -> bool {
 mod tests {
     use super::*;
 
+    use crate::engine::key_hooks::History;
     use crate::engine::model::{Function, KeySegment};
-    use crate::engine::rule::History;
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -62,7 +63,7 @@ mod tests {
             key_signature: None,
         };
         let history = History::empty(&[]);
-        opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history }, &[])
+        opening_tonic(&KeyTransitionContext { previous, next: &reading(root), slice: &slice, history }, &[])
     }
 
     #[test]

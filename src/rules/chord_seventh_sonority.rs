@@ -1,7 +1,8 @@
 //! Rules about when a seventh chord other than the dominant seventh is heard as one sonority.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -24,7 +25,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.25,
     params: &[SHARE_TARGET],
-    hook: Hook::ChordClose(seventh_sonority),
+    hook: Hook::Chord(ChordHook::Close(seventh_sonority)),
 }];
 
 /// Share of the segment's duration, with root and seventh sounding together, at which the rule costs nothing.

@@ -11,13 +11,13 @@
 //! in the beam, so that the beam holds more distinct interpretations.
 
 use super::bass::{Bass, BassNote};
+use super::chord_hooks::{ChordCloseContext, ChordSliceContext, ChordTransitionContext};
+use super::key_hooks::{
+    History, KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext, RivalContext,
+};
 use super::layers::Layers;
 use super::model::{ChordSegment, Hearing, Hypothesis, KeySegment, NONE, Reading};
 use super::pruning::{PruneCause, Pruned};
-use super::rule::{
-    ChordCloseContext, ChordSliceContext, ChordTransitionContext, CloseContext, DepartureContext, History,
-    RivalContext, SliceContext, TransitionContext,
-};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
@@ -85,7 +85,7 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut snapshots = Vec::new();
     let mut pruned = Vec::new();
     for index in 0..slices.len() {
-        let keys = rules.propose_keys(&slices[index]);
+        let keys = rules.key.propose(&slices[index]);
         let pending = step(&keys, slices, index, &layers, &beam, rules, config);
         let (kept, dropped) = prune(&pending, &layers, rules, config);
         beam = commit(&mut layers, &pending.hearings, kept);
@@ -183,7 +183,7 @@ fn continuations(slices: &[Slice], index: usize, layers: &Layers, beam: &[u32], 
         let chord = hearing.segment.chord;
         let chord_fit = *chord_fits.entry(chord).or_insert_with(|| {
             let context = ChordSliceContext { slice, next_slice, slices, index, chord, is_opening: false };
-            rules.score_chord_slice(&context)
+            rules.chord.score_slice(&context)
         });
         let next_hearing = *extended.entry(node.hearing).or_insert_with(|| {
             let segment = extend(hearing.segment, slice, rules);
@@ -199,8 +199,8 @@ fn continuations(slices: &[Slice], index: usize, layers: &Layers, beam: &[u32], 
         let reading = Reading { key: node.key, chord, function: node.function };
         let key_fit = *key_fits.entry(reading).or_insert_with(|| {
             let context =
-                SliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
-            rules.score_slice(&context)
+                KeySliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
+            rules.key.score_slice(&context)
         });
         hypotheses.push(Hypothesis {
             parent: b,
@@ -223,13 +223,11 @@ fn openings(
     config: &Config,
 ) -> (Vec<Chord>, Vec<Opening>) {
     let (slice, next_slice) = (&slices[index], slices.get(index + 1));
-    let mut chords: Vec<_> = rules.proposers.iter().flat_map(|propose| propose(slice)).collect();
-    chords.sort();
-    chords.dedup();
+    let chords = rules.chord.propose(slice);
     let mut readings: Vec<Reading> = Vec::new();
     for &chord in &chords {
         for &key in keys {
-            for interpret in &rules.interpreters {
+            for interpret in &rules.key.interpreters {
                 readings.extend(interpret(key, chord).into_iter().map(|function| Reading {
                     key,
                     chord,
@@ -244,21 +242,22 @@ fn openings(
         .iter()
         .map(|&chord| {
             let context = ChordSliceContext { slice, next_slice, slices, index, chord, is_opening: true };
-            rules.score_chord_slice(&context)
+            rules.chord.score_slice(&context)
         })
         .collect();
     let score = |reading: Reading| {
-        let context = SliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: true };
+        let context =
+            KeySliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: true };
         let chord_id = chords.binary_search(&reading.chord).expect("a reading's chord was proposed");
         let chord_fit = chord_fits[chord_id];
-        Opening { reading, fit: chord_fit + rules.score_slice(&context), chord_fit, chord_id }
+        Opening { reading, fit: chord_fit + rules.key.score_slice(&context), chord_fit, chord_id }
     };
     let mut scored: Vec<Opening> = readings.into_iter().map(score).collect();
     scored.sort_by(|a, b| b.fit.total_cmp(&a.fit));
     let rest = scored.split_off(config.candidate_limit.min(scored.len()));
     let mut rivals: Vec<Reading> = Vec::new();
     for opening in &scored {
-        for (rival_of, params) in &rules.rival_candidate_rules {
+        for (rival_of, params) in &rules.key.rival_candidate {
             rivals.extend(rival_of(&opening.reading, slice, params));
         }
     }
@@ -291,7 +290,7 @@ fn exit(slices: &[Slice], index: usize, layers: &Layers, b: u32, rules: &RuleSet
     let node = &layers.hypotheses[b as usize];
     let segment = layers.segment(b);
     let history = History { layers, slices, last: b };
-    let context = DepartureContext { previous: &segment, slice: &slices[index], history };
+    let context = KeyDepartureContext { previous: &segment, slice: &slices[index], history };
     let start = segment.chord.start as usize;
     let rival = RivalContext {
         segment: &segment,
@@ -303,8 +302,8 @@ fn exit(slices: &[Slice], index: usize, layers: &Layers, b: u32, rules: &RuleSet
     Exit {
         close: chord_close + key_close_score(slices, node, &segment, next_slice, rules),
         chord_close,
-        departures: rules.score_departures(&context),
-        rivals: rules.rival_groups(&rival),
+        departures: rules.key.score_departures(&context),
+        rivals: rules.key.rival_groups(&rival),
         segment,
         hearing: node.hearing,
     }
@@ -324,7 +323,7 @@ fn chord_transitions(
     let row = |hearing: u32| -> Rc<[f32]> {
         let previous = (hearing != NONE).then(|| &hearings[hearing as usize].segment);
         let score = |&next: &Chord| {
-            rules.score_chord_transition(&ChordTransitionContext {
+            rules.chord.score_transition(&ChordTransitionContext {
                 previous,
                 next,
                 slice: &slices[index],
@@ -359,9 +358,12 @@ fn predecessors(
     let reading = &opening.reading;
     let evaluate = |previous: Option<&KeySegment>, last: u32, (departures, row): (&[f32], usize)| {
         let history = History { layers, slices, last };
-        let context = TransitionContext { previous, next: reading, slice: &slices[index], history };
+        let context = KeyTransitionContext { previous, next: reading, slice: &slices[index], history };
         let chord_transition = transitions[row][opening.chord_id];
-        rules.admits(&context).then(|| chord_transition + rules.score_transition(&context, departures))
+        rules
+            .key
+            .admits(&context)
+            .then(|| chord_transition + rules.key.score_transition(&context, departures))
     };
     if beam.is_empty() {
         return evaluate(None, NONE, (&[], 0)).map(|score| (None, score)).into_iter().collect();
@@ -414,7 +416,7 @@ fn extend(mut segment: ChordSegment, slice: &Slice, rules: &RuleSet) -> ChordSeg
         let (midi, tpc, metric_level) = (note.midi, note.tpc, slice.metric_level);
         let is_slice_bass = lowest == Some(midi);
         let heard = BassNote { midi, tpc, member, is_slice_bass, metric_level, opens_segment };
-        segment.bass = rules.hear_bass(segment.bass, &heard);
+        segment.bass = rules.chord.hear_bass(segment.bass, &heard);
     }
     segment
 }
@@ -426,7 +428,7 @@ fn chord_close_score(
     rules: &RuleSet,
 ) -> f32 {
     let span = &slices[hearing.segment.start as usize..=hearing.slice as usize];
-    rules.score_chord_close(&ChordCloseContext { segment: &hearing.segment, slices: span, next_slice })
+    rules.chord.score_close(&ChordCloseContext { segment: &hearing.segment, slices: span, next_slice })
 }
 
 fn key_close_score(
@@ -437,7 +439,7 @@ fn key_close_score(
     rules: &RuleSet,
 ) -> f32 {
     let span = &slices[segment.chord.start as usize..=node.slice as usize];
-    rules.score_close(&CloseContext { segment, slices: span, next_slice })
+    rules.key.score_close(&KeyCloseContext { segment, slices: span, next_slice })
 }
 
 /// Keeps the best of the pending hypotheses, skipping any whose recent segments the rules count as
@@ -453,7 +455,7 @@ fn prune(
     let mut ranked = pending.hypotheses.clone();
     ranked.sort_by(|a, b| b.score.total_cmp(&a.score));
     let first = layers.hypotheses.len() as u32;
-    let merges = config.distinct_depth > 0 && !rules.distinguish_rules.is_empty();
+    let merges = config.distinct_depth > 0 && !rules.key.distinguish.is_empty();
     let mut seen: HashMap<Vec<u64>, u32> = HashMap::new();
     let mut kept = Vec::with_capacity(config.beam_width);
     let mut dropped = Vec::new();
@@ -501,10 +503,10 @@ fn is_hearing_beyond_limit(hearings: &HashSet<u32>, hearing: u32, config: &Confi
 /// Returns the distinguish hooks' values for a segment and for up to `depth - 1` segments before it,
 /// most recent first.
 fn signature(segment: KeySegment, layers: &Layers, rules: &RuleSet, depth: usize) -> Vec<u64> {
-    let mut values = Vec::with_capacity(depth * rules.distinguish_rules.len());
+    let mut values = Vec::with_capacity(depth * rules.key.distinguish.len());
     let mut current = segment;
     for count in 1.. {
-        rules.distinguish(&current, &mut values);
+        rules.key.distinguish(&current, &mut values);
         if count == depth || current.previous == NONE {
             break;
         }

@@ -2,7 +2,8 @@
 
 use super::key_confirmation::is_tonic;
 use super::sources::{BURSTEIN_STRAUS_2016, KOSTKA_PAYNE_ALMEN_2023};
-use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Rule};
+use crate::engine::key_hooks::{KeyDepartureContext, KeyHook};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 
 pub const RULES: &[Rule] = &[Rule {
     id: "key.absent_tonic",
@@ -27,10 +28,10 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::Departure(absent_tonic),
+    hook: Hook::Key(KeyHook::Departure(absent_tonic)),
 }];
 
-fn absent_tonic(context: &DepartureContext, _: &[f64]) -> f32 {
+fn absent_tonic(context: &KeyDepartureContext, _: &[f64]) -> f32 {
     let key = context.previous.key;
     let mut area = context.history.segments().take_while(|s| s.key == key);
     if area.any(|s| is_tonic(&s)) { 0.0 } else { -1.0 }
@@ -60,7 +61,7 @@ mod tests {
         let slice = Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None };
         let history = history_after(&path, &[]);
         let previous = path.segment(history.last);
-        absent_tonic(&DepartureContext { previous: &previous, slice: &slice, history }, &[])
+        absent_tonic(&KeyDepartureContext { previous: &previous, slice: &slice, history }, &[])
     }
 
     #[test]

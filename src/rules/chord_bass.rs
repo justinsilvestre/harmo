@@ -1,7 +1,8 @@
 //! Rules about the bass line within a chord segment.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
+use crate::engine::chord_hooks::{ChordCloseContext, ChordHook};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
@@ -23,7 +24,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[BEAT_LEVEL, BASS_REGISTER],
-    hook: Hook::ChordClose(bass_change),
+    hook: Hook::Chord(ChordHook::Close(bass_change)),
 }];
 
 /// The weakest metric level at which a bass change counts, and to which the new bass must be held

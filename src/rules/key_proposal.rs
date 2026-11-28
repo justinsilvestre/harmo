@@ -1,6 +1,7 @@
 //! Proposes the keys in which a segment opening on a slice may be read.
 
 use super::sources::TEMPERLEY_2001;
+use crate::engine::key_hooks::KeyHook;
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::key::{Key, all_keys};
@@ -24,7 +25,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[],
-    hook: Hook::ProposeKeys(propose_all),
+    hook: Hook::Key(KeyHook::Propose(propose_all)),
 }];
 
 fn propose_all(_: &Slice) -> Vec<Key> {

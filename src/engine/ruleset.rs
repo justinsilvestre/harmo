@@ -1,51 +1,25 @@
-//! A set of rules with weights, split by hook so the engine can call each group directly.
+//! A set of rules with weights, split by layer and by hook so the engine can call each group
+//! directly.
 
-use super::bass::{Bass, BassNote};
-use super::model::KeySegment;
-use super::rule::{
-    AdmitFn, BassFn, ChordCloseContext, ChordCloseFn, ChordSliceContext, ChordSliceFn,
-    ChordTransitionContext, ChordTransitionFn, CloseContext, CloseFn, DepartureContext, DepartureFn,
-    DistinguishFn, Hook, InterpretFn, ProposeFn, ProposeKeysFn, RivalCandidateFn, RivalContext, RivalFn,
-    Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
-};
-use crate::score::slicing::Slice;
-use crate::theory::key::Key;
+use super::chord_rules::ChordRules;
+use super::key_rules::KeyRules;
+use super::rule::{Hook, Rule};
 use std::collections::HashMap;
 
 /// Rule weights by rule id, and parameter values by `<rule id>.<parameter name>`.
 pub type Weights = HashMap<String, f32>;
 
-/// A hook that scores transitions. Transition and departure hooks share one list in rule order,
-/// so that their scores are summed in the same order whichever kind a rule uses.
-#[derive(Clone, Copy)]
-pub enum TransitionScorer {
-    Each(TransitionFn),
-    Departure(DepartureFn),
-}
-
 /// A scoring hook with its rule's weight and the values of its rule's parameters.
 pub type Scorer<F> = (F, f32, Box<[f64]>);
 
-/// Rules grouped by hook, with weights applied and zero-weight rules left out.
+/// Rules grouped by layer and hook, with weights applied and zero-weight rules left out.
 pub struct RuleSet {
     pub rules: Vec<Rule>,
     pub weights: Vec<f32>,
     /// The values of each rule's parameters, in rule order.
     pub params: Vec<Vec<f64>>,
-    pub proposers: Vec<ProposeFn>,
-    pub key_proposers: Vec<ProposeKeysFn>,
-    pub interpreters: Vec<InterpretFn>,
-    pub chord_slice_rules: Vec<Scorer<ChordSliceFn>>,
-    pub chord_transition_rules: Vec<Scorer<ChordTransitionFn>>,
-    pub chord_close_rules: Vec<Scorer<ChordCloseFn>>,
-    pub slice_rules: Vec<Scorer<SliceFn>>,
-    pub transition_rules: Vec<Scorer<TransitionScorer>>,
-    pub close_rules: Vec<Scorer<CloseFn>>,
-    pub admit_rules: Vec<AdmitFn>,
-    pub distinguish_rules: Vec<(DistinguishFn, Box<[f64]>)>,
-    pub bass_rules: Vec<(BassFn, Box<[f64]>)>,
-    pub rival_rules: Vec<(RivalFn, Box<[f64]>)>,
-    pub rival_candidate_rules: Vec<(RivalCandidateFn, Box<[f64]>)>,
+    pub chord: ChordRules,
+    pub key: KeyRules,
 }
 
 impl RuleSet {
@@ -64,57 +38,16 @@ impl RuleSet {
                 return Err(format!("unknown rule id or parameter in weights: {key}"));
             }
         }
-        let mut set = RuleSet {
-            rules,
-            weights,
-            params,
-            proposers: vec![],
-            key_proposers: vec![],
-            interpreters: vec![],
-            chord_slice_rules: vec![],
-            chord_transition_rules: vec![],
-            chord_close_rules: vec![],
-            slice_rules: vec![],
-            transition_rules: vec![],
-            close_rules: vec![],
-            admit_rules: vec![],
-            distinguish_rules: vec![],
-            bass_rules: vec![],
-            rival_rules: vec![],
-            rival_candidate_rules: vec![],
-        };
-        set.group_hooks();
-        Ok(set)
-    }
-
-    fn group_hooks(&mut self) {
-        for ((rule, &weight), params) in self.rules.iter().zip(&self.weights).zip(&self.params) {
-            if weight == 0.0 {
-                continue;
-            }
+        let (mut chord, mut key) = (ChordRules::default(), KeyRules::default());
+        for ((rule, &weight), params) in rules.iter().zip(&weights).zip(&params) {
             let params: Box<[f64]> = params.clone().into_boxed_slice();
             match rule.hook {
-                Hook::ProposeChords(f) => self.proposers.push(f),
-                Hook::ProposeKeys(f) => self.key_proposers.push(f),
-                Hook::Interpret(f) => self.interpreters.push(f),
-                Hook::ChordSlice(f) => self.chord_slice_rules.push((f, weight, params)),
-                Hook::ChordTransition(f) => self.chord_transition_rules.push((f, weight, params)),
-                Hook::ChordClose(f) => self.chord_close_rules.push((f, weight, params)),
-                Hook::Slice(f) => self.slice_rules.push((f, weight, params)),
-                Hook::Transition(f) => {
-                    self.transition_rules.push((TransitionScorer::Each(f), weight, params))
-                }
-                Hook::Departure(f) => {
-                    self.transition_rules.push((TransitionScorer::Departure(f), weight, params))
-                }
-                Hook::Close(f) => self.close_rules.push((f, weight, params)),
-                Hook::Admit(f) => self.admit_rules.push(f),
-                Hook::Distinguish(f) => self.distinguish_rules.push((f, params)),
-                Hook::Bass(f) => self.bass_rules.push((f, params)),
-                Hook::Rival(f) => self.rival_rules.push((f, params)),
-                Hook::RivalCandidate(f) => self.rival_candidate_rules.push((f, params)),
+                _ if weight == 0.0 => {}
+                Hook::Chord(hook) => chord.add(hook, weight, params),
+                Hook::Key(hook) => key.add(hook, weight, params),
             }
         }
+        Ok(RuleSet { rules, weights, params, chord, key })
     }
 
     pub fn weight_of(&self, id: &str) -> Option<f32> {
@@ -133,75 +66,6 @@ impl RuleSet {
         };
         rules.flat_map(changed).collect()
     }
-
-    /// Returns every key that some key proposer offers for a segment opening on the slice, in order
-    /// and without repeats.
-    pub fn propose_keys(&self, slice: &Slice) -> Vec<Key> {
-        let mut keys: Vec<Key> = self.key_proposers.iter().flat_map(|propose| propose(slice)).collect();
-        keys.sort();
-        keys.dedup();
-        keys
-    }
-
-    pub fn score_chord_slice(&self, context: &ChordSliceContext) -> f32 {
-        self.chord_slice_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    pub fn score_chord_transition(&self, context: &ChordTransitionContext) -> f32 {
-        self.chord_transition_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    pub fn score_chord_close(&self, context: &ChordCloseContext) -> f32 {
-        self.chord_close_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    pub fn score_slice(&self, context: &SliceContext) -> f32 {
-        self.slice_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    /// Returns the weighted score of each departure hook, in rule order, for `score_transition`.
-    pub fn score_departures(&self, context: &DepartureContext) -> Vec<f32> {
-        let score = |(scorer, w, params): &Scorer<TransitionScorer>| match scorer {
-            TransitionScorer::Departure(f) => Some(w * f(context, params)),
-            TransitionScorer::Each(_) => None,
-        };
-        self.transition_rules.iter().filter_map(score).collect()
-    }
-
-    /// Scores a transition, given the departure scores of its hypothesis from `score_departures`.
-    /// They count only if the transition changes key; at the start of the piece there are none.
-    pub fn score_transition(&self, context: &TransitionContext, departures: &[f32]) -> f32 {
-        let changes_key = context.departure().is_some();
-        let mut departures = departures.iter();
-        let score = |(scorer, w, params): &Scorer<TransitionScorer>| match scorer {
-            TransitionScorer::Each(f) => w * f(context, params),
-            TransitionScorer::Departure(_) => departures.next().filter(|_| changes_key).map_or(0.0, |d| *d),
-        };
-        self.transition_rules.iter().map(score).sum()
-    }
-
-    pub fn score_close(&self, context: &CloseContext) -> f32 {
-        self.close_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    pub fn admits(&self, context: &TransitionContext) -> bool {
-        self.admit_rules.iter().all(|f| f(context))
-    }
-
-    /// Returns a segment's bass evidence after the bass hooks hear one more chord tone.
-    pub fn hear_bass(&self, bass: Bass, note: &BassNote) -> Bass {
-        self.bass_rules.iter().fold(bass, |bass, (f, params)| f(bass, note, params))
-    }
-
-    /// Returns each rival hook's group for a segment, in rule order.
-    pub fn rival_groups(&self, context: &RivalContext) -> Vec<Option<u64>> {
-        self.rival_rules.iter().map(|(f, params)| f(context, params)).collect()
-    }
-
-    /// Appends each distinguish hook's value for the segment, in rule order.
-    pub fn distinguish(&self, segment: &KeySegment, values: &mut Vec<u64>) {
-        values.extend(self.distinguish_rules.iter().map(|(f, params)| f(segment, params)));
-    }
 }
 
 /// Finds the rule and parameter that a key `<rule id>.<parameter name>` names, as their indices.
@@ -216,8 +80,9 @@ fn find_param(rules: &[Rule], key: &str) -> Option<(usize, usize)> {
 mod tests {
     use super::*;
 
+    use crate::engine::key_hooks::{History, KeyDepartureContext, KeyHook, KeyTransitionContext};
     use crate::engine::model::{Function, Reading};
-    use crate::engine::rule::{History, Layer, Param};
+    use crate::engine::rule::{Layer, Param};
     use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -226,7 +91,7 @@ mod tests {
 
     const COST: Param = Param { index: 0, name: "cost", default: 1.0, unit: "", provenance: "" };
 
-    fn departure_cost(_: &DepartureContext, params: &[f64]) -> f32 {
+    fn departure_cost(_: &KeyDepartureContext, params: &[f64]) -> f32 {
         -COST.read(params) as f32
     }
 
@@ -238,7 +103,7 @@ mod tests {
             citations: &[],
             default_weight: 0.5,
             params: &[COST],
-            hook: Hook::Departure(departure_cost),
+            hook: Hook::Key(KeyHook::Departure(departure_cost)),
         };
         RuleSet::new(vec![rule], &overrides.iter().map(|(k, v)| (k.to_string(), *v)).collect())
     }
@@ -267,10 +132,10 @@ mod tests {
         let (previous, slice) = (key_segment(reading("C")), slice());
         let history = History::empty(&[]);
         let departures =
-            rules.score_departures(&DepartureContext { previous: &previous, slice: &slice, history });
+            rules.key.score_departures(&KeyDepartureContext { previous: &previous, slice: &slice, history });
         let context =
-            TransitionContext { previous: Some(&previous), next: &reading(tonic), slice: &slice, history };
-        rules.score_transition(&context, &departures)
+            KeyTransitionContext { previous: Some(&previous), next: &reading(tonic), slice: &slice, history };
+        rules.key.score_transition(&context, &departures)
     }
 
     #[test]

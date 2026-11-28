@@ -12,25 +12,27 @@ The engine represents the music and the readings (slices, chords, keys, function
 
 A hypothesis's score is the sum of both layers' rule scores, as Temperley sums the rules of interacting preference rule systems (2001, pp. 157–158). [docs/layered-search.md](docs/layered-search.md) records the decisions behind this model and what was measured.
 
-Rules hook into the engine at fourteen points:
+Rules hook into the engine at fifteen points, five in the chord layer and ten in the key layer. A hook of the chord layer receives only the chord layer's state.
 
 | hook | what it does | example |
 |---|---|---|
-| `ProposeChords` | proposes chords for a segment opening on a slice | `chord.propose_templates` |
-| `ProposeKeys` | proposes keys for a segment opening on a slice | `key.propose_all` |
-| `Interpret` | lists how a chord can function in a key (a hard constraint: no entry, no reading) | `function.vocabulary` |
-| `ChordSlice` | scores one slice against a chord, in the chord layer | `chord.compatibility`, `chord.ornamental_dissonance` |
-| `ChordTransition` | scores opening a new chord segment after the previous one, in the chord layer | `chord.strong_beat`, `chord.implied_harmony` |
-| `ChordClose` | scores a chord segment once its extent is known, in the chord layer | `chord.seventh_evidence`, `chord.six_four` |
-| `Slice` | scores one slice against a reading, in the key layer | `key.context_profile`, `key.segment_profile` |
-| `Transition` | scores opening a new segment after the previous one, in the key layer | `key.modulation`, `function.applied_resolution` |
-| `Departure` | scores leaving the previous segment's key, from the hypothesis alone (scored once per hypothesis, not per new reading) | `key.area_duration`, `key.unconfirmed_departure` |
-| `Close` | scores a segment once its extent is known, in the key layer | `key.phrase_close`, `function.picardy_third` |
-| `Admit` | rejects transitions outright | (none yet) |
-| `Distinguish` | gives a segment an opaque value; pruning counts hypotheses whose recent segments get equal values as the same interpretation | `function.distinct_readings` |
-| `Bass` | decides a segment's bass note, and so its inversion, as the segment hears each chord tone (with no bass rule, every chord is in root position) | `chord.bass_note` |
-| `Rival` | puts a segment in a group of rival readings of the same music, so that a new segment also opens after the best hypothesis ending in the rival reading (see [Search](#search)) | `chord.seventh_rival` (off) |
-| `RivalCandidate` | names a rival reading of a slice for a candidate reading of a segment opening there, which is then kept as a candidate whatever its fit | `function.cadential_rival` |
+| **chord layer** | | |
+| `Chord(Propose)` | proposes chords for a segment opening on a slice | `chord.propose_templates` |
+| `Chord(Slice)` | scores one slice against a chord | `chord.compatibility`, `chord.ornamental_dissonance` |
+| `Chord(Transition)` | scores opening a new chord segment after the previous one | `chord.strong_beat`, `chord.implied_harmony` |
+| `Chord(Close)` | scores a chord segment once its extent is known | `chord.seventh_evidence`, `chord.six_four` |
+| `Chord(Bass)` | decides a segment's bass note, and so its inversion, as the segment hears each chord tone (with no bass rule, every chord is in root position) | `chord.bass_note` |
+| **key layer** | | |
+| `Key(Propose)` | proposes keys for a segment opening on a slice | `key.propose_all` |
+| `Key(Interpret)` | lists how a chord can function in a key (a hard constraint: no entry, no reading) | `function.vocabulary` |
+| `Key(Slice)` | scores one slice against a reading | `key.context_profile`, `key.segment_profile` |
+| `Key(Transition)` | scores opening a new segment after the previous one | `key.modulation`, `function.applied_resolution` |
+| `Key(Departure)` | scores leaving the previous segment's key, from the hypothesis alone (scored once per hypothesis, not per new reading) | `key.area_duration`, `key.unconfirmed_departure` |
+| `Key(Close)` | scores a segment once its extent is known | `key.phrase_close`, `function.picardy_third` |
+| `Key(Admit)` | rejects transitions outright | (none yet) |
+| `Key(Distinguish)` | gives a segment an opaque value; pruning counts hypotheses whose recent segments get equal values as the same interpretation | `function.distinct_readings` |
+| `Key(Rival)` | puts a segment in a group of rival readings of the same music, so that a new segment also opens after the best hypothesis ending in the rival reading (see [Search](#search)) | `chord.seventh_rival` (off) |
+| `Key(RivalCandidate)` | names a rival reading of a slice for a candidate reading of a segment opening there, which is then kept as a candidate whatever its fit | `function.cadential_rival` |
 
 ### What the engine represents
 
@@ -51,7 +53,7 @@ Rules are pure functions with a weight, a layer (`chord`, `key`, `function`), a 
 
 ### Layout
 
-- `src/engine/` is the core: the two layers' state (`model.rs`), the search (`search.rs`), the rule interface (`rule.rs`, `ruleset.rs`), path reconstruction, traces and rank histories.
+- `src/engine/` is the core: the two layers' state (`model.rs`, `layers.rs`), the search (`search.rs`), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces and rank histories.
 - `src/rules/` is the rule catalog. Files are prefixed by layer (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
 - `src/theory/` holds keys, chord templates and Roman numeral labels.
 - `src/score/` holds the MusicXML reader, meter and slicing.

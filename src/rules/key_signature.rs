@@ -3,7 +3,8 @@
 use super::sources::{
     BURSTEIN_STRAUS_2016, CAPLIN_2024, KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001, TEMPERLEY_2007,
 };
-use crate::engine::rule::{Citation, Hook, Layer, Rule, SliceContext};
+use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::pitch::pitch_class;
 use crate::score::model::KeySignature;
 use crate::score::slicing::Slice;
@@ -43,13 +44,13 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.1,
     params: &[],
-    hook: Hook::Slice(signature_key),
+    hook: Hook::Key(KeyHook::Slice(signature_key)),
 }];
 
 /// The Dorian tonic's distance above the tonic of the signature's major key, in fifths.
 const DORIAN_TONIC: i32 = 2;
 
-fn signature_key(context: &SliceContext, _: &[f64]) -> f32 {
+fn signature_key(context: &KeySliceContext, _: &[f64]) -> f32 {
     let Some(signature) = context.slice.key_signature else { return 0.0 };
     let key = context.reading.key;
     let is_named = if opens_on_dorian_tonic(context.slices, signature) {
@@ -115,7 +116,7 @@ mod tests {
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::Major);
         let reading = Reading { key, chord, function: Function::DIATONIC };
         signature_key(
-            &SliceContext {
+            &KeySliceContext {
                 slice: &slices[1],
                 next_slice: None,
                 slices: &slices,

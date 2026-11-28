@@ -2,7 +2,8 @@
 
 use super::key_profile::profile_proportions;
 use super::sources::{CAPLIN_2024, TEMPERLEY_2001, TEMPERLEY_2007};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
+use crate::engine::key_hooks::{KeyHook, KeySliceContext};
+use crate::engine::rule::{Citation, Hook, Layer, Param, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use crate::theory::chord::{Chord, Quality};
@@ -48,7 +49,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.25,
     params: &[LOOK_AHEAD, TONICIZED_SHARE, DOMINANT_ALLOWANCE],
-    hook: Hook::Slice(segment_fit),
+    hook: Hook::Key(KeyHook::Slice(segment_fit)),
 }];
 
 /// How far the set reaches past the end of the slice, at most the lag the benchmark allows offered
@@ -81,7 +82,7 @@ const DOMINANT_ALLOWANCE: Param = Param {
 /// slice's duration over this length, so the length acts only as a scale on the rule's weight.
 const SEGMENT: f64 = 4.0;
 
-fn segment_fit(context: &SliceContext, params: &[f64]) -> f32 {
+fn segment_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     let (present, scores) = cached_key_scores(context.slices, context.index, LOOK_AHEAD.read(params));
     let chord = context.reading.chord;
     let allowance = DOMINANT_ALLOWANCE.read(params) as f32;
@@ -268,7 +269,7 @@ mod tests {
             chord,
             function: Function { tonicized, category: Category::Applied },
         };
-        let context = SliceContext {
+        let context = KeySliceContext {
             slice: &slices[0],
             next_slice: None,
             slices: &slices,
@@ -284,7 +285,7 @@ mod tests {
         let slices = [slice(0.0, 4.0, names)];
         let chord = Chord::new(tpc(root), quality);
         let reading = Reading { key, chord, function: Function::DIATONIC };
-        let context = SliceContext {
+        let context = KeySliceContext {
             slice: &slices[0],
             next_slice: None,
             slices: &slices,
