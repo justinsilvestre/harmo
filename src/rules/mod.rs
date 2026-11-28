@@ -87,6 +87,15 @@ mod tests {
     }
 
     #[test]
+    fn no_chord_rule_scores_through_a_hook_that_sees_the_key() {
+        use crate::engine::rule::{Hook, Layer};
+        let sees_key = |rule: &Rule| {
+            matches!(rule.hook, Hook::Slice(_) | Hook::Transition(_) | Hook::Departure(_) | Hook::Close(_))
+        };
+        assert!(!default_rules().iter().any(|r| r.layer == Layer::Chord && sees_key(r)));
+    }
+
+    #[test]
     fn every_parameter_states_where_its_value_comes_from() {
         let has_provenance = |rule: &Rule| rule.params.iter().all(|p| !p.provenance.is_empty());
         assert!(default_rules().iter().all(has_provenance));
