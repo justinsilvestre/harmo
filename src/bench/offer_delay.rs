@@ -1,8 +1,9 @@
 //! Measures how soon after an expert's label begins the engine offers its reading.
 //!
-//! The beam after each slice is read with the offer count and margin, for the label's first slice
-//! and for the latest slice of the label heard so far. The delay is the time from the label's
-//! onset to the start of the first slice whose beam offers the label's reading in either of those.
+//! The beam after each slice is read with the offer count and margin,
+//! for the label's first slice and for the latest slice of the label heard so far.
+//! The delay is the time from the label's onset
+//! to the start of the first slice whose beam offers the label's reading in either of those.
 //! The search ends two bars after the onset or at the end of the label, whichever is later.
 
 use super::frames::{FRAME, frame_slices, label_runs_by};
@@ -128,8 +129,8 @@ struct DelaySearch<'a> {
 }
 
 impl DelaySearch<'_> {
-    /// Returns the delay in quarter notes before `truth`, labeling the frames `start..end`, is
-    /// offered, or `None` if it is not offered before the search ends.
+    /// Returns the delay in quarter notes before `truth`, labeling the frames `start..end`,
+    /// is offered, or `None` if it is not offered before the search ends.
     fn delay(
         &mut self,
         truth: &Label,

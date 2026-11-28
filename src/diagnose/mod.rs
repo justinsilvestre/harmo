@@ -1,7 +1,8 @@
 //! Breaks the engine's errors on a benchmark set down by kind, to show where it loses the most.
 //!
-//! Every frame that the top reading gets wrong is assigned exactly one error kind. Frames where a
-//! piece's analysts disagree are set apart and classified by what the analysts differ on.
+//! Every frame that the top reading gets wrong is assigned exactly one error kind.
+//! Frames where a piece's analysts disagree are set apart
+//! and classified by what the analysts differ on.
 
 pub mod beam_absence;
 pub mod beam_diversity;

@@ -25,8 +25,9 @@ pub struct Slice {
     pub notes: Vec<SliceNote>,
     pub measure: usize,
     pub metric_level: u8,
-    /// The number of fermatas that end at or before the slice's start, which numbers the phrases
-    /// of music that marks its phrase endings with fermatas, such as chorales.
+    /// The number of fermatas that end at or before the slice's start,
+    /// which numbers the phrases of music that marks its phrase endings with fermatas,
+    /// such as chorales.
     pub phrase: usize,
     /// The key signature in force at the slice's start.
     pub key_signature: Option<KeySignature>,
@@ -37,8 +38,8 @@ impl Slice {
         self.notes.first()
     }
 
-    /// Returns whether every sounding note has the same spelled pitch class, as in a single line or a
-    /// passage in unison or octaves.
+    /// Returns whether every sounding note has the same spelled pitch class,
+    /// as in a single line or a passage in unison or octaves.
     pub fn is_single_line(&self) -> bool {
         self.notes.first().is_some_and(|first| self.notes.iter().all(|n| n.tpc == first.tpc))
     }

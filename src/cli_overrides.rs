@@ -3,9 +3,9 @@
 use crate::cli_args::Args;
 use crate::engine::ruleset::Weights;
 
-/// Reads `--weights FILE` and `--params FILE`, each a JSON object of rule ids (for weights) and
-/// `<rule id>.<parameter name>` keys (for parameters), into one set of overrides. Either file may
-/// hold either kind of key; where both files set a key, `--params` wins.
+/// Reads `--weights FILE` and `--params FILE`, each a JSON object of rule ids (for weights)
+/// and `<rule id>.<parameter name>` keys (for parameters), into one set of overrides.
+/// Either file may hold either kind of key; where both files set a key, `--params` wins.
 pub fn load_overrides(args: &Args) -> Result<Weights, String> {
     let mut overrides = load_file(args.value("weights"))?;
     overrides.extend(load_file(args.value("params"))?);

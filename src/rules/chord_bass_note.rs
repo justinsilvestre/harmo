@@ -78,8 +78,8 @@ fn hear(mut bass: Bass, note: &BassNote, params: &[f64]) -> Bass {
     bass
 }
 
-/// Returns the lowest chord tone, or the accented root when the lowest tone is an unaccented fifth
-/// within `register` semitones below it.
+/// Returns the lowest chord tone,
+/// or the accented root when the lowest tone is an unaccented fifth within `register` semitones below it.
 fn bass_note(bass: &Bass, register: i32) -> Option<(i32, Tpc)> {
     let (Some((low, _)), Some(root)) = (bass.lowest, bass.accented_root) else {
         return bass.lowest;

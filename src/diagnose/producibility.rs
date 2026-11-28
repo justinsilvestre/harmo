@@ -1,5 +1,5 @@
-//! Decides whether the engine could produce a label at all, by asking the rule set's own
-//! chord proposers and vocabulary.
+//! Decides whether the engine could produce a label at all,
+//! by asking the rule set's own chord proposers and vocabulary.
 
 use crate::engine::ruleset::RuleSet;
 use crate::score::slicing::Slice;
@@ -19,13 +19,13 @@ pub enum Gap {
     ChordNotInKey,
     /// The label applies the chord to another degree, but the engine reads it in the key itself.
     AppliedReadInKey,
-    /// The label gives the chord a function other than dominant or leading tone in the tonicized
-    /// key, such as ii/V or IV/IV.
+    /// The label gives the chord a function other
+    /// than dominant or leading tone in the tonicized key, such as ii/V or IV/IV.
     AppliedNonDominant,
     /// The label applies a dominant or leading-tone chord to a degree the engine does not tonicize.
     AppliedTargetMissing,
-    /// The vocabulary allows the reading, but no rule proposes the chord, or no rule proposes the
-    /// key, on any of the label's slices.
+    /// The vocabulary allows the reading, but no rule proposes the chord,
+    /// or no rule proposes the key, on any of the label's slices.
     NotProposed,
 }
 
@@ -70,9 +70,10 @@ fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
     })
 }
 
-/// Reports whether reading `chord` as tonicizing `tonicized` gives the label's degree and secondary
-/// degree, which is all the benchmark compares. The mode of a tonicized key matters only where it
-/// changes a degree, as it does for leading-tone chords but not for dominants.
+/// Reports whether reading `chord` as tonicizing `tonicized` gives the label's degree
+/// and secondary degree, which is all the benchmark compares.
+/// The mode of a tonicized key matters only where it changes a degree,
+/// as it does for leading-tone chords but not for dominants.
 fn has_same_numeral(label: &Label, tonicized: Option<Key>, chord: Chord) -> bool {
     let reading = Label::new(label.key, tonicized, chord, chord.root);
     reading.degree == label.degree && reading.secondary == label.secondary

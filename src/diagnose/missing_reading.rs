@@ -11,8 +11,8 @@ use crate::theory::label::Label;
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum MissingReason {
     Unproducible,
-    /// The best hypothesis in the beam that holds the reading has this rank (1 = best) and lies
-    /// this far below the best hypothesis.
+    /// The best hypothesis in the beam that holds the reading has this rank (1 = best)
+    /// and lies this far below the best hypothesis.
     BelowCutoff {
         rank: usize,
         gap: f32,
@@ -20,8 +20,8 @@ pub enum MissingReason {
     OutsideBeam(Absence),
 }
 
-/// Looks for the reading in the whole beam from which readings are offered, and otherwise asks
-/// whether the engine could produce it at all.
+/// Looks for the reading in the whole beam from which readings are offered,
+/// and otherwise asks whether the engine could produce it at all.
 pub fn missing_reason(
     context: &PieceContext,
     (analyst, frame): (usize, usize),

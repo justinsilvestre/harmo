@@ -49,8 +49,9 @@ fn seventh_sonority(context: &ChordCloseContext, params: &[f64]) -> f32 {
     ((share / SHARE_TARGET.read(params)).min(1.0) - 1.0) as f32
 }
 
-/// Reports whether the rule judges a quality: the seventh chords, leaving out the dominant and diminished
-/// sevenths, whose sevenths are treated freely, and the augmented sixths, which have no seventh.
+/// Reports whether the rule judges a quality: the seventh chords,
+/// leaving out the dominant and diminished sevenths, whose sevenths are treated freely,
+/// and the augmented sixths, which have no seventh.
 fn is_judged(quality: Quality) -> bool {
     let is_exempt = matches!(
         quality,

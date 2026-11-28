@@ -57,8 +57,8 @@ fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
     -((1.0 - area_heard(context.history, key, established) / established).max(0.0) as f32)
 }
 
-/// Sums the durations of the latest segments in the given key, stopping once the area is
-/// established, since a longer area costs no more.
+/// Sums the durations of the latest segments in the given key,
+/// stopping once the area is established, since a longer area costs no more.
 fn area_heard(history: History, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
     for segment in history.segments().take_while(|s| s.function.key == key) {

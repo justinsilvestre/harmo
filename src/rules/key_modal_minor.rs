@@ -1,17 +1,18 @@
-//! Decides, for each minor key, whether a slice is heard against the natural minor profile rather
-//! than the harmonic minor one.
+//! Decides, for each minor key,
+//! whether a slice is heard against the natural minor profile rather than the harmonic minor one.
 //!
-//! A minor key is established by its raised leading tone, or by a piece that opens on its tonic
-//! triad. Once the key is established, a later stretch without the raised leading tone is heard
-//! as the natural form of the same minor key, whose seventh degree is the subtonic, rather than as
-//! its relative major.
+//! A minor key is established by its raised leading tone,
+//! or by a piece that opens on its tonic triad. Once the key is established,
+//! a later stretch without the raised leading tone is heard
+//! as the natural form of the same minor key, whose seventh degree is the subtonic,
+//! rather than as its relative major.
 
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 use std::cell::Cell;
 
-/// How far the recent music reaches past the end of the slice, in quarter notes, the lag the
-/// benchmark allows offered readings.
+/// How far the recent music reaches past the end of the slice, in quarter notes,
+/// the lag the benchmark allows offered readings.
 const LOOK_AHEAD: f64 = 2.0;
 
 /// The raised leading tone, in semitones above the tonic.
@@ -20,22 +21,24 @@ const LEADING_TONE: usize = 11;
 /// The minor third, in semitones above the tonic.
 const MINOR_THIRD: usize = 3;
 
-/// Identifies a slice of a particular score: the addresses of the slice list and of the slice's
-/// notes, the list's length and the slice's index.
+/// Identifies a slice of a particular score:
+/// the addresses of the slice list and of the slice's notes,
+/// the list's length and the slice's index.
 type SliceIdentity = (usize, usize, usize, usize);
 
 thread_local! {
-    /// The modal tonics of the most recent slice asked about, with the look-back they were found
-    /// with. The engine scores many readings of one slice in a row, so one entry avoids nearly all
-    /// recomputation without changing any result.
+    /// The modal tonics of the most recent slice asked about,
+    /// with the look-back they were found with.
+    /// The engine scores many readings of one slice in a row,
+    /// so one entry avoids nearly all recomputation without changing any result.
     static LAST_MODAL: Cell<(SliceIdentity, f64, [bool; 12])> =
         const { Cell::new(((0, 0, 0, usize::MAX), 0.0, [false; 12])) };
 }
 
-/// Marks, by tonic pitch class, the minor keys to score with the natural minor profile at a
-/// slice: those established earlier, by their raised leading tone or by the piece's opening
-/// chord, whose raised leading tone has not sounded in the last `look_back` quarter notes, the slice
-/// itself or the next two quarter notes.
+/// Marks, by tonic pitch class, the minor keys to score with the natural minor profile at a slice:
+/// those established earlier, by their raised leading tone or by the piece's opening chord,
+/// whose raised leading tone has not sounded in the last `look_back` quarter notes,
+/// the slice itself or the next two quarter notes.
 pub fn modal_minor_tonics(slices: &[Slice], index: usize, look_back: f64) -> [bool; 12] {
     let identity = (slices.as_ptr() as usize, slices[index].notes.as_ptr() as usize, slices.len(), index);
     let (cached_identity, cached_look_back, modal) = LAST_MODAL.get();
@@ -74,8 +77,8 @@ fn earlier_pitch_classes(slices: &[Slice], index: usize) -> [bool; 12] {
     earlier
 }
 
-/// Marks the pitch classes sounding in the slice, in the `look_back` quarter notes before it and in
-/// the next two quarter notes.
+/// Marks the pitch classes sounding in the slice,
+/// in the `look_back` quarter notes before it and in the next two quarter notes.
 fn recent_pitch_classes(slices: &[Slice], index: usize, look_back: f64) -> [bool; 12] {
     let slice = &slices[index];
     let horizon = slice.start + slice.duration + LOOK_AHEAD;

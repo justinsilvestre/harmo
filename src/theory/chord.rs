@@ -49,8 +49,8 @@ const NINTHS: [i32; 3] = [2, -5, 9];
 
 impl Quality {
     /// Chord members in fifths above the root, ordered root, third, fifth, seventh.
-    /// Augmented sixth chords follow music21's rooting: the Italian and German chords are
-    /// rooted on the raised fourth degree and the French chord on the second degree.
+    /// Augmented sixth chords follow music21's rooting: the Italian and German chords are rooted
+    /// on the raised fourth degree and the French chord on the second degree.
     pub fn template(self) -> &'static [i32] {
         match self {
             Quality::Major => &[0, 4, 1],
@@ -94,8 +94,8 @@ impl Quality {
         self.template().len() == 4
     }
 
-    /// Returns the triad that a seventh chord adds its seventh to, such as major for a dominant
-    /// seventh, or `None` for a quality that is not a seventh chord.
+    /// Returns the triad that a seventh chord adds its seventh to,
+    /// such as major for a dominant seventh, or `None` for a quality that is not a seventh chord.
     pub fn triad(self) -> Option<Quality> {
         match self {
             Quality::DominantSeventh | Quality::MajorSeventh => Some(Quality::Major),

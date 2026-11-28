@@ -1,9 +1,10 @@
-//! Pruning: which of the hypotheses proposed at a slice the beam keeps, and records of those it
-//! drops, with the reason.
+//! Pruning: which of the hypotheses proposed at a slice the beam keeps,
+//! and records of those it drops, with the reason.
 //!
-//! A hypothesis that is kept always yields a continuation at the next slice, so it can only leave
-//! the search by being pruned. A reading that the beam holds for some slice therefore leaves it
-//! exactly when pruning drops the last hypotheses that hold it.
+//! A hypothesis that is kept always yields a continuation at the next slice,
+//! so it can only leave the search by being pruned.
+//! A reading that the beam holds for some slice therefore leaves it exactly
+//! when pruning drops the last hypotheses that hold it.
 
 use super::layers::Layers;
 use super::model::KeySegment;
@@ -18,8 +19,8 @@ use std::collections::{HashMap, HashSet};
 pub enum PruneCause {
     /// The beam was already full of better hypotheses.
     Width,
-    /// The beam already held `Config::hearing_width` hearings of the chords, each interpreted by a
-    /// better hypothesis, and this hypothesis interprets another.
+    /// The beam already held `Config::hearing_width` hearings of the chords,
+    /// each interpreted by a better hypothesis, and this hypothesis interprets another.
     HearingWidth,
     /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
     /// as the same was kept instead. `keeper` is its index in the hypotheses.
@@ -69,11 +70,12 @@ pub struct Departure {
     pub merged_into: Option<u32>,
 }
 
-/// Keeps the best of the pending hypotheses, in order, skipping any that would take the beam past
-/// its limit of hearings and any whose recent segments the rules count as the same as those of a
-/// better one (see `Config::distinct_depth`). The sort is stable, so ties are broken by the order in
-/// which the hypotheses were proposed. Also returns the dropped hypotheses when
-/// `Config::record_pruning` is set.
+/// Keeps the best of the pending hypotheses, in order,
+/// skipping any that would take the beam past its limit
+/// of hearings and any whose recent segments the rules count
+/// as the same as those of a better one (see `Config::distinct_depth`). The sort is stable,
+/// so ties are broken by the order in which the hypotheses were proposed.
+/// Also returns the dropped hypotheses when `Config::record_pruning` is set.
 pub fn prune(
     pending: &Pending,
     layers: &Layers,
@@ -139,8 +141,8 @@ impl Pruner<'_> {
         }
     }
 
-    /// Returns the distinguish hooks' values for a hypothesis's last segment and for up to
-    /// `distinct_depth - 1` segments before it, most recent first.
+    /// Returns the distinguish hooks' values for a hypothesis's last segment
+    /// and for up to `distinct_depth - 1` segments before it, most recent first.
     fn signature(&self, hypothesis: &PendingHypothesis) -> Vec<u64> {
         let (layers, key_rules) = (self.layers, &self.rules.key);
         let depth = self.config.distinct_depth;

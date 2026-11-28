@@ -4,8 +4,8 @@ use super::chord_hooks::ChordHook;
 use super::key_hooks::KeyHook;
 use serde::Serialize;
 
-/// What a rule judges: chords, keys, or the functions of chords in keys. A rule's id and file
-/// are prefixed by its topic.
+/// What a rule judges: chords, keys, or the functions of chords in keys.
+/// A rule's id and file are prefixed by its topic.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
 pub enum Topic {
     Chord,
@@ -14,8 +14,8 @@ pub enum Topic {
 }
 
 impl Topic {
-    /// Returns the layer of the search whose rules judge the topic. Function rules belong to the
-    /// key layer, which hears keys and functions together.
+    /// Returns the layer of the search whose rules judge the topic.
+    /// Function rules belong to the key layer, which hears keys and functions together.
     pub fn layer(self) -> Layer {
         match self {
             Topic::Chord => Layer::Chord,
@@ -61,8 +61,8 @@ impl Rule {
     }
 }
 
-/// A constant inside a rule, such as a threshold, a duration or a ratio, that can be overridden
-/// at runtime as `<rule id>.<name>` beside the rule weights.
+/// A constant inside a rule, such as a threshold, a duration or a ratio,
+/// that can be overridden at runtime as `<rule id>.<name>` beside the rule weights.
 ///
 /// A scoring hook receives the values of its rule's parameters in order and reads each one with `read`.
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -72,8 +72,8 @@ pub struct Param {
     pub name: &'static str,
     pub default: f64,
     pub unit: &'static str,
-    /// Where the default comes from: "cited: <source, page>", or "measured: <sweep or commit>"
-    /// with the values tried and what they gave.
+    /// Where the default comes from: "cited: <source, page>", or "measured:
+    /// <sweep or commit>" with the values tried and what they gave.
     pub provenance: &'static str,
 }
 

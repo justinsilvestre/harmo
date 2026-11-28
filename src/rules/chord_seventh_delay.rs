@@ -39,8 +39,8 @@ const MIN_DELAY: Param = Param {
     provenance: "measured: round 7 (0 / 1 / 2 / 3 / 4: tune RN +0.12 / +0.13 / +0.11 / +0.08 / +0.05, rn eq +0.10 / +0.11 / +0.09 / +0.06 / +0.03 against round7-base2)",
 };
 
-/// Returns -1 for a dominant seventh chord whose seventh first sounds in a later bar than the chord's
-/// first slice, at least the least delay after the chord begins, and 0 otherwise.
+/// Returns -1 for a dominant seventh chord whose seventh first sounds in a later bar
+/// than the chord's first slice, at least the least delay after the chord begins, and 0 otherwise.
 fn seventh_delay(context: &ChordCloseContext, params: &[f64]) -> f32 {
     let chord = context.segment.chord;
     let Some(seventh) = chord.members().nth(3).filter(|_| chord.quality == Quality::DominantSeventh) else {

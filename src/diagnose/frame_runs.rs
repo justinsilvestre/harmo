@@ -4,8 +4,8 @@ use crate::bench::metrics::is_rn_match;
 use crate::theory::label::Label;
 
 /// Reports whether the engine's label at `frame` is wrong only because a chord change is shifted
-/// by at most `reach` frames: the expert's label changes within `reach` frames on one side, and the
-/// engine shows the expert's label within `reach` frames on the other.
+/// by at most `reach` frames: the expert's label changes within `reach` frames on one side,
+/// and the engine shows the expert's label within `reach` frames on the other.
 pub fn is_shifted(expert: &[Option<Label>], engine: &[Option<Label>], frame: usize, reach: usize) -> bool {
     let Some(label) = &expert[frame] else {
         return false;
@@ -25,8 +25,9 @@ pub fn run_bounds(frames: &[Option<Label>], frame: usize) -> (usize, usize) {
     (start, end)
 }
 
-/// Returns, for each frame, the length in frames of the run of consecutive frames over which the
-/// expert's and the engine's keys stay the same pair. Frames with a missing label count as their own pair.
+/// Returns, for each frame, the length in frames of the run of consecutive frames over
+/// which the expert's and the engine's keys stay the same pair.
+/// Frames with a missing label count as their own pair.
 pub fn key_run_lengths(expert: &[Option<Label>], engine: &[Option<Label>]) -> Vec<usize> {
     let pair = |f: usize| (expert[f].map(|l| l.key), engine.get(f).copied().flatten().map(|l| l.key));
     let mut lengths = vec![0; expert.len()];

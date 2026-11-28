@@ -1,9 +1,11 @@
 //! Decides whether short fragments of bars count as measures of their own.
 //!
-//! Some scores split a bar into a whole measure and a fragment, for example a 5/4 bar written as
-//! a 4/4 measure and a 1/4 measure, or leave the last beat of an ending as a measure of its own.
-//! An analysis counts such a bar once. When a score's numbering is broken and its bars are numbered
-//! by position, a fragment would take a number and push every later analysis measure one bar early.
+//! Some scores split a bar into a whole measure and a fragment,
+//! for example a 5/4 bar written as a 4/4 measure and a 1/4 measure,
+//! or leave the last beat of an ending as a measure of its own.
+//! An analysis counts such a bar once.
+//! When a score's numbering is broken and its bars are numbered by position,
+//! a fragment would take a number and push every later analysis measure one bar early.
 
 use crate::score::model::Measure;
 
@@ -12,8 +14,9 @@ const EPSILON: f64 = 1e-6;
 /// It amounts to about one harmony that fits its bar fully instead of not at all.
 const REQUIRED_GAIN: f64 = 1.0;
 
-/// Removes the numbers of fragments (short bars between two whole bars) when the analysis fits the score
-/// better without them. `total_fit` rates how well the analysis fits the score under a numbering.
+/// Removes the numbers of fragments (short bars between two whole bars)
+/// when the analysis fits the score better without them.
+/// `total_fit` rates how well the analysis fits the score under a numbering.
 pub fn skip_unfitting_fragments(
     bars: &[Measure],
     mut numbers: Vec<Option<i64>>,

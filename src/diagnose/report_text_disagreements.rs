@@ -1,5 +1,6 @@
-//! Prints the disagreement table: for each class, how often the engine matches or offers the
-//! analysts' readings, and why missing readings are missing.
+//! Prints the disagreement table: for each class,
+//! how often the engine matches or offers the analysts' readings,
+//! and why missing readings are missing.
 
 use super::report_text::percent;
 use super::tally_class::ClassTally;

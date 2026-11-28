@@ -1,5 +1,5 @@
-//! The analysis document: the favored reading of each chord span, its competitors, the rules
-//! behind each reading and how its ranking changed over time.
+//! The analysis document: the favored reading of each chord span, its competitors,
+//! the rules behind each reading and how its ranking changed over time.
 
 use super::rank_history::{
     HistoryContext, PrunedAlternativeOutput, RankChangeOutput, pruned_alternatives, rank_history_output,

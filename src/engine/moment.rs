@@ -4,8 +4,8 @@ use super::key_contexts::History;
 use super::layers::Layers;
 use crate::score::slicing::Slice;
 
-/// The slice that the search hears now, within the score, and what both layers have kept from the
-/// slices before it.
+/// The slice that the search hears now, within the score,
+/// and what both layers have kept from the slices before it.
 #[derive(Clone, Copy)]
 pub struct Moment<'a> {
     pub slices: &'a [Slice],

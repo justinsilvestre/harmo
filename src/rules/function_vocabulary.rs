@@ -1,7 +1,7 @@
 //! The Roman numeral vocabulary: the ways a chord may function in a key.
 //!
-//! A chord with no entry for a key cannot be read in that key at all, so this table acts as a
-//! hard constraint on readings.
+//! A chord with no entry for a key cannot be read in that key at all,
+//! so this table acts as a hard constraint on readings.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::key_hooks::KeyHook;

@@ -1,13 +1,14 @@
-//! The keys, chords and numerals offered at each frame one layer at a time, as the beam stood a
-//! short time later, and the same ranked in hindsight.
+//! The keys, chords and numerals offered at each frame one layer at a time,
+//! as the beam stood a short time later, and the same ranked in hindsight.
 
 use super::layer_offers::{LayerLimits, LayerOffers, by_shortfall, layer_offers};
 use super::runner::{BenchPiece, EvalConfig, lagged_beam, reading_at, slice_values_by_frame};
 use crate::engine::search::Analysis;
 use crate::theory::label::Label;
 
-/// Returns, for each frame, the readings offered by layer from the beam a short time later (see
-/// `EvalConfig::offer_lag`), ranked by the hypotheses' scores at that time.
+/// Returns, for each frame,
+/// the readings offered by layer from the beam a short time later (see `EvalConfig::offer_lag`),
+/// ranked by the hypotheses' scores at that time.
 pub fn layer_frames(
     analysis: &Analysis,
     piece: &BenchPiece,
@@ -20,8 +21,9 @@ pub fn layer_frames(
     slice_values_by_frame(slices, count, &per_slice)
 }
 
-/// Returns, for each frame, the readings that the same beam offers when each is ranked by the best
-/// final score that a hypothesis holding it led to (see `hindsight::descendant_bests`).
+/// Returns, for each frame, the readings that the same beam offers
+/// when each is ranked by the best final score
+/// that a hypothesis holding it led to (see `hindsight::descendant_bests`).
 /// The Roman numeral layer holds the full readings, ranked the same way.
 /// This is a report on the finished analysis and is never used in scoring.
 pub fn hindsight_frames(

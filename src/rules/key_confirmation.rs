@@ -54,8 +54,9 @@ enum Confirmation {
     Unconfirmed,
 }
 
-/// Walks back through the key area being left, most recent segment first, and stops at the first
-/// event that confirms it. A cadential tonic must arrive at `strong_beat` or a stronger metric level.
+/// Walks back through the key area being left, most recent segment first,
+/// and stops at the first event that confirms it.
+/// A cadential tonic must arrive at `strong_beat` or a stronger metric level.
 fn find_confirmation(context: &KeyDepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
     let key = context.previous.function.key;
@@ -77,8 +78,8 @@ fn find_confirmation(context: &KeyDepartureContext, strong_beat: u8) -> Confirma
 }
 
 /// Reports whether a phrase ending falls between the segment's first slice and the given slice.
-/// Phrase numbers never decrease, so an area crosses a phrase end exactly when one of its
-/// segments does.
+/// Phrase numbers never decrease,
+/// so an area crosses a phrase end exactly when one of its segments does.
 fn crosses_phrase_end(segment: &KeySegment, slices: &[Slice], slice: &Slice) -> bool {
     slices.get(segment.heard.start as usize).is_some_and(|start| start.phrase != slice.phrase)
 }
@@ -158,8 +159,9 @@ mod tests {
         KeySegment { heard: ChordSegment { bass, ..segment.heard }, ..segment }
     }
 
-    /// Scores leaving the key of the last of a path of segments, with slices at the given metric
-    /// levels and phrases (one more slice than the path, for the new segment).
+    /// Scores leaving the key of the last of a path of segments,
+    /// with slices at the given metric levels and phrases (one more slice than the path,
+    /// for the new segment).
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
         let path = path_of(&chords.iter().map(segment).collect::<Vec<_>>());
         let history = history_after(&path, slices);

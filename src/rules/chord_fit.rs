@@ -39,8 +39,8 @@ pub const RULES: &[Rule] = &[
     },
 ];
 
-/// The values of the third, fifth and seventh of the chord, against 1 for the root. HPR 1 orders
-/// them root, fifth, third, seventh.
+/// The values of the third, fifth and seventh of the chord, against 1 for the root.
+/// HPR 1 orders them root, fifth, third, seventh.
 const THIRD_VALUE: Param = Param {
     index: 0,
     name: "third_value",
@@ -62,8 +62,8 @@ const SEVENTH_VALUE: Param = Param {
     unit: "ratio to the root",
     provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, gives the order root, fifth, third, seventh but no values); measured: sweeps/round7-constants.json, round 7 (0.25 / 0.375 / 0.625 / 0.75: tune RN -0.09 / -0.06 / -0.09 / -0.20; kept)",
 };
-/// The share of a chord tone's value earned by a note that matches it only enharmonically, since the
-/// spelling disagrees.
+/// The share of a chord tone's value earned by a note that matches it only enharmonically,
+/// since the spelling disagrees.
 const ENHARMONIC_SHARE: Param = Param {
     index: 3,
     name: "enharmonic_share",

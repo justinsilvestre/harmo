@@ -77,8 +77,8 @@ pub const RULES: &[Rule] = &[
     },
 ];
 
-/// The cost of a mixture chord whose only borrowed tone is the lowered sixth degree, against 1 for
-/// other altered chords.
+/// The cost of a mixture chord whose only borrowed tone is the lowered sixth degree,
+/// against 1 for other altered chords.
 const LOWERED_SIXTH_MIXTURE: Param = Param {
     index: 0,
     name: "lowered_sixth_mixture",
@@ -94,8 +94,8 @@ const CONTINUED_TONICIZATION: Param = Param {
     unit: "ratio",
     provenance: "measured: de9d21b, round 5 (0 / 0.25 / 0.5 / 0.625 / 0.75 / 0.875: tune RN -0.26 / -0.09 / +0.03 / +0.04 / +0.06 / +0.04); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.625 / 0.875 / 1: tune RN -0.02 / -0.00 / +0.01 / -0.04; kept)",
 };
-/// The cost of an applied chord not followed by the chord it tonicizes, against a credit of 1 for
-/// one that is.
+/// The cost of an applied chord not followed by the chord it tonicizes,
+/// against a credit of 1 for one that is.
 const UNRESOLVED_COST: Param = Param {
     index: 0,
     name: "unresolved_cost",
@@ -114,9 +114,9 @@ fn diatonic_preference(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     }
 }
 
-/// Reports whether an applied chord continues a tonicization already under way: the chord just
-/// before it, in the same key, is applied to the same degree, or is that degree's own chord
-/// following a chord applied to it.
+/// Reports whether an applied chord continues a tonicization already under way:
+/// the chord just before it, in the same key, is applied to the same degree,
+/// or is that degree's own chord following a chord applied to it.
 fn continues_tonicization(context: &KeyTransitionContext) -> bool {
     let next = context.next;
     let Some(target) = next.function.tonicized else { return false };

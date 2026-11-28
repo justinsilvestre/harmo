@@ -1,5 +1,5 @@
-//! Writes RESULTS.md: every figure that `bench` and `diagnose` compute for the standard sets, with
-//! notes on how to read them.
+//! Writes RESULTS.md: every figure that `bench` and `diagnose` compute for the standard sets,
+//! with notes on how to read them.
 
 pub mod markdown;
 mod markdown_accuracy;

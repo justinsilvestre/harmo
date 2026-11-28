@@ -27,8 +27,8 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Chord(ChordHook::Close(bass_change)),
 }];
 
-/// The weakest metric level at which a bass change counts, and to which the new bass must be held
-/// (2 = any beat).
+/// The weakest metric level at which a bass change counts,
+/// and to which the new bass must be held (2 = any beat).
 const BEAT_LEVEL: Param = Param {
     index: 0,
     name: "beat_level",
@@ -47,8 +47,9 @@ const BASS_REGISTER: Param = Param {
 
 /// Returns minus the number of bass changes inside the segment.
 ///
-/// The bass is established by the segment's first bass note and by every later bass note that is
-/// attacked on a beat and held until the next beat. A change is an established bass on another chord member than the one before it.
+/// The bass is established by the segment's first bass note
+/// and by every later bass note that is attacked on a beat and held until the next beat.
+/// A change is an established bass on another chord member than the one before it.
 fn bass_change(context: &ChordCloseContext, params: &[f64]) -> f32 {
     let beat = BEAT_LEVEL.read(params) as u8;
     let register = BASS_REGISTER.read(params) as i32;

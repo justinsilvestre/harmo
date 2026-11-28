@@ -1,5 +1,5 @@
-//! Renders the chord layer split by whether the key is right, and the chord changes and beam
-//! figures of each diagnosed set.
+//! Renders the chord layer split by whether the key is right,
+//! and the chord changes and beam figures of each diagnosed set.
 
 use super::markdown_table::{share, table};
 use super::set_names::row_name;

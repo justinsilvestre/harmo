@@ -5,8 +5,9 @@ use super::layers::{Layers, NO_LAYERS};
 use super::model::{KeySegment, NONE, Reading};
 use crate::score::slicing::Slice;
 
-/// A segment's place among rival hearings of the same music. The engine only compares the values
-/// for equality: two segments are rivals when they have the same group and different members.
+/// A segment's place among rival hearings of the same music.
+/// The engine only compares the values for equality:
+/// two segments are rivals when they have the same group and different members.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Rival {
     pub group: u64,
@@ -85,8 +86,8 @@ pub struct RivalContext<'a> {
     pub previous_slice: Option<&'a Slice>,
 }
 
-/// Read-only access to the segments preceding a transition, most recent first, as the key layer
-/// reads them.
+/// Read-only access to the segments preceding a transition, most recent first,
+/// as the key layer reads them.
 #[derive(Clone, Copy)]
 pub struct History<'a> {
     pub layers: &'a Layers,

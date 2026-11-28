@@ -8,8 +8,8 @@ use crate::pitch::tpc_from_name;
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
-/// A chord segment that opens on slice 0, lasts one quarter note, has heard none of the chord's
-/// members and has no bass note yet.
+/// A chord segment that opens on slice 0, lasts one quarter note,
+/// has heard none of the chord's members and has no bass note yet.
 pub fn chord_segment(chord: Chord) -> ChordSegment {
     ChordSegment { chord, start: 0, duration: 1.0, members_heard: 0, bass: Bass::default() }
 }
@@ -20,9 +20,9 @@ pub fn key_segment(reading: Reading) -> KeySegment {
     KeySegment { heard: chord_segment(reading.chord), function: reading.function }
 }
 
-/// Holds segments in layers: segment i becomes the last segment of hypothesis i, which interprets
-/// hearing i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`, or nothing if that is
-/// `NONE`, and its hearing follows the hearing with the same index.
+/// Holds segments in layers: segment i becomes the last segment of hypothesis i,
+/// which interprets hearing i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`,
+/// or nothing if that is `NONE`, and its hearing follows the hearing with the same index.
 pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
     let hypothesis = |i: usize| Hypothesis {
         parent: previous[i],
@@ -45,8 +45,8 @@ pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
     }
 }
 
-/// Holds segments in layers as the path of one hypothesis, in which segment i opens on slice i and
-/// follows segment i - 1.
+/// Holds segments in layers as the path of one hypothesis,
+/// in which segment i opens on slice i and follows segment i - 1.
 pub fn path_of(segments: &[KeySegment]) -> Layers {
     let opened = |(i, s): (usize, &KeySegment)| KeySegment {
         heard: ChordSegment { start: i as u32, ..s.heard },

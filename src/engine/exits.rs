@@ -17,13 +17,13 @@ pub struct ChordExit {
     pub score: f32,
     /// The chord close rules' score of the hearing's last segment.
     pub close: f32,
-    /// The chord transition rules' score of opening each proposed chord after the hearing, in the
-    /// order of `Proposals::chords`.
+    /// The chord transition rules' score of opening each proposed chord after the hearing,
+    /// in the order of `Proposals::chords`.
     pub transitions: Vec<f32>,
 }
 
-/// What leaving a hypothesis on the moment's slice scores in the key layer. Its departure scores
-/// count only for new readings in another key.
+/// What leaving a hypothesis on the moment's slice scores in the key layer.
+/// Its departure scores count only for new readings in another key.
 pub struct KeyExit {
     /// The hypothesis, or `NONE` at the start of the piece.
     pub hypothesis: u32,
@@ -58,8 +58,8 @@ pub struct Predecessor {
 }
 
 impl Exits {
-    /// Returns the exits of the hypotheses in the beam, or the exit from the start of the piece when
-    /// the beam is empty.
+    /// Returns the exits of the hypotheses in the beam,
+    /// or the exit from the start of the piece when the beam is empty.
     pub fn of(moment: &Moment, beam: &[u32], proposed: &[ProposedChord], rules: &RuleSet) -> Exits {
         if beam.is_empty() {
             return Exits::from_start(moment, proposed, rules);
@@ -93,9 +93,9 @@ impl Exits {
         Exits { chords: vec![chord], keys: vec![key] }
     }
 
-    /// Finds the hypotheses that a new reading opens after: the one that leads into it best and, for
-    /// each rival hook that puts that hypothesis's last segment in a group, the best one whose last
-    /// segment is another member of the group. Returns them best first.
+    /// Finds the hypotheses that a new reading opens after: the one that leads into it best and,
+    /// for each rival hook that puts that hypothesis's last segment in a group,
+    /// the best one whose last segment is another member of the group. Returns them best first.
     pub fn predecessors(&self, opening: &Opening, moment: &Moment, rules: &RuleSet) -> Vec<Predecessor> {
         let lead_in = |position: usize| self.lead_in(position, opening, moment, rules);
         let scored: Vec<Predecessor> = (0..self.keys.len()).filter_map(lead_in).collect();
@@ -118,8 +118,8 @@ impl Exits {
         found.into_iter().map(|i| scored[i]).collect()
     }
 
-    /// Scores opening a new reading after the hypothesis of one exit, or returns `None` if an admit
-    /// rule rules the transition out.
+    /// Scores opening a new reading after the hypothesis of one exit,
+    /// or returns `None` if an admit rule rules the transition out.
     fn lead_in(
         &self,
         position: usize,
@@ -154,8 +154,8 @@ fn chord_exit(moment: &Moment, hearing: HearingId, proposed: &[ProposedChord], r
     ChordExit { hearing, score: heard.score, close, transitions }
 }
 
-/// Scores, in the chord layer, opening each proposed chord after a segment, or after nothing at the
-/// start of the piece.
+/// Scores, in the chord layer, opening each proposed chord after a segment,
+/// or after nothing at the start of the piece.
 fn chord_transitions(
     moment: &Moment,
     previous: Option<&ChordSegment>,

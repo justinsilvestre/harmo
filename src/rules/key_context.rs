@@ -68,9 +68,9 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Key(KeyHook::Slice(context_fit)),
 }];
 
-/// How far the window reaches past the end of the slice. It is at most the lag the benchmark allows
-/// offered readings, so the window holds only music a listener has heard, or will hear within a
-/// beat or two.
+/// How far the window reaches past the end of the slice.
+/// It is at most the lag the benchmark allows offered readings,
+/// so the window holds only music a listener has heard, or will hear within a beat or two.
 const LOOK_AHEAD: Param = Param {
     index: 0,
     name: "look_ahead",
@@ -132,13 +132,14 @@ fn context_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     fit / total * context.slice.duration as f32
 }
 
-/// Identifies a slice of a particular score: the addresses of the slice list and of the slice's
-/// notes, the list's length and the slice's index.
+/// Identifies a slice of a particular score:
+/// the addresses of the slice list and of the slice's notes,
+/// the list's length and the slice's index.
 type SliceIdentity = (usize, usize, usize, usize);
 
 thread_local! {
-    /// The most recent window. The engine scores many readings of one slice in a row, so one
-    /// entry avoids nearly all recomputation without changing any result.
+    /// The most recent window. The engine scores many readings of one slice in a row,
+    /// so one entry avoids nearly all recomputation without changing any result.
     static LAST_WINDOW: Cell<(SliceIdentity, Window, [f32; 12])> = const {
         let window = Window { look_ahead: 0.0, half_life: 0.0, reach: 0.0 };
         Cell::new(((0, 0, 0, usize::MAX), window, [0.0; 12]))
@@ -156,8 +157,8 @@ fn cached_window_weights(slices: &[Slice], index: usize, window: Window) -> [f32
     weights
 }
 
-/// Sums the sounding duration of each pitch class in the slice, in the music of its phrase heard
-/// before it, tapering with distance, and in the music just ahead.
+/// Sums the sounding duration of each pitch class in the slice,
+/// in the music of its phrase heard before it, tapering with distance, and in the music just ahead.
 fn window_weights(slices: &[Slice], index: usize, window: Window) -> [f32; 12] {
     let slice = &slices[index];
     let horizon = slice.start + slice.duration + window.look_ahead;

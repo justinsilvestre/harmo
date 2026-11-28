@@ -1,5 +1,5 @@
-//! A set of rules with weights, split by layer and by hook so the engine can call each group
-//! directly.
+//! A set of rules with weights,
+//! split by layer and by hook so the engine can call each group directly.
 
 use super::chord_rules::ChordRules;
 use super::key_rules::KeyRules;
@@ -23,8 +23,8 @@ pub struct RuleSet {
 }
 
 impl RuleSet {
-    /// Builds a rule set, overriding default weights by rule id and default parameter values by
-    /// `<rule id>.<parameter name>`.
+    /// Builds a rule set, overriding default weights by rule id
+    /// and default parameter values by `<rule id>.<parameter name>`.
     /// Keys in `overrides` that match no rule or parameter are returned as an error, to catch typos.
     pub fn new(rules: Vec<Rule>, overrides: &Weights) -> Result<RuleSet, String> {
         let mut weights: Vec<f32> = rules.iter().map(|r| r.default_weight).collect();

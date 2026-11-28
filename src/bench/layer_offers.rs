@@ -1,9 +1,9 @@
-//! Readings offered one layer at a time: keys and chords ranked separately by their shortfall, and
-//! Roman numerals built from the offered keys and chords.
+//! Readings offered one layer at a time: keys and chords ranked separately by their shortfall,
+//! and Roman numerals built from the offered keys and chords.
 //!
-//! A reading's shortfall is the best value of any hypothesis minus the best value of a hypothesis
-//! holding that reading. Ranking keys and chords apart lets a key be offered for the music however
-//! many chords compete within it, and the reverse.
+//! A reading's shortfall is the best value of any hypothesis minus the best value
+//! of a hypothesis holding that reading. Ranking keys and chords apart lets a key be offered
+//! for the music however many chords compete within it, and the reverse.
 
 use crate::pitch::Tpc;
 use crate::theory::chord::{Chord, Quality};
@@ -42,10 +42,12 @@ pub struct LayerOffers {
     pub numerals: Vec<Label>,
 }
 
-/// Offers keys, chords and numerals from `held`, the value of each hypothesis with its label of
-/// the slice, measured against the best value `best`.
-/// A numeral pairs an offered key with an offered chord, since a numeral follows from a chord and
-/// the key it is read in (Kostka, Payne and Almén 2023, pp. 54, 65).
+/// Offers keys, chords and numerals from `held`,
+/// the value of each hypothesis with its label of the slice,
+/// measured against the best value `best`.
+/// A numeral pairs an offered key with an offered chord,
+/// since a numeral follows from a chord and the key it is read in (Kostka, Payne and Almén 2023,
+/// pp. 54, 65).
 /// Numerals are ranked by the sum of their key's and chord's shortfalls.
 /// A numeral takes the tonicization of the best hypothesis holding its key and chord, if any.
 pub fn layer_offers(held: &[(f32, Label)], best: f32, limits: &LayerLimits) -> LayerOffers {
@@ -73,8 +75,8 @@ pub fn layer_offers(held: &[(f32, Label)], best: f32, limits: &LayerLimits) -> L
     }
 }
 
-/// Returns the distinct values of `held` whose shortfall from `best` is within `margin`, with that
-/// shortfall, smallest first and at most `count` of them.
+/// Returns the distinct values of `held` whose shortfall from `best` is within `margin`,
+/// with that shortfall, smallest first and at most `count` of them.
 /// A value held at negative infinity has no shortfall and is never offered.
 /// Equal shortfalls keep the order of first appearance.
 pub fn by_shortfall<T: PartialEq>(

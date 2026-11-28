@@ -50,8 +50,8 @@ impl KeyRules {
         }
     }
 
-    /// Returns every key that some proposer offers for a segment opening on the slice, in order
-    /// and without repeats.
+    /// Returns every key that some proposer offers for a segment opening on the slice,
+    /// in order and without repeats.
     pub fn propose(&self, slice: &Slice) -> Vec<Key> {
         let mut keys: Vec<Key> = self.proposers.iter().flat_map(|propose| propose(slice)).collect();
         keys.sort();

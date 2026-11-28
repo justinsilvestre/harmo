@@ -56,8 +56,8 @@ pub fn classify_disagreement(a: &Label, b: &Label) -> DisagreementClass {
     }
 }
 
-/// Reports whether `six_four` is a tonic triad over its fifth and `dominant` a dominant chord in the
-/// same key, the two usual readings of a cadential six-four.
+/// Reports whether `six_four` is a tonic triad over its fifth
+/// and `dominant` a dominant chord in the same key, the two usual readings of a cadential six-four.
 fn is_cadential_pair(six_four: &Label, dominant: &Label) -> bool {
     let tonic = six_four.key.tonic;
     let is_tonic_six_four =

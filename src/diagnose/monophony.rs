@@ -3,8 +3,8 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-/// Frames at which every sounding note has the same spelled pitch class, as in a solo line or a
-/// passage in unison or octaves.
+/// Frames at which every sounding note has the same spelled pitch class,
+/// as in a solo line or a passage in unison or octaves.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct MonophonyTally {
     pub frames: u64,

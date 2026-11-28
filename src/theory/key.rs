@@ -71,8 +71,8 @@ impl Key {
         self.tonic + self.scale_fifths()[degree.number as usize - 1] + 7 * degree.alteration as i32
     }
 
-    /// Reports whether a spelled pitch belongs to the natural scale of the key
-    /// (plus raised 6 and 7 in minor).
+    /// Reports whether a spelled pitch belongs to the natural scale of the key (plus raised 6
+    /// and 7 in minor).
     pub fn is_scale_tone(self, tpc: Tpc) -> bool {
         let degree = self.degree_of(tpc);
         degree.alteration == 0

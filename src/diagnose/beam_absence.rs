@@ -1,5 +1,5 @@
-//! Explains why no hypothesis in the beam holds an analyst's reading, from the hypotheses the
-//! search pruned.
+//! Explains why no hypothesis in the beam holds an analyst's reading,
+//! from the hypotheses the search pruned.
 
 use crate::bench::metrics::is_rn_match;
 use crate::engine::history::segment_at;
@@ -15,19 +15,21 @@ pub enum Absence {
     /// The last hypotheses holding it were pruned because the beam was full of better ones.
     /// `after` is how many quarter notes after the frame's slice began they were pruned.
     Width { after: f64 },
-    /// The last hypotheses holding it were pruned because the beam already held as many hearings of
-    /// the chords as it may (see `Config::hearing_width`), each read by a better hypothesis, and
-    /// they read another hearing.
+    /// The last hypotheses holding it were pruned because the beam already held as many hearings
+    /// of the chords as it may (see `Config::hearing_width`), each read by a better hypothesis,
+    /// and they read another hearing.
     Hearings { after: f64 },
-    /// The last hypotheses holding it were pruned in favour of better ones that give their recent
-    /// segments the same readings with other boundaries (see `Config::distinct_depth`).
+    /// The last hypotheses holding it were pruned
+    /// in favour of better ones that give their recent segments the same readings
+    /// with other boundaries (see `Config::distinct_depth`).
     Merged { after: f64 },
     /// No hypothesis that reached the frame's slice gave it the reading.
     NeverHeld,
 }
 
-/// Finds where the last hypotheses giving slice `at` the label were pruned, between `at` and the
-/// slice `until` whose beam lacks it, or `None` if no hypothesis ever gave it the label.
+/// Finds where the last hypotheses giving slice `at` the label were pruned,
+/// between `at` and the slice `until` whose beam lacks it,
+/// or `None` if no hypothesis ever gave it the label.
 /// Requires an analysis run with `Config::record_pruning`.
 pub fn find_pruning(
     analysis: &Analysis,

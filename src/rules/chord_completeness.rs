@@ -70,8 +70,9 @@ const SEVENTH_SHARE_TARGET: Param = Param {
     unit: "share of the segment",
     provenance: "chosen: 4e0fbe2, round 1 (Kostka, Payne and Almen 2023, p. 247, let relative duration decide but give no share); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0.25 / 0.375 / 0.625 / 0.75 / 1: tune RN -0.25 / +0.01 / +0.17 / +0.12 / +0.08; 0.625 and 0.75 lower agreement-tune both offered by 1.0; kept)",
 };
-/// The share of the cost charged for a brief seventh left by leap. Such a seventh fits neither the
-/// suspension nor the passing figure it originated as, but may still be an escape tone.
+/// The share of the cost charged for a brief seventh left by leap.
+/// Such a seventh fits neither the suspension nor the passing figure it originated as,
+/// but may still be an escape tone.
 const LEAPING_SEVENTH_FACTOR: Param = Param {
     index: 1,
     name: "leaping_seventh_factor",
@@ -99,8 +100,8 @@ fn seventh_evidence(context: &ChordCloseContext, params: &[f64]) -> f32 {
     factor * ((share / SEVENTH_SHARE_TARGET.read(params)).min(1.0) - 1.0) as f32
 }
 
-/// Reports whether a note of the given spelling is attacked and then left by leap: neither held into
-/// the next slice nor followed there by a note a step away.
+/// Reports whether a note of the given spelling is attacked and then left by leap:
+/// neither held into the next slice nor followed there by a note a step away.
 fn is_left_by_leap(context: &ChordCloseContext, tpc: Tpc) -> bool {
     let slices = context.slices;
     (0..slices.len()).any(|i| {
@@ -165,8 +166,8 @@ mod tests {
         )
     }
 
-    /// Scores a G7 segment with a held G and B, in which F5 (MIDI 77) is attacked for one beat
-    /// of four and followed by a slice attacking the given MIDI note.
+    /// Scores a G7 segment with a held G and B, in which F5 (MIDI 77) is attacked
+    /// for one beat of four and followed by a slice attacking the given MIDI note.
     fn g7_with_seventh_left_to(next_midi: i32) -> f32 {
         let tpc = |name: &str| tpc_from_name(name).unwrap();
         let pitch = |name: &str, midi: i32, attacked: bool| SliceNote {

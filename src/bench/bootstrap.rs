@@ -28,8 +28,8 @@ pub struct Interval {
     pub high: f64,
 }
 
-/// Prints, for each set, the change in each of `COLUMNS` from `previous` with a 95% interval from
-/// resampling the set's pieces, paired by id.
+/// Prints, for each set, the change in each of `COLUMNS` from `previous`
+/// with a 95% interval from resampling the set's pieces, paired by id.
 /// Pieces missing from either run are left out, and so are the columns that the previous run lacks.
 pub fn print_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
     let old_rates: HashMap<&str, &[f64]> =
@@ -67,8 +67,9 @@ fn pair(
     Some(PairedPiece { frames, weighted_changes })
 }
 
-/// Resamples `pieces` with replacement and returns, for each column, the frame-weighted change in
-/// percentage points with the 2.5th and 97.5th percentiles of the resampled changes.
+/// Resamples `pieces` with replacement and returns, for each column,
+/// the frame-weighted change in percentage points with the 2.5th and 97.5th percentiles
+/// of the resampled changes.
 pub fn bootstrap(pieces: &[PairedPiece], resamples: usize, seed: u64) -> Vec<Interval> {
     let columns = pieces[0].weighted_changes.len();
     let mut rng = SplitMix64(seed);

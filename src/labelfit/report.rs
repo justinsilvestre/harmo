@@ -100,8 +100,8 @@ fn print_candidate(candidate: &Candidate) {
     );
 }
 
-/// Prints the fit of every key span and measure of one analysis, with each measure's fit when its labels
-/// move by up to two bars either way.
+/// Prints the fit of every key span and measure of one analysis,
+/// with each measure's fit when its labels move by up to two bars either way.
 pub fn print_piece_detail(piece: &PieceFit) {
     let summary = summarize_piece(piece);
     println!(
@@ -139,8 +139,8 @@ pub fn print_piece_detail(piece: &PieceFit) {
     }
 }
 
-/// Prints each label from measure `first` to `last` of the analysis, with its chord tones, its fit
-/// and the pitch classes that sound while it is in force, longest first.
+/// Prints each label from measure `first` to `last` of the analysis, with its chord tones,
+/// its fit and the pitch classes that sound while it is in force, longest first.
 pub fn print_labels(piece: &PieceFit, first: i64, last: i64) {
     println!("\n{} ({}): labels in m{first}-{last}", piece.id, piece.analyst);
     for span in piece.spans.iter().filter(|s| (first..=last).contains(&s.measure)) {

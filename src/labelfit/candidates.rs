@@ -10,8 +10,8 @@ use super::sounding::{Fit, pitch_class_set};
 use crate::theory::key::{Key, Mode};
 use serde::Serialize;
 
-/// The least total gain, in frames, for a run to be reported by default: a whole 4/4 bar going from no fit
-/// to a full one.
+/// The least total gain, in frames, for a run to be reported by default:
+/// a whole 4/4 bar going from no fit to a full one.
 pub const MINIMUM_GAIN: f64 = 32.0;
 
 /// A change to the labels whose effect on the fit is tested.

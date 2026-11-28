@@ -1,28 +1,29 @@
 //! The tests that decide whether two Roman numeral labels are notational equivalents.
 //!
-//! Each test compares the engine's label with one expert label. None of them credits a genuinely
-//! different reading, such as a cadential six-four read as V, or a relative or parallel key.
+//! Each test compares the engine's label with one expert label.
+//! None of them credits a genuinely different reading, such as a cadential six-four read as V,
+//! or a relative or parallel key.
 
 use crate::pitch::pitch_class;
 use crate::theory::chord::Quality;
 use crate::theory::label::Label;
 
-/// Reports whether two labels name a triad and its own seventh chord on the same root, in the same
-/// key, with the same tonicization and the same bass note, such as V and V7.
+/// Reports whether two labels name a triad and its own seventh chord on the same root,
+/// in the same key, with the same tonicization and the same bass note, such as V and V7.
 pub fn is_triad_and_its_seventh(a: &Label, b: &Label) -> bool {
     let is_pair = |triad: &Label, seventh: &Label| seventh.quality.triad() == Some(triad.quality);
     let same_chord_place = a.key == b.key && a.tonicized == b.tonicized && a.root == b.root;
     same_chord_place && (is_pair(a, b) || is_pair(b, a)) && pitch_class(a.bass()) == pitch_class(b.bass())
 }
 
-/// Reports whether an applied chord X/Y in one key names the same chord as the other label, which
-/// is X in the key that Y stands for, such as V/V in C and V in G.
-/// Exactly one of the labels must be applied: two plain labels in different keys never match, and
-/// neither do the same chord applied from two keys (V/V in C against V/IV in D), which are readings
-/// in different keys.
-/// A label applied to its own tonic in the other mode, such as VI/i in a major key, is how some
-/// analysts write mixture, and matching it would credit a reading in the parallel key, so it is
-/// left out.
+/// Reports whether an applied chord X/Y in one key names the same chord as the other label,
+/// which is X in the key that Y stands for, such as V/V in C and V in G.
+/// Exactly one of the labels must be applied: two plain labels in different keys never match,
+/// and neither do the same chord applied from two keys (V/V in C against V/IV in D),
+/// which are readings in different keys.
+/// A label applied to its own tonic in the other mode, such as VI/i in a major key,
+/// is how some analysts write mixture, and matching it would credit a reading in the parallel key,
+/// so it is left out.
 pub fn is_applied_in_other_key(a: &Label, b: &Label) -> bool {
     let is_applied = |l: &Label| l.tonicized.is_some_and(|t| t.tonic != l.key.tonic);
     let is_applied = (is_applied(a) != is_applied(b)) && !is_parallel_mixture(a) && !is_parallel_mixture(b);
@@ -30,13 +31,14 @@ pub fn is_applied_in_other_key(a: &Label, b: &Label) -> bool {
     is_applied && same_chord && a.reference_key() == b.reference_key()
 }
 
-/// Reports whether one label is a dominant seventh on the fifth degree and the other the leading-tone
-/// triad of the same key and tonicization, while the dominant's root is not sounding (`sounding`
-/// holds one bit per pitch class). The two must share a bass, unless the dominant seventh is
-/// written in root position: with its root silent, that figure names the implied root rather than
-/// a sounding bass.
-/// With the root absent, the two name the same sounding pitches. A leading-tone seventh chord adds
-/// the dominant's ninth, so it names another chord and is not matched.
+/// Reports whether one label is a dominant seventh
+/// on the fifth degree and the other the leading-tone triad of the same key and tonicization,
+/// while the dominant's root is not sounding (`sounding` holds one bit per pitch class).
+/// The two must share a bass, unless the dominant seventh is written in root position:
+/// with its root silent, that figure names the implied root rather than a sounding bass.
+/// With the root absent, the two name the same sounding pitches.
+/// A leading-tone seventh chord adds the dominant's ninth,
+/// so it names another chord and is not matched.
 pub fn is_rootless_dominant(a: &Label, b: &Label, sounding: u16) -> bool {
     let (dominant, leading) = match (is_dominant_seventh(a), is_dominant_seventh(b)) {
         (true, false) => (a, b),
@@ -59,8 +61,8 @@ fn is_dominant_seventh(label: &Label) -> bool {
     label.quality == Quality::DominantSeventh && label.root == label.reference_key().tonic + 1
 }
 
-/// Reports whether the label is viio: a diminished triad on the leading tone, which lies five
-/// fifths above the tonic in either mode.
+/// Reports whether the label is viio: a diminished triad on the leading tone,
+/// which lies five fifths above the tonic in either mode.
 fn is_leading_tone_chord(label: &Label) -> bool {
     label.quality == Quality::Diminished && label.root == label.reference_key().tonic + 5
 }

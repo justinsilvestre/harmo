@@ -30,8 +30,8 @@ impl ChordRules {
         }
     }
 
-    /// Returns every chord that some proposer offers for a segment opening on the slice, in order
-    /// and without repeats.
+    /// Returns every chord that some proposer offers for a segment opening on the slice,
+    /// in order and without repeats.
     pub fn propose(&self, slice: &Slice) -> Vec<Chord> {
         let mut chords: Vec<Chord> = self.proposers.iter().flat_map(|propose| propose(slice)).collect();
         chords.sort();

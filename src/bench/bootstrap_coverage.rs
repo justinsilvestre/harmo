@@ -13,8 +13,8 @@ const SEED: u64 = 2;
 const COLUMNS: [(usize, &str); 4] = [(0, "key"), (5, "rn"), (6, "chord"), (7, "rn eq")];
 
 /// Prints, for each set with two analyses, the change in "both readings offered" in the key, rn,
-/// chord and rn eq columns, with a 95% interval from resampling the set's pieces, paired by id, and the mean
-/// number of readings offered in both runs.
+/// chord and rn eq columns, with a 95% interval from resampling the set's pieces, paired by id,
+/// and the mean number of readings offered in both runs.
 pub fn print_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
     let old: HashMap<&str, &PieceCoverage> =
         previous.pieces.iter().filter_map(|p| Some((p.id.as_str(), p.coverage.as_ref()?))).collect();
@@ -47,9 +47,9 @@ pub fn print_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], pre
     }
 }
 
-/// Prints, for each set with two analyses, the change in "both readings offered" with each layer
-/// offered on its own, with a 95% interval as above, and the mean number offered in each layer in
-/// both runs.
+/// Prints, for each set with two analyses,
+/// the change in "both readings offered" with each layer offered on its own,
+/// with a 95% interval as above, and the mean number offered in each layer in both runs.
 pub fn print_layer_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
     let old: HashMap<&str, &LayerCoverage> = previous
         .pieces
@@ -105,8 +105,9 @@ pub fn paired_layer_pieces(
     members.iter().filter_map(pair).collect()
 }
 
-/// Pairs each piece's coverage of `feature` with the previous run's, leaving out pieces missing
-/// from either run, or without the feature in the previous run, or without disagreements on it.
+/// Pairs each piece's coverage of `feature` with the previous run's,
+/// leaving out pieces missing from either run, or without the feature in the previous run,
+/// or without disagreements on it.
 pub fn paired_pieces(
     members: &[&PieceResult],
     old: &HashMap<&str, &PieceCoverage>,

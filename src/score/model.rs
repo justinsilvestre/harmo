@@ -39,8 +39,8 @@ impl Measure {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub struct KeySignature {
     pub start: Offset,
-    /// The number of sharps (positive) or flats (negative) at sounding pitch, which is also the
-    /// TPC of the tonic of the signature's major key.
+    /// The number of sharps (positive) or flats (negative) at sounding pitch,
+    /// which is also the TPC of the tonic of the signature's major key.
     pub fifths: Tpc,
 }
 

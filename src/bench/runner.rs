@@ -57,8 +57,8 @@ pub struct EvalConfig {
     /// Readings are offered as the beam stood this many quarter notes after the moment in question,
     /// modeling a listener who has heard a little further.
     pub offer_lag: f64,
-    /// The equivalents measure counts a label as right when it matches the expert's within this
-    /// many quarter notes.
+    /// The equivalents measure counts a label
+    /// as right when it matches the expert's within this many quarter notes.
     pub timing_tolerance: f64,
     /// Whether to measure how soon each expert reading is offered (see `offer_delay`).
     pub measure_offer_delays: bool,
@@ -66,16 +66,16 @@ pub struct EvalConfig {
     pub key_offer_margin: f32,
     /// When chords are offered on their own, the most a chord's shortfall may be.
     pub chord_offer_margin: f32,
-    /// When numerals are built from the keys and chords offered, the most their combined shortfall
-    /// may be.
+    /// When numerals are built from the keys and chords offered,
+    /// the most their combined shortfall may be.
     pub numeral_offer_margin: f32,
     /// Whether to measure coverage in hindsight (see `hindsight`).
     pub measure_hindsight: bool,
 }
 
 /// The default timing tolerance of the equivalents measure, an eighth note.
-/// No source gives a value; it was chosen from measurements on `tune` at a sixteenth, an eighth and
-/// a quarter note, recorded in the README's Benchmarks section.
+/// No source gives a value; it was chosen from measurements on `tune` at a sixteenth,
+/// an eighth and a quarter note, recorded in the README's Benchmarks section.
 pub const TIMING_TOLERANCE: f64 = 0.5;
 
 impl Default for EvalConfig {
@@ -210,8 +210,8 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     }
 }
 
-/// Returns the readings offered layer by layer at each frame, those offered in hindsight when
-/// measured, and the time each took.
+/// Returns the readings offered layer by layer at each frame,
+/// those offered in hindsight when measured, and the time each took.
 fn layered_frames(
     analysis: &Analysis,
     piece: &BenchPiece,
@@ -287,8 +287,8 @@ fn agreement(
     agreement
 }
 
-/// Returns, for each frame, the distinct readings of its slice held by the leading hypotheses of the
-/// beam a short time later (see `EvalConfig::offer_lag`).
+/// Returns, for each frame, the distinct readings of its slice held
+/// by the leading hypotheses of the beam a short time later (see `EvalConfig::offer_lag`).
 pub fn offered_frames(
     analysis: &Analysis,
     piece: &BenchPiece,
@@ -301,8 +301,9 @@ pub fn offered_frames(
     slice_values_by_frame(slices, count, &per_slice)
 }
 
-/// Returns, for each frame, the reading of its slice held by the best hypothesis of the beam a short
-/// time later (see `EvalConfig::offer_lag`): the reading a listener would hold at that moment.
+/// Returns, for each frame, the reading of its slice held by the best hypothesis
+/// of the beam a short time later (see `EvalConfig::offer_lag`):
+/// the reading a listener would hold at that moment.
 pub fn now_frames(
     analysis: &Analysis,
     piece: &BenchPiece,

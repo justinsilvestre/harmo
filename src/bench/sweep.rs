@@ -13,8 +13,8 @@ use std::collections::BTreeMap;
 pub struct SweepSpec {
     /// Benchmark sets to load.
     pub sets: Vec<String>,
-    /// The set and feature (one of `FEATURES`, or "mean" for the mean of AugmentedNet's six) used to
-    /// rank settings.
+    /// The set and feature (one of `FEATURES`,
+    /// or "mean" for the mean of AugmentedNet's six) used to rank settings.
     pub objective_set: String,
     pub objective_feature: String,
     /// Weights shared by every setting.

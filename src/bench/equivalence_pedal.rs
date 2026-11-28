@@ -1,8 +1,9 @@
 //! Finds pedals: a bass note held or restruck while the harmony above it changes.
 //!
-//! Kostka, Payne and Almén (2023, ch. 13, "The Pedal Point") describe a pedal point as a tone that
-//! begins as a chord tone, becomes a nonchord tone as the harmonies around it change, and ends as a
-//! chord tone again, and advise leaving the inversions of the chords above it unmarked.
+//! Kostka, Payne and Almén (2023, ch. 13,
+//! "The Pedal Point") describe a pedal point as a tone that begins as a chord tone,
+//! becomes a nonchord tone as the harmonies around it change, and ends as a chord tone again,
+//! and advise leaving the inversions of the chords above it unmarked.
 
 use super::equivalence_rules::is_same_but_inversion;
 use super::frames::label_runs;
@@ -22,9 +23,9 @@ pub struct Pedal {
 }
 
 impl Pedal {
-    /// Reports whether, over this pedal, the label counts as the expert's: it is one of the pedal's
-    /// own chords, or it differs from the expert's label only in inversion where the expert names the
-    /// chord above the pedal as if the pedal were absent.
+    /// Reports whether, over this pedal, the label counts as the expert's:
+    /// it is one of the pedal's own chords, or it differs from the expert's label only
+    /// in inversion where the expert names the chord above the pedal as if the pedal were absent.
     pub fn credits(&self, label: &Label, truth: &Label) -> bool {
         let is_above_pedal = pitch_class(truth.bass()) != self.bass;
         let is_pedal_chord = self.chords.iter().flatten().any(|c| is_rn_match(label, c));
@@ -32,9 +33,10 @@ impl Pedal {
     }
 }
 
-/// Finds the pedals: spans over which the lowest pitch class stays the same through two or more of
-/// the expert's labels, where at least one of them leaves it out, so that the bass becomes a nonchord
-/// tone, or where one chord over the bass returns after six-four chords over it, as in I–IV64–I.
+/// Finds the pedals: spans over which the lowest pitch class stays the same through two
+/// or more of the expert's labels, where at least one of them leaves it out,
+/// so that the bass becomes a nonchord tone,
+/// or where one chord over the bass returns after six-four chords over it, as in I–IV64–I.
 /// Returns each frame's index into the pedals, and the pedals.
 pub fn find_pedals(labels: &[Option<Label>], lowest: &[Option<u8>]) -> (Vec<u32>, Vec<Pedal>) {
     let mut pedal_of = vec![NO_PEDAL; labels.len()];
@@ -62,12 +64,13 @@ fn pedal(labels: &[Option<Label>], bass: u8) -> Option<Pedal> {
     is_pedal.then(|| Pedal { bass, chords: [over_bass(chords.first()), over_bass(chords.last())] })
 }
 
-/// Reports whether the labels over a held bass are a root-position chord, then one or more six-four
-/// chords over its root, then the first chord again, as in I–(IV64)–I. Kostka, Payne and Almén
-/// (2023, ch. 9, pp. 139–140) call such a chord a pedal six-four, which elaborates the chord around
-/// it and is written in parentheses. Their other pedal six-four, V–(I64)–V, is left out, because a
-/// tonic six-four over the dominant may also be a cadential six-four, and reading that as V is a
-/// different reading rather than a matter of notation.
+/// Reports whether the labels over a held bass are a root-position chord,
+/// then one or more six-four chords over its root, then the first chord again, as in I–(IV64)–I.
+/// Kostka, Payne and Almén (2023, ch. 9, pp. 139–140) call such a chord a pedal six-four,
+/// which elaborates the chord around it and is written in parentheses. Their other pedal six-four,
+/// V–(I64)–V, is left out,
+/// because a tonic six-four over the dominant may also be a cadential six-four,
+/// and reading that as V is a different reading rather than a matter of notation.
 fn is_six_four_split(chords: &[Label], bass: u8) -> bool {
     let [first, inner @ .., last] = chords else { return false };
     let is_pedal_six_four = |label: &Label| {

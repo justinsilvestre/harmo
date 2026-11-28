@@ -40,8 +40,8 @@ const MAJOR_PROFILE: [f32; 12] =
     [0.748, 0.060, 0.488, 0.082, 0.670, 0.460, 0.096, 0.715, 0.104, 0.366, 0.057, 0.400];
 const MINOR_PROFILE: [f32; 12] =
     [0.712, 0.084, 0.474, 0.618, 0.049, 0.460, 0.105, 0.747, 0.404, 0.067, 0.133, 0.330];
-/// The minor profile with the values of the raised leading tone and the subtonic exchanged, so
-/// that the subtonic is the diatonic seventh degree, as in the natural minor scale.
+/// The minor profile with the values of the raised leading tone and the subtonic exchanged,
+/// so that the subtonic is the diatonic seventh degree, as in the natural minor scale.
 const NATURAL_MINOR_PROFILE: [f32; 12] =
     [0.712, 0.084, 0.474, 0.618, 0.049, 0.460, 0.105, 0.747, 0.404, 0.067, 0.330, 0.133];
 

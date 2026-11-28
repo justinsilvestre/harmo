@@ -1,5 +1,5 @@
-//! Renders the error kinds ranked by frames lost, the largest kinds in each corpus, and the labels
-//! the engine cannot produce.
+//! Renders the error kinds ranked by frames lost, the largest kinds in each corpus,
+//! and the labels the engine cannot produce.
 
 use super::markdown_table::{share, table};
 use super::set_names::row_name;

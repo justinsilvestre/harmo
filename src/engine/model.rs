@@ -1,5 +1,5 @@
-//! What the search's two layers hold: readings, the chord layer's segments and hearings, and the
-//! key layer's segments and hypotheses.
+//! What the search's two layers hold: readings, the chord layer's segments and hearings,
+//! and the key layer's segments and hypotheses.
 
 use super::bass::Bass;
 use crate::pitch::Tpc;
@@ -32,8 +32,8 @@ pub enum Category {
     Applied,
 }
 
-/// How a chord functions: the key it is heard in, the key it tonicizes there, if any, and its
-/// category. This is what the key layer hears in a chord.
+/// How a chord functions: the key it is heard in, the key it tonicizes there, if any,
+/// and its category. This is what the key layer hears in a chord.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
 pub struct Function {
     pub key: Key,
@@ -48,8 +48,8 @@ impl Function {
     }
 }
 
-/// A reading of a span of music: the chord that the chord layer hears, and its function as the key
-/// layer hears it.
+/// A reading of a span of music: the chord that the chord layer hears,
+/// and its function as the key layer hears it.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
 pub struct Reading {
     pub chord: Chord,
@@ -92,11 +92,13 @@ pub struct Hearing {
     pub score: f32,
 }
 
-/// A hypothesis, or complete interpretation, which reads the latest segment of one hearing of the
-/// chords in a key. Through its parents it reads every slice up to its hearing's last slice.
+/// A hypothesis, or complete interpretation,
+/// which reads the latest segment of one hearing of the chords in a key.
+/// Through its parents it reads every slice up to its hearing's last slice.
 ///
-/// `H` is the type of the index of its hearing. The search proposes hypotheses that read hearings
-/// not yet stored, and indexes those with a type of its own.
+/// `H` is the type of the index of its hearing.
+/// The search proposes hypotheses that read hearings not yet stored,
+/// and indexes those with a type of its own.
 #[derive(Clone, Copy, Debug)]
 pub struct Hypothesis<H = HearingId> {
     /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
@@ -107,13 +109,13 @@ pub struct Hypothesis<H = HearingId> {
     pub hearing: H,
     /// The function of the hearing's latest chord, in the key the hypothesis hears it in.
     pub function: Function,
-    /// The sum of every weighted rule score along the hypothesis: its hearing's score plus the
-    /// key layer's rule scores.
+    /// The sum of every weighted rule score along the hypothesis:
+    /// its hearing's score plus the key layer's rule scores.
     pub score: f32,
 }
 
-/// A segment as the key layer reads it: a chord segment that the chord layer heard, with the
-/// chord's function. Rules of the key layer receive segments in this form.
+/// A segment as the key layer reads it: a chord segment that the chord layer heard,
+/// with the chord's function. Rules of the key layer receive segments in this form.
 #[derive(Clone, Copy, Debug)]
 pub struct KeySegment {
     pub heard: ChordSegment,

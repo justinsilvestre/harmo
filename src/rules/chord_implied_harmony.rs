@@ -34,8 +34,8 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Chord(ChordHook::Transition(implied_harmony)),
 }];
 
-/// How far past the start of the slice the line is read. A listener may look ahead about two
-/// quarter notes.
+/// How far past the start of the slice the line is read.
+/// A listener may look ahead about two quarter notes.
 const LOOKAHEAD: Param = Param {
     index: 0,
     name: "lookahead",

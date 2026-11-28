@@ -1,5 +1,5 @@
-//! What the search proposes at one slice before pruning, and how the hypotheses that pruning keeps
-//! are stored.
+//! What the search proposes at one slice before pruning,
+//! and how the hypotheses that pruning keeps are stored.
 
 use super::layers::Layers;
 use super::model::{Hearing, HearingId, Hypothesis, KeySegment};
@@ -11,8 +11,9 @@ pub struct PendingHearingId(pub u32);
 /// A hypothesis proposed at one slice, which reads one of the hearings proposed with it.
 pub type PendingHypothesis = Hypothesis<PendingHearingId>;
 
-/// What the search proposes at one slice, before pruning: hypotheses, each extending or opening
-/// after one in the beam, and the new hearings of the chords that they interpret.
+/// What the search proposes at one slice, before pruning: hypotheses,
+/// each extending or opening after one in the beam,
+/// and the new hearings of the chords that they interpret.
 #[derive(Default)]
 pub struct Pending {
     pub hearings: Vec<Hearing>,
@@ -35,8 +36,8 @@ impl Pending {
     }
 }
 
-/// Adds the kept hypotheses to the layers, with the pending hearings that they interpret, in the
-/// order in which the hypotheses first interpret them. Returns the new beam.
+/// Adds the kept hypotheses to the layers, with the pending hearings that they interpret,
+/// in the order in which the hypotheses first interpret them. Returns the new beam.
 pub fn commit(layers: &mut Layers, hearings: &[Hearing], kept: Vec<PendingHypothesis>) -> Vec<u32> {
     let first = layers.hypotheses.len() as u32;
     let mut stored = vec![HearingId::NONE; hearings.len()];
@@ -71,9 +72,9 @@ mod tests {
         vec![hearing("C"), hearing("F"), hearing("G")]
     }
 
-    /// Commits a pending hypothesis for each given pending hearing, in order, into layers that
-    /// already hold one hearing. Returns the root of each stored hearing, and the stored hearing of
-    /// each stored hypothesis.
+    /// Commits a pending hypothesis for each given pending hearing, in order,
+    /// into layers that already hold one hearing. Returns the root of each stored hearing,
+    /// and the stored hearing of each stored hypothesis.
     fn committed(readers: &[u32]) -> (Vec<String>, Vec<u32>) {
         let function = Function::diatonic(Key::new(tpc_from_name("C").unwrap(), Mode::Major));
         let mut layers = Layers { hearings: hearings()[..1].to_vec(), hypotheses: vec![] };

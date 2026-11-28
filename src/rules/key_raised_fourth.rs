@@ -112,8 +112,8 @@ mod tests {
         Slice { start, duration: 1.0, notes, measure: 0, metric_level: 2, phrase: 0, key_signature: None }
     }
 
-    /// Scores a move from the given dominant reading, over the slices before the tonic, to C major
-    /// arriving on a slice with the given pitches, followed by one more slice.
+    /// Scores a move from the given dominant reading, over the slices before the tonic,
+    /// to C major arriving on a slice with the given pitches, followed by one more slice.
     fn score(dominant: Quality, before: &[&[&str]], tonic: &[&str], after: &[&str]) -> f32 {
         let mut slices: Vec<Slice> =
             before.iter().enumerate().map(|(i, names)| slice(i as f64, names)).collect();

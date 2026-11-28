@@ -58,8 +58,8 @@ fn is_six_four(segment: &KeySegment) -> bool {
         && chord.member_index(segment.heard.bass_tpc()) == Some(2)
 }
 
-/// Reports whether the new chord is a major triad or dominant seventh in root position on the bass
-/// of the previous segment.
+/// Reports whether the new chord is a major triad or dominant seventh in root position
+/// on the bass of the previous segment.
 fn is_dominant_on_bass(context: &KeyTransitionContext, previous: &KeySegment) -> bool {
     let bass = previous.heard.bass_tpc();
     let keeps_bass = context.slice.bass().is_some_and(|note| note.tpc == bass);

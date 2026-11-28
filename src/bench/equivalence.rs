@@ -1,8 +1,9 @@
-//! The equivalents RN measure: a full Roman numeral match that also accepts the engine's label when
-//! it differs from the expert's only by a notational convention.
+//! The equivalents RN measure: a full Roman numeral match that also accepts the engine's label
+//! when it differs from the expert's only by a notational convention.
 //!
-//! Each equivalence is applied against the expert's label as given, without chaining one onto
-//! another, except that the timing tolerance also applies the other equivalences to nearby frames.
+//! Each equivalence is applied against the expert's label as given,
+//! without chaining one onto another,
+//! except that the timing tolerance also applies the other equivalences to nearby frames.
 
 use super::equivalence_pedal::{Pedal, find_pedals};
 use super::equivalence_rules::{
@@ -19,9 +20,10 @@ use serde::Serialize;
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize)]
 pub enum Credit {
     Exact,
-    /// The expert labels a triad and then its seventh chord, or the reverse, and the engine gives
-    /// either label anywhere in the pair. Whether a seventh that enters partway through a chord
-    /// makes a new chord is a matter of analytical judgment (Kostka, Payne and Almén 2023, ch. 15).
+    /// The expert labels a triad and then its seventh chord, or the reverse,
+    /// and the engine gives either label anywhere in the pair.
+    /// Whether a seventh that enters partway through a chord makes a new chord is a matter
+    /// of analytical judgment (Kostka, Payne and Almén 2023, ch. 15).
     Seventh,
     /// The expert relabels one chord with another inversion as its bass moves, such as I6 then I,
     /// and the engine gives either label anywhere over the pair. The two labels name the same chord.
@@ -29,14 +31,14 @@ pub enum Credit {
     /// An applied chord X/Y against X in the key that Y stands for (Kostka, Payne and Almén 2023,
     /// ch. 16, on tonicization against modulation).
     Applied,
-    /// A dominant seventh without its root against the leading-tone chord (Burstein and Straus
-    /// 2016, ch. 13; Kostka, Payne and Almén 2023, ch. 7).
+    /// A dominant seventh without its root against the leading-tone chord (Burstein
+    /// and Straus 2016, ch. 13; Kostka, Payne and Almén 2023, ch. 7).
     Rootless,
-    /// Over a held bass, the chord above it regardless of inversion, or the chord the bass belongs to
-    /// (Kostka, Payne and Almén 2023, ch. 13).
+    /// Over a held bass, the chord above it regardless of inversion,
+    /// or the chord the bass belongs to (Kostka, Payne and Almén 2023, ch. 13).
     Pedal,
-    /// The expert's label, or an equivalent of it, a little earlier or later. No source gives the
-    /// tolerance; it is a measurement convention.
+    /// The expert's label, or an equivalent of it, a little earlier or later.
+    /// No source gives the tolerance; it is a measurement convention.
     Timing,
 }
 
@@ -140,8 +142,9 @@ impl ExpertView<'_> {
         nearby.filter(|&near| near != frame).any(|near| matches(&near)).then_some(Credit::Timing)
     }
 
-    /// Returns the equivalence, other than timing, between the label and the expert's label at
-    /// frame `expert`, judging what sounds from frame `heard`.
+    /// Returns the equivalence, other than timing,
+    /// between the label and the expert's label at frame `expert`,
+    /// judging what sounds from frame `heard`.
     fn equivalent_at(&self, label: &Label, expert: usize, heard: usize) -> Option<Credit> {
         let truth = self.labels[expert]?;
         let equivalents = self.equivalents;

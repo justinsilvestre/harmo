@@ -62,8 +62,8 @@ impl Label {
     }
 }
 
-/// Hides the sharp on the raised sixth and seventh degrees of minor keys, following the usual
-/// convention that "viio" in minor implies the leading tone.
+/// Hides the sharp on the raised sixth and seventh degrees of minor keys,
+/// following the usual convention that "viio" in minor implies the leading tone.
 fn displayed_degree(mode: Mode, degree: Degree) -> Degree {
     let is_raised_in_minor = mode == Mode::Minor && degree.alteration == 1 && degree.number >= 6;
     if is_raised_in_minor { Degree { alteration: 0, ..degree } } else { degree }

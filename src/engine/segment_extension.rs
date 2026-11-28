@@ -1,5 +1,5 @@
-//! How a chord segment grows slice by slice: its duration, the chord members it has heard, and the
-//! bass that the bass rules decide.
+//! How a chord segment grows slice by slice: its duration, the chord members it has heard,
+//! and the bass that the bass rules decide.
 
 use super::bass::{Bass, BassNote};
 use super::model::ChordSegment;

@@ -31,8 +31,8 @@ const FOURTH: Tpc = -1;
 /// A major and a minor sixth above a pitch, on the line of fifths.
 const SIXTHS: [Tpc; 2] = [3, -4];
 
-/// Returns the slice's bass if the slice sounds only that bass, a perfect fourth above it, and
-/// perhaps a sixth above it.
+/// Returns the slice's bass if the slice sounds only that bass, a perfect fourth above it,
+/// and perhaps a sixth above it.
 pub(super) fn six_four_bass(slice: &Slice) -> Option<Tpc> {
     let bass = slice.bass()?.tpc;
     let fits = |tpc: Tpc| tpc == bass || tpc == bass + FOURTH || SIXTHS.iter().any(|&s| tpc == bass + s);

@@ -47,8 +47,9 @@ pub struct Proposals {
     pub openings: Vec<Opening>,
 }
 
-/// Proposes new readings for a segment opening on the moment's slice, and keeps the
-/// `candidate_limit` that fit it best, with the rival candidates that rules name for them.
+/// Proposes new readings for a segment opening on the moment's slice,
+/// and keeps the `candidate_limit` that fit it best,
+/// with the rival candidates that rules name for them.
 pub fn propose(moment: &Moment, rules: &RuleSet, candidate_limit: usize) -> Proposals {
     let chords: Vec<ProposedChord> = rules
         .chord
@@ -70,8 +71,8 @@ fn propose_chord(chord: Chord, moment: &Moment, rules: &RuleSet) -> ProposedChor
     ProposedChord { chord, fit, segment: open_segment(chord, moment, rules) }
 }
 
-/// Returns every reading of a proposed chord in a proposed key that the interpreters allow, without
-/// repeats.
+/// Returns every reading of a proposed chord in a proposed key that the interpreters allow,
+/// without repeats.
 fn readings(chords: &[ProposedChord], slice: &Slice, rules: &RuleSet) -> Vec<Reading> {
     let keys = rules.key.propose(slice);
     let mut readings: Vec<Reading> = Vec::new();

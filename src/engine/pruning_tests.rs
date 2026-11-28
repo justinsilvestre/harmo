@@ -18,16 +18,17 @@ fn segment(root: &str, start: u32) -> KeySegment {
     KeySegment { heard: ChordSegment { start, ..segment.heard }, ..segment }
 }
 
-/// A pending hypothesis reading G in C major, after hypothesis `previous`, that reads pending
-/// hearing `hearing`.
+/// A pending hypothesis reading G in C major, after hypothesis `previous`,
+/// that reads pending hearing `hearing`.
 fn to_g(previous: u32, hearing: u32, score: f32) -> PendingHypothesis {
     let (function, hearing) = (reading("G").function, PendingHearingId(hearing));
     Hypothesis { parent: previous, previous, hearing, function, score }
 }
 
-/// Two opening segments with the given roots (hypotheses 0 and 1), and two pending hypotheses that
-/// move to G after the first and the second of them respectively, with scores -2 and -1. Each
-/// reads a pending hearing of its own: the first opens on slice 1, the second on slice 2.
+/// Two opening segments with the given roots (hypotheses 0 and 1),
+/// and two pending hypotheses that move to G after the first and the second of them respectively,
+/// with scores -2 and -1. Each reads a pending hearing of its own: the first opens on slice 1,
+/// the second on slice 2.
 struct Fixture {
     layers: Layers,
     pending: Pending,

@@ -1,5 +1,6 @@
-//! The engine core: a left-to-right beam search in which every slice either extends the current
-//! chord segment or opens a new one with a freshly proposed reading.
+//! The engine core:
+//! a left-to-right beam search in which every slice either extends the current chord segment
+//! or opens a new one with a freshly proposed reading.
 //!
 //! The search keeps two layers. The chord layer holds hearings of the chords (`Hearing`),
 //! scored by the chord rules alone. The key layer holds hypotheses (`Hypothesis`),
@@ -25,14 +26,16 @@ use std::collections::HashMap;
 pub struct Config {
     /// Number of hypotheses kept after each slice.
     pub beam_width: usize,
-    /// Number of hearings of the chords kept after each slice, each ranked by the best hypothesis
-    /// that interprets it. Zero keeps every hearing that some kept hypothesis interprets.
+    /// Number of hearings of the chords kept after each slice,
+    /// each ranked by the best hypothesis that interprets it.
+    /// Zero keeps every hearing that some kept hypothesis interprets.
     pub hearing_width: usize,
     /// Number of new readings, ranked by their fit to the opening slice, considered per slice.
     pub candidate_limit: usize,
     /// Number of recent segments that identify a hypothesis when the beam is pruned.
     /// Of the hypotheses whose last `distinct_depth` segments the rules' distinguish hooks count
-    /// as the same, only the best is kept. Zero, or a rule set without distinguish hooks, keeps them all.
+    /// as the same, only the best is kept. Zero, or a rule set without distinguish hooks,
+    /// keeps them all.
     pub distinct_depth: usize,
     /// Keeps the beam of every slice, for tracing how readings rise and fall in the ranking.
     pub record_snapshots: bool,
@@ -87,8 +90,8 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     Analysis { layers, ranking, snapshots, pruned }
 }
 
-/// Proposes the hypotheses of one slice: every hypothesis in the beam extended by the slice, and
-/// every new reading of the slice opened after the hypotheses that lead into it best.
+/// Proposes the hypotheses of one slice: every hypothesis in the beam extended by the slice,
+/// and every new reading of the slice opened after the hypotheses that lead into it best.
 fn step(moment: &Moment, beam: &[u32], rules: &RuleSet, config: &Config) -> Pending {
     let proposals = propose(moment, rules, config.candidate_limit);
     let exits = Exits::of(moment, beam, &proposals.chords, rules);

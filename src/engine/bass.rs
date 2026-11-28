@@ -1,8 +1,8 @@
 //! The bass of a chord segment, from which its inversion is read.
 //!
-//! The engine hands every chord tone a segment hears to the `Bass` rules, which keep the evidence
-//! below and decide the bass note. With no bass rule a segment has no bass, and its chord is read
-//! in root position.
+//! The engine hands every chord tone a segment hears to the `Bass` rules,
+//! which keep the evidence below and decide the bass note. With no bass rule a segment has no bass,
+//! and its chord is read in root position.
 
 use crate::pitch::Tpc;
 

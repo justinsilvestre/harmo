@@ -1,5 +1,6 @@
-//! Rules that keep both readings of a cadential six-four, as the tonic six-four and as the
-//! dominant it delays, among the candidates for a chord opening there.
+//! Rules that keep both readings of a cadential six-four,
+//! as the tonic six-four and as the dominant it delays,
+//! among the candidates for a chord opening there.
 
 use super::chord_cadential_dominant::{CADENTIAL_SIX_FOUR, six_four_bass};
 use crate::engine::key_hooks::KeyHook;
@@ -22,8 +23,8 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Key(KeyHook::RivalCandidate(cadential_rival)),
 }];
 
-/// Returns the dominant on the bass for a tonic triad over a six-four in its key, and the tonic
-/// triad for that dominant. The tonic triad's quality follows the key's mode.
+/// Returns the dominant on the bass for a tonic triad over a six-four in its key,
+/// and the tonic triad for that dominant. The tonic triad's quality follows the key's mode.
 fn cadential_rival(reading: &Reading, slice: &Slice, _: &[f64]) -> Option<Reading> {
     let bass = six_four_bass(slice)?;
     let key = reading.function.key;

@@ -28,15 +28,17 @@ pub const RULES: &[Rule] = &[Rule {
                       figure, or else an appoggiatura figure)",
         },
     ],
-    // Off by default: with four readings offered, its rival readings take the places of readings in
-    // other keys, so both keys are offered less often where analysts disagree on the key.
+    // Off by default: with four readings offered,
+    // its rival readings take the places of readings in other keys,
+    // so both keys are offered less often where analysts disagree on the key.
     default_weight: 0.0,
     params: &[],
     hook: Hook::Key(KeyHook::Rival(seventh_rival)),
 }];
 
-/// Groups a segment read as a dominant triad or dominant seventh chord, by its key, tonicized key
-/// and root, when its seventh sounds for part of the segment and is approached like a nonchord tone.
+/// Groups a segment read as a dominant triad or dominant seventh chord, by its key,
+/// tonicized key and root,
+/// when its seventh sounds for part of the segment and is approached like a nonchord tone.
 fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<Rival> {
     let (chord, function) = (context.segment.heard.chord, context.segment.function);
     let is_dominant = function.tonicized.unwrap_or(function.key).degree_of(chord.root).number == 5;
@@ -58,8 +60,8 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<Rival> {
     Some(Rival { group: hasher.finish(), member: chord.quality as u64 })
 }
 
-/// Reports whether the note is held over from the slice before, or that slice sounds the same pitch
-/// class or a pitch a step above or below it.
+/// Reports whether the note is held over from the slice before,
+/// or that slice sounds the same pitch class or a pitch a step above or below it.
 fn is_approached_by_step(note: &SliceNote, before: Option<&Slice>) -> bool {
     let is_step = |other: &SliceNote| other.tpc == note.tpc || (other.midi - note.midi).abs() <= 2;
     !note.attacked || before.is_some_and(|slice| slice.notes.iter().any(is_step))

@@ -1,5 +1,5 @@
-//! Classifies the frames where a piece's analysts disagree, and checks why the engine does not
-//! offer both of their readings.
+//! Classifies the frames where a piece's analysts disagree,
+//! and checks why the engine does not offer both of their readings.
 
 use super::disagreement_class::{DisagreementClass, classify_disagreement};
 use super::missing_reading::{MissingReason, missing_reason};

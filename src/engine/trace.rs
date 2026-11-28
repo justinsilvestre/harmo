@@ -99,9 +99,10 @@ mod tests {
     use crate::engine::search::{Config, analyze};
     use crate::engine::test_layers::i_v_i;
 
-    /// For each final hypothesis of I–V–I, returns its trace's weighted sum in the given layer
-    /// beside the score it should equal: the ranking score for both layers together, or the
-    /// hearing's score plus its last close for the chord layer.
+    /// For each final hypothesis of I–V–I,
+    /// returns its trace's weighted sum in the given layer beside the score it should equal:
+    /// the ranking score for both layers together,
+    /// or the hearing's score plus its last close for the chord layer.
     fn sums(layer: Option<Layer>) -> Vec<(f32, f32)> {
         let (slices, rules) =
             (i_v_i(), RuleSet::new(crate::rules::default_rules(), &Default::default()).unwrap());

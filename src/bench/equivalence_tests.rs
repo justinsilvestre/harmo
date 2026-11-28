@@ -23,8 +23,8 @@ const V: (&str, Quality) = ("G", Quality::Major);
 const V7: (&str, Quality) = ("G", Quality::DominantSeventh);
 const VIIO: (&str, Quality) = ("B", Quality::Diminished);
 
-/// An expert analysis with the given labels, each lasting the given number of frames, over a
-/// texture whose lowest note is `lowest` and which sounds `sounding` throughout.
+/// An expert analysis with the given labels, each lasting the given number of frames,
+/// over a texture whose lowest note is `lowest` and which sounds `sounding` throughout.
 struct Fixture {
     labels: Vec<Option<Label>>,
     sounds: FrameSounds,

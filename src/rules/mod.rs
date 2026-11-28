@@ -94,8 +94,8 @@ mod tests {
         default_rules().iter().filter(is_outside).map(|rule| rule.id).collect()
     }
 
-    /// `chord.seventh_rival` is the one known exception: it reads the key, through a rival hook of
-    /// the key layer, to tell whether a chord is a dominant.
+    /// `chord.seventh_rival` is the one known exception: it reads the key,
+    /// through a rival hook of the key layer, to tell whether a chord is a dominant.
     #[test]
     fn every_rule_but_the_seventh_rival_hooks_into_its_own_layer() {
         assert_eq!(rules_outside_their_layer(), ["chord.seventh_rival"]);

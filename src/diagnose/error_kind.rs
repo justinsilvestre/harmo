@@ -57,8 +57,8 @@ impl ErrorKind {
     }
 }
 
-/// Classifies how a wrong engine label differs from a producible expert label, checking the key
-/// first, then the root, the function, the quality and the inversion.
+/// Classifies how a wrong engine label differs from a producible expert label,
+/// checking the key first, then the root, the function, the quality and the inversion.
 /// A key error is sustained when the two keys stay apart for `is_sustained_key` frames.
 pub fn classify_difference(expert: &Label, engine: &Label, is_sustained_key: bool) -> ErrorKind {
     if expert.key != engine.key {

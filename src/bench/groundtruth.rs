@@ -60,8 +60,8 @@ pub fn load_labels(path: &Path, score: &Score) -> Result<Vec<TimedLabel>, String
     Ok(load_harmonies(path, score)?.into_iter().map(|h| (h.time, h.label)).collect())
 }
 
-/// Loads a ground-truth file and returns its harmonies in time order, dropping those in measures
-/// that the score lacks.
+/// Loads a ground-truth file and returns its harmonies in time order,
+/// dropping those in measures that the score lacks.
 pub fn load_harmonies(path: &Path, score: &Score) -> Result<Vec<PlacedHarmony>, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let file: File = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -99,8 +99,9 @@ fn chord_tone_share(harmony: &Harmony, notes: &[Note], bar: &Measure) -> f64 {
     if total > 0.0 { matching / total } else { 0.0 }
 }
 
-/// Places an offset within a measure on the timeline. RomanText counts a pickup measure's beats as if
-/// the measure were complete, so offsets beyond a pickup's actual length are pulled back.
+/// Places an offset within a measure on the timeline.
+/// RomanText counts a pickup measure's beats as if the measure were complete,
+/// so offsets beyond a pickup's actual length are pulled back.
 fn time_in(measure: &Measure, offset: f64) -> Offset {
     let shortfall = measure.nominal_duration() - measure.duration;
     let is_beyond_pickup = shortfall > 1e-6 && offset >= measure.duration - 1e-6;

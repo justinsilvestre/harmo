@@ -71,8 +71,8 @@ fn is_key_of(signature: KeySignature, key: Key) -> bool {
     pitch_class(tonic) == pitch_class(key.tonic)
 }
 
-/// Reports whether the piece opens under the given signature and the lowest note of its first
-/// sounding slice is the signature's Dorian tonic.
+/// Reports whether the piece opens under the given signature
+/// and the lowest note of its first sounding slice is the signature's Dorian tonic.
 fn opens_on_dorian_tonic(slices: &[Slice], signature: KeySignature) -> bool {
     let Some(first) = slices.iter().find(|s| !s.notes.is_empty()) else { return false };
     let is_opening_signature = first.key_signature.is_some_and(|s| s.fifths == signature.fifths);
@@ -94,8 +94,8 @@ mod tests {
         score_after(fifths, None, fifths, (tonic, mode))
     }
 
-    /// Scores a two-beat slice under the signature `fifths`, read in the given key, after a piece
-    /// opens over `bass`, if any, under the signature `opening`.
+    /// Scores a two-beat slice under the signature `fifths`, read in the given key,
+    /// after a piece opens over `bass`, if any, under the signature `opening`.
     fn score_after(opening: Option<i32>, bass: Option<&str>, fifths: Option<i32>, key: (&str, Mode)) -> f32 {
         let note = |name: &str| SliceNote {
             tpc: tpc_from_name(name).unwrap(),

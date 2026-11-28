@@ -18,8 +18,8 @@ pub struct ClassTally {
     pub missing_cut_by_hearings: u64,
     pub missing_merged: u64,
     pub missing_never_held: u64,
-    /// Sum of how many quarter notes after the frame's slice began the readings cut by width, cut
-    /// by the hearing limit or merged were pruned.
+    /// Sum of how many quarter notes after the frame's slice began the readings cut by width,
+    /// cut by the hearing limit or merged were pruned.
     pub pruned_after: f64,
     /// Sum of the score gaps between the best hypothesis and the best one holding a reading
     /// that was in the beam but below the cut-off.

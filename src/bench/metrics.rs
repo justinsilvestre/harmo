@@ -5,15 +5,15 @@ use super::layer_coverage::{LayerCoverage, LayerSummary};
 use crate::theory::label::Label;
 use serde::{Deserialize, Serialize};
 
-/// The reported features. The first six are AugmentedNet's, in its order, and "rn" requires the
-/// five before it.
+/// The reported features. The first six are AugmentedNet's, in its order,
+/// and "rn" requires the five before it.
 /// "chord" requires quality, inversion and root, whatever the key.
 /// "rn|key" is the rn accuracy over only the frames whose key is correct.
 /// "offered" is the share of frames whose full Roman numeral is among the readings the engine offers.
-/// "key now" and "rn now" score the reading held at the moment rather than the one traced back from
-/// the end of the piece.
-/// "rn eq" and "rn eq now" are rn and rn now with notational equivalents counted as matches (see
-/// `equivalence`).
+/// "key now" and "rn now" score the reading held at the moment rather than the one traced back
+/// from the end of the piece.
+/// "rn eq" and "rn eq now" are rn and rn now with notational equivalents counted
+/// as matches (see `equivalence`).
 pub const FEATURES: [&str; 13] = [
     "key",
     "degree",
@@ -34,8 +34,9 @@ pub const FEATURES: [&str; 13] = [
 pub const AUGMENTEDNET_FEATURES: usize = 6;
 
 /// The number of leading features that are compared frame by frame.
-/// Of the remaining features, "rn|key" is derived from the counts for "rn" and "key", "offered" is
-/// counted against the offered readings, and "key now" and "rn now" against the in-the-moment reading.
+/// Of the remaining features, "rn|key" is derived from the counts for "rn" and "key",
+/// "offered" is counted against the offered readings,
+/// and "key now" and "rn now" against the in-the-moment reading.
 pub const MATCHED_FEATURES: usize = 7;
 
 const KEY: usize = 0;
@@ -73,8 +74,9 @@ fn add_where<const N: usize>(counts: &mut [u64; N], flags: [bool; N]) {
     }
 }
 
-/// Accuracy of the top-ranked reading against one analyst, how often that analyst's reading is among
-/// the readings offered, and how often the in-the-moment reading matches it.
+/// Accuracy of the top-ranked reading against one analyst,
+/// how often that analyst's reading is among the readings offered,
+/// and how often the in-the-moment reading matches it.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Accuracy {
     pub frames: u64,
@@ -91,8 +93,8 @@ pub struct Accuracy {
     pub equivalent: u64,
     /// Frames whose in-the-moment reading matches under the equivalents measure.
     pub now_equivalent: u64,
-    /// Frames that the equivalents measure credits but the exact one does not, for each of
-    /// `EQUIVALENCES`.
+    /// Frames that the equivalents measure credits but the exact one does not,
+    /// for each of `EQUIVALENCES`.
     pub credits: [u64; EQUIVALENCES.len()],
 }
 
@@ -110,8 +112,8 @@ impl Accuracy {
         self.now_rn += now_matches[RN] as u64;
     }
 
-    /// Adds how the top reading and the in-the-moment reading of the frame last added match under
-    /// the equivalents measure.
+    /// Adds how the top reading and the in-the-moment reading
+    /// of the frame last added match under the equivalents measure.
     pub fn add_equivalence(&mut self, top: Option<Credit>, now: Option<Credit>) {
         self.equivalent += top.is_some() as u64;
         self.now_equivalent += now.is_some() as u64;
@@ -152,8 +154,9 @@ impl Accuracy {
 
 /// Counts comparing the engine with a pair of analysts, frame by frame.
 ///
-/// Where the analysts agree, the engine's top reading should match them about as often as a third
-/// expert would, estimated as the square root of the analysts' agreement rate.
+/// Where the analysts agree,
+/// the engine's top reading should match them about as often as a third expert would,
+/// estimated as the square root of the analysts' agreement rate.
 /// Where they disagree, the engine's offered readings should include both analysts' readings.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Agreement {
@@ -323,8 +326,8 @@ mod tests {
         accuracy
     }
 
-    /// One frame whose reading is offered second, one offered only in another key, and one with
-    /// nothing offered: five readings in all.
+    /// One frame whose reading is offered second, one offered only in another key,
+    /// and one with nothing offered: five readings in all.
     fn offers() -> Accuracy {
         let mut accuracy = Accuracy::default();
         let truth = label("C", "G", "G");

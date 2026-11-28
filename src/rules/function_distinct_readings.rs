@@ -25,8 +25,8 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Key(KeyHook::Distinguish(reading_identity)),
 }];
 
-/// Packs the segment's whole reading into one value, so that two segments get the same value
-/// exactly when their readings are equal.
+/// Packs the segment's whole reading into one value,
+/// so that two segments get the same value exactly when their readings are equal.
 fn reading_identity(segment: &KeySegment, _: &[f64]) -> u64 {
     let (chord, function) = (segment.heard.chord, segment.function);
     let tonicized = function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));

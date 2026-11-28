@@ -36,8 +36,9 @@ fn rules(rival_hook: bool) -> RuleSet {
     RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap()
 }
 
-/// Returns the parents that a new reading of C on slice 3 opens after, from a beam of two
-/// hypotheses whose last segments end on slice 2 with the given readings and scores.
+/// Returns the parents that a new reading of C on slice 3 opens after,
+/// from a beam of two hypotheses whose last segments end on slice 2 with the given readings
+/// and scores.
 fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u32> {
     let rules = rules(rival_hook);
     let mut layers = layers_of(&readings.map(key_segment), &[NONE, NONE]);

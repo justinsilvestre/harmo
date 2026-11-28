@@ -1,5 +1,5 @@
-//! How often both analysts' readings are offered where they disagree, with each layer offered on
-//! its own (see `layer_offers`).
+//! How often both analysts' readings are offered where they disagree,
+//! with each layer offered on its own (see `layer_offers`).
 
 use super::layer_offers::{ChordName, LayerOffers};
 use super::metrics::is_rn_match;

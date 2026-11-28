@@ -58,8 +58,8 @@ fn rules_with(rival_hook: bool) -> RuleSet {
     RuleSet::new(rules.collect(), &Default::default()).unwrap()
 }
 
-/// Proposes the hypotheses of a C major slice after a beam that holds the given readings of the
-/// slice before, best first.
+/// Proposes the hypotheses of a C major slice after a beam that holds the given readings
+/// of the slice before, best first.
 fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
     let previous = vec![NONE; readings.len()];
     let mut layers = layers_of(&readings.iter().map(|&r| key_segment(r)).collect::<Vec<_>>(), &previous);

@@ -62,8 +62,8 @@ mod tests {
         }
     }
 
-    /// Scores a G chord of the given quality, read in G of the given mode, followed by a slice in
-    /// the given phrase.
+    /// Scores a G chord of the given quality, read in G of the given mode,
+    /// followed by a slice in the given phrase.
     fn close(mode: Mode, quality: Quality, next_phrase: Option<usize>) -> f32 {
         let g = tpc_from_name("G").unwrap();
         let function = Function { key: Key::new(g, mode), tonicized: None, category: Category::Mixture };

@@ -53,8 +53,8 @@ pub fn locate_measures(
     (bars, located)
 }
 
-/// Returns 1 when the analysis numbers bars one lower than the score: the analysis has a pickup bar 0
-/// that the score lacks, or the score numbers its own pickup 1.
+/// Returns 1 when the analysis numbers bars one lower than the score:
+/// the analysis has a pickup bar 0 that the score lacks, or the score numbers its own pickup 1.
 fn pickup_shift(bars: &[Measure], numbers: &[Option<i64>], references: &[AnalysisMeasure]) -> i64 {
     let is_pickup = |bar: &Measure| bar.duration < bar.nominal_duration() - EPSILON;
     let opens_with_pickup_one = bars.first().is_some_and(is_pickup) && numbers.first() == Some(&Some(1));
@@ -182,10 +182,12 @@ struct Volta {
     second_start: usize,
     /// The index after the last reference in the second ending.
     end: usize,
-    /// Candidate lengths of the first ending, in bars: from 0, when the score writes the repeated music
-    /// only once, up to the longer span of the two endings in the analysis. An analysis may skip the last
-    /// bars of an ending when the harmony does not change, and its second ending may run on past the
-    /// score's, so the true length can lie anywhere in between.
+    /// Candidate lengths of the first ending, in bars: from 0,
+    /// when the score writes the repeated music only once,
+    /// up to the longer span of the two endings in the analysis.
+    /// An analysis may skip the last bars of an ending when the harmony does not change,
+    /// and its second ending may run on past the score's,
+    /// so the true length can lie anywhere in between.
     first_ending_lengths: Vec<i64>,
 }
 

@@ -1,5 +1,5 @@
-//! Renders what the equivalents RN measure counts as right, and how many frames each equivalence
-//! credits in each corpus.
+//! Renders what the equivalents RN measure counts as right,
+//! and how many frames each equivalence credits in each corpus.
 
 use super::markdown_table::{percent, share, table};
 use super::set_names::{family, row_name};

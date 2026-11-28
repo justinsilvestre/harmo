@@ -33,26 +33,28 @@ pub enum KeyHook {
     Slice(KeySliceFn),
     /// Scores opening a new segment after the previous one.
     Transition(KeyTransitionFn),
-    /// Scores opening a new segment in a different key from the previous one, from the hypothesis
-    /// and the slice alone. Since the new reading plays no part, the engine scores it once per
-    /// hypothesis and slice instead of once per new reading.
+    /// Scores opening a new segment in a different key from the previous one,
+    /// from the hypothesis and the slice alone. Since the new reading plays no part,
+    /// the engine scores it once per hypothesis and slice instead of once per new reading.
     Departure(KeyDepartureFn),
     /// Scores a segment once its extent is known.
     Close(KeyCloseFn),
     /// Rejects transitions outright (a hard constraint).
     Admit(AdmitFn),
-    /// Says which segments count as the same interpretation when the beam is pruned. Of the
-    /// hypotheses whose last `Config::distinct_depth` segments get the same values from every
-    /// distinguish hook, only the best is kept.
+    /// Says which segments count as the same interpretation when the beam is pruned.
+    /// Of the hypotheses whose last `Config::distinct_depth` segments get the same values
+    /// from every distinguish hook, only the best is kept.
     Distinguish(DistinguishFn),
-    /// Names rival hearings of the same music. A new segment normally opens after the one hypothesis
-    /// that leads into it best. When the hook puts that hypothesis's last segment in a group,
-    /// the best hypothesis whose last segment is another member of the same group
-    /// opens the new segment as well, so that the rival hearing stays in the search.
+    /// Names rival hearings of the same music.
+    /// A new segment normally opens after the one hypothesis that leads into it best.
+    /// When the hook puts that hypothesis's last segment in a group,
+    /// the best hypothesis whose last segment is another member
+    /// of the same group opens the new segment as well,
+    /// so that the rival hearing stays in the search.
     Rival(RivalFn),
     /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
-    /// When the proposers and interpreters produce the rival reading but its fit to the slice falls
-    /// below the candidate limit, it is kept as a candidate as well.
+    /// When the proposers and interpreters produce the rival reading
+    /// but its fit to the slice falls below the candidate limit, it is kept as a candidate as well.
     RivalCandidate(RivalCandidateFn),
 }
 

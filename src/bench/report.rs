@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 /// AugmentedNet's published accuracies on the subsets of its test set that we can also evaluate.
-/// Source: AugmentedNet README, table "AugmentedNet vs. other models" (Nápoles López, Gotham and
-/// Fujinaga 2021), model "AugN" trained on the full dataset.
+/// Source: AugmentedNet README, table "AugmentedNet vs. other models" (Nápoles López,
+/// Gotham and Fujinaga 2021), model "AugN" trained on the full dataset.
 /// The TAVERN figures cover both of its analyses, while the benchmark scores only the first.
 pub const AUGMENTEDNET_REFERENCE: &[(&str, [f64; 6])] = &[
     ("anet-test-wir", [0.818, 0.692, 0.859, 0.903, 0.903, 0.564]),
@@ -33,8 +33,8 @@ pub struct SetRecord {
     #[serde(default)]
     pub mean_offered: Option<f64>,
     pub agreement: Option<AgreementSummary>,
-    /// Frames that each equivalence credits under the equivalents measure but the exact measure
-    /// does not, by the equivalence's name. Older runs lack it.
+    /// Frames that each equivalence credits under the equivalents measure
+    /// but the exact measure does not, by the equivalence's name. Older runs lack it.
     #[serde(default)]
     pub equivalence_credits: Option<BTreeMap<String, u64>>,
     /// How soon each expert reading is offered, for each of `DELAY_LAYERS`, when it was measured.
@@ -58,8 +58,8 @@ pub struct PieceRecord {
     pub coverage: Option<PieceCoverage>,
 }
 
-/// Counts behind the "both readings offered" rates of one piece, for each of the first
-/// `MATCHED_FEATURES` features.
+/// Counts behind the "both readings offered" rates of one piece,
+/// for each of the first `MATCHED_FEATURES` features.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PieceCoverage {
     /// Frames where the two analyses disagree on the feature.
@@ -189,8 +189,8 @@ pub fn print_agreement(sets: &[SetRecord]) {
     }
 }
 
-/// Prints how often both readings are offered with each layer offered on its own, and the mean
-/// number offered in each layer.
+/// Prints how often both readings are offered with each layer offered on its own,
+/// and the mean number offered in each layer.
 fn print_layers(title: &str, summary: Option<&LayerSummary>) {
     let Some(summary) = summary else {
         return;
@@ -224,8 +224,9 @@ pub fn print_timing(results: &[PieceResult]) {
     );
 }
 
-/// Prints, for each set, the share of frames that each equivalence credits under the equivalents
-/// measure but the exact measure does not.
+/// Prints, for each set,
+/// the share of frames that each equivalence credits under the equivalents measure
+/// but the exact measure does not.
 pub fn print_equivalence_credits(sets: &[SetRecord]) {
     let names: Vec<&str> = EQUIVALENCES.iter().map(|e| e.name()).collect();
     println!("\n{:<28} {}{:>9}", "rn eq credits (% of frames)", header(&names), "total");

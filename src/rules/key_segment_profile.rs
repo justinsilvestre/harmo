@@ -53,8 +53,8 @@ pub const RULES: &[Rule] = &[Rule {
     hook: Hook::Key(KeyHook::Slice(segment_fit)),
 }];
 
-/// How far the set reaches past the end of the slice, at most the lag the benchmark allows offered
-/// readings.
+/// How far the set reaches past the end of the slice,
+/// at most the lag the benchmark allows offered readings.
 const LOOK_AHEAD: Param = Param {
     index: 0,
     name: "look_ahead",
@@ -79,8 +79,9 @@ const DOMINANT_ALLOWANCE: Param = Param {
     provenance: "measured: 7cdd769, round 5 (0.5 / 1 / 1.5 / 2 of the key's own mode share, main key only: tune RN +0.03 / +0.08 / +0.06 / -0.03; the major share taken: +0.12); measured: sweeps/round7-constants.json, round 7 (0.5 / 0.75 / 1.25 / 1.5: tune RN -0.08 / -0.00 / -0.03 / +0.00; kept)",
 };
 
-/// The length of a segment in quarter notes, a measure of common time. Its score scales with the
-/// slice's duration over this length, so the length acts only as a scale on the rule's weight.
+/// The length of a segment in quarter notes, a measure of common time.
+/// Its score scales with the slice's duration over this length,
+/// so the length acts only as a scale on the rule's weight.
 const SEGMENT: f64 = 4.0;
 
 fn segment_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
@@ -97,9 +98,9 @@ fn segment_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     fit * (context.slice.duration / SEGMENT) as f32
 }
 
-/// Returns the charge for an absent tonic that a dominant chord of the key is spared. The amount
-/// is the charge in a major key for either mode, so that it does not by itself favor one of the
-/// two keys that share a dominant.
+/// Returns the charge for an absent tonic that a dominant chord of the key is spared.
+/// The amount is the charge in a major key for either mode,
+/// so that it does not by itself favor one of the two keys that share a dominant.
 fn dominant_allowance(present: &[bool; 12], key: Key, chord: Chord) -> f32 {
     let is_dominant =
         chord.root == key.tonic + 1 && matches!(chord.quality, Quality::Major | Quality::DominantSeventh);
@@ -115,14 +116,15 @@ fn key_score(scores: &[f32; 24], key: Key) -> f32 {
     scores[offset + pitch_class(key.tonic) as usize]
 }
 
-/// Identifies a slice of a particular score: the addresses of the slice list and of the slice's
-/// notes, the list's length and the slice's index.
+/// Identifies a slice of a particular score:
+/// the addresses of the slice list and of the slice's notes,
+/// the list's length and the slice's index.
 type SliceIdentity = (usize, usize, usize, usize);
 
 thread_local! {
-    /// The scores of the most recent slice, with the look-ahead they were found with. The engine
-    /// scores many readings of one slice in a row, so one entry avoids nearly all recomputation
-    /// without changing any result.
+    /// The scores of the most recent slice, with the look-ahead they were found with.
+    /// The engine scores many readings of one slice in a row,
+    /// so one entry avoids nearly all recomputation without changing any result.
     static LAST_SCORES: Cell<(SliceIdentity, f64, [bool; 12], [f32; 24])> =
         const { Cell::new(((0, 0, 0, usize::MAX), 0.0, [false; 12], [0.0; 24])) };
 }
@@ -140,8 +142,8 @@ fn cached_key_scores(slices: &[Slice], index: usize, look_ahead: f64) -> ([bool;
     (present, scores)
 }
 
-/// Returns the log probability of a pitch-class set under each key, relative to the mean over the
-/// 24 keys, listed by tonic pitch class, major keys first.
+/// Returns the log probability of a pitch-class set under each key,
+/// relative to the mean over the 24 keys, listed by tonic pitch class, major keys first.
 fn key_scores(present: &[bool; 12]) -> [f32; 24] {
     let mut scores = [0.0; 24];
     for (offset, mode) in [(0, Mode::Major), (12, Mode::Minor)] {
@@ -159,8 +161,8 @@ fn key_scores(present: &[bool; 12]) -> [f32; 24] {
     scores.map(|score| score - mean)
 }
 
-/// Marks the pitch classes sounding in the slice's measure and phrase, up to `look_ahead` quarter
-/// notes past the slice.
+/// Marks the pitch classes sounding in the slice's measure and phrase,
+/// up to `look_ahead` quarter notes past the slice.
 fn measure_pitch_classes(slices: &[Slice], index: usize, look_ahead: f64) -> [bool; 12] {
     let slice = &slices[index];
     let horizon = slice.start + slice.duration + look_ahead;
