@@ -97,7 +97,7 @@ impl Exits {
     /// the best one whose last segment is another member of the group. Returns them best first.
     pub fn predecessors(&self, opening: &Opening, moment: &Moment, rules: &RuleSet) -> Vec<Predecessor> {
         let lead_in = |position: usize| self.lead_in(position, opening, moment, rules);
-        let scored: Vec<Predecessor> = (0..self.keys.len()).filter_map(lead_in).collect();
+        let scored: Vec<Predecessor> = (0..self.keys.len()).map(lead_in).collect();
         let Some(best) = best_of(&scored, 0..scored.len()) else {
             return vec![];
         };
@@ -117,27 +117,17 @@ impl Exits {
         found.into_iter().map(|i| scored[i]).collect()
     }
 
-    /// Scores opening a new reading after the hypothesis of one exit,
-    /// or returns `None` if an admit rule rules the transition out.
-    fn lead_in(
-        &self,
-        position: usize,
-        opening: &Opening,
-        moment: &Moment,
-        rules: &RuleSet,
-    ) -> Option<Predecessor> {
+    /// Scores opening a new reading after the hypothesis of one exit.
+    fn lead_in(&self, position: usize, opening: &Opening, moment: &Moment, rules: &RuleSet) -> Predecessor {
         let exit = &self.keys[position];
         let chord_exit = &self.chords[exit.chord_exit];
         let chord_transition = chord_exit.transitions[opening.chord_index];
         let (slice, history) = (moment.slice(), moment.history(exit.hypothesis));
         let context =
             KeyTransitionContext { previous: exit.segment.as_ref(), next: &opening.reading, slice, history };
-        if !rules.key.admits(&context) {
-            return None;
-        }
         let transition = chord_transition + rules.key.score_transition(&context, &exit.departures);
         let score = exit.score + (chord_exit.close + exit.close) + transition;
-        Some(Predecessor { exit: position, score })
+        Predecessor { exit: position, score }
     }
 }
 

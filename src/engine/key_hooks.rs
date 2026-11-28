@@ -15,7 +15,6 @@ pub type KeySliceFn = fn(&KeySliceContext, &[f64]) -> f32;
 pub type KeyTransitionFn = fn(&KeyTransitionContext, &[f64]) -> f32;
 pub type KeyDepartureFn = fn(&KeyDepartureContext, &[f64]) -> f32;
 pub type KeyCloseFn = fn(&KeyCloseContext, &[f64]) -> f32;
-pub type AdmitFn = fn(&KeyTransitionContext) -> bool;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
 /// Returns the place of a hypothesis's last segment among rival readings, or `None` if it has none.
@@ -39,8 +38,6 @@ pub enum KeyHook {
     Departure(KeyDepartureFn),
     /// Scores a segment once its extent is known.
     Close(KeyCloseFn),
-    /// Rejects transitions outright (a hard constraint).
-    Admit(AdmitFn),
     /// Says which segments count as the same interpretation when the beam is pruned.
     /// Of the hypotheses whose last `Config::distinct_depth` segments get the same values
     /// from every distinguish hook, only the best is kept.
@@ -67,7 +64,6 @@ impl KeyHook {
             KeyHook::Transition(_) => "key_transition",
             KeyHook::Departure(_) => "key_departure",
             KeyHook::Close(_) => "key_close",
-            KeyHook::Admit(_) => "key_admit",
             KeyHook::Distinguish(_) => "key_distinguish",
             KeyHook::Rival(_) => "key_rival",
             KeyHook::RivalCandidate(_) => "key_rival_candidate",
