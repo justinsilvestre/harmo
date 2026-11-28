@@ -14,7 +14,6 @@ pub mod chord_seventh_rival;
 pub mod chord_seventh_sonority;
 pub mod chord_six_four;
 pub mod function_cadential_rival;
-pub mod function_distinct_readings;
 pub mod function_picardy_third;
 pub mod function_progression;
 pub mod function_rare_mediant;
@@ -73,7 +72,6 @@ pub fn default_rules() -> Vec<Rule> {
         function_seventh_style::RULES,
         function_rare_mediant::RULES,
         chord_six_four::RULES,
-        function_distinct_readings::RULES,
     ]
     .concat()
 }

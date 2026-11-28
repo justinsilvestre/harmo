@@ -51,10 +51,7 @@ impl<'a> KeyTrace<'a> {
                     params,
                 )
             }
-            KeyHook::Propose(_)
-            | KeyHook::Interpret(_)
-            | KeyHook::Distinguish(_)
-            | KeyHook::RivalCandidate(_) => return None,
+            KeyHook::Propose(_) | KeyHook::Interpret(_) | KeyHook::RivalCandidate(_) => return None,
         })
     }
 

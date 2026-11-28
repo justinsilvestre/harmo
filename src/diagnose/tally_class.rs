@@ -16,10 +16,9 @@ pub struct ClassTally {
     /// Readings no longer held in the beam, by how the search lost them.
     pub missing_cut_by_width: u64,
     pub missing_cut_by_chord_hypotheses: u64,
-    pub missing_merged: u64,
     pub missing_never_held: u64,
-    /// Sum of how many quarter notes after the frame's slice began the readings cut by width,
-    /// cut by the chord hypothesis limit or merged were pruned.
+    /// Sum of how many quarter notes after the frame's slice began the readings cut by width
+    /// or by the chord hypothesis limit were pruned.
     pub pruned_after: f64,
     /// Sum of the score gaps between the best hypothesis and the best one holding a reading
     /// that was in the beam but below the cut-off.
@@ -38,7 +37,6 @@ impl ClassTally {
         self.missing_below_cutoff += other.missing_below_cutoff;
         self.missing_cut_by_width += other.missing_cut_by_width;
         self.missing_cut_by_chord_hypotheses += other.missing_cut_by_chord_hypotheses;
-        self.missing_merged += other.missing_merged;
         self.missing_never_held += other.missing_never_held;
         self.pruned_after += other.pruned_after;
         self.below_cutoff_gap += other.below_cutoff_gap;
@@ -56,19 +54,13 @@ impl ClassTally {
                 self.missing_cut_by_chord_hypotheses += 1;
                 self.pruned_after += after;
             }
-            Absence::Merged { after } => {
-                self.missing_merged += 1;
-                self.pruned_after += after;
-            }
             Absence::NeverHeld => self.missing_never_held += 1,
         }
     }
 
     /// The mean of `pruned_after` over the readings it sums.
     pub fn mean_pruned_after(&self) -> f64 {
-        self.pruned_after
-            / (self.missing_cut_by_width + self.missing_cut_by_chord_hypotheses + self.missing_merged).max(1)
-                as f64
+        self.pruned_after / (self.missing_cut_by_width + self.missing_cut_by_chord_hypotheses).max(1) as f64
     }
 }
 

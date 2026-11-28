@@ -12,11 +12,10 @@ Labels are compared at every thirty-second note, called a **frame**. Unless a ta
 ";
 
 /// Readable names for the search settings, in the order they are listed.
-const SETTING_NAMES: [(&str, &str); 11] = [
+const SETTING_NAMES: [(&str, &str); 10] = [
     ("beam", "beam width"),
     ("chord_hypotheses", "chord hypotheses kept (0: no limit)"),
     ("candidates", "candidate readings per slice"),
-    ("distinct_depth", "distinct depth"),
     ("offer_count", "readings offered at most"),
     ("offer_margin", "offer margin"),
     ("offer_lag", "offer lag in quarter notes"),

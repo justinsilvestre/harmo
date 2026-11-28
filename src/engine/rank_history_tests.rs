@@ -40,14 +40,7 @@ fn ranks(
 }
 
 fn departure(last_rank: usize) -> Departure {
-    Departure {
-        last_rank,
-        competing_rank: 0,
-        score_gap: 0.0,
-        cause: "test",
-        merged_into_rank: None,
-        merged_into: None,
-    }
+    Departure { last_rank, competing_rank: 0, score_gap: 0.0, cause: "test" }
 }
 
 #[test]

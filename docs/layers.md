@@ -14,7 +14,7 @@ The search has two layers: chord hypotheses, and key hypotheses that read them (
   - store only their own layer's score;
   - are ranked at every slice in their own stores, and have rank histories of their own readings.
 
-  Each layer has the hooks whose judgments it makes: the hook that names rival chords is in the chord layer, and the hooks that merge readings and name rival candidates are in the key layer (see the settled questions).
+  Each layer has the hooks whose judgments it makes: the hook that names rival chords is in the chord layer, and the hook that names rival candidates is in the key layer (see the settled questions).
 
 ## A topic can be judged at more than one layer
 
@@ -51,10 +51,10 @@ What key the music is in is first judged from the notes and chords. It can be ju
   - **It already carries the engine's revisions.** On `tune`, the retrospective reading gets the key right in 83.0% of frames and the reading at the moment in 78.9%, and RN 58.5% against 54.0%, without any layer editing another.
   - **Editing a stored hypothesis would break the model.** A lower hypothesis is shared by every hypothesis that reads it, so an edit made for one interpretation would change the others, and the beam at a past slice would no longer hold what was believed then. Each layer's own judgment stays in its own hypotheses and in its own rules' traces.
 
-- **Rival chords belong to the chord layer, while rival candidates and merging stay in the key layer.** The three hooks were all in the key layer. Each was tested where its judgment is made:
+- **Rival chords belong to the chord layer, rival candidates stay in the key layer, and merging is removed.** The three hooks were all in the key layer. Each was tested where its judgment is made:
   - **Rival chords move to the chord layer.** `chord.seventh_rival` keeps a triad and the seventh chord on its root alive as two chord hypotheses of one span. It read the key only to require that the chord be a dominant, which its source does not ask: a seventh that sounds for only part of a chord may be read either way (Kostka, Payne and Almén 2023, p. 219). As a chord rule that groups a major triad with the dominant seventh chord on its root, it changes no figure while off. Switched on, it matches the key layer's version on `tune` (RN and key within 0.01; whole readings both offered: RN +0.06 [-0.00,+0.13], chord +0.06 [-0.03,+0.16] at an equal number offered). Every rule now hooks into its own topic's layer, and the key layer has no rival hook. Once keys and chords were judged by layer, the rule was switched on: on `tune`, RN, key and chord moved by 0.01 or less, chords offered by layer rose 3.8 points [+3.0,+4.8] and RN both offered 3.2 [+2.5,+4.1], and keys offered by layer did not fall (-0.1 [-0.6,+0.4]).
   - **Rival candidates stay in the key layer.** `function.cadential_rival` keeps the dominant beside a cadential six-four read as I64, in the same key. Whether a six-four is cadential depends on the key, since its bass must be the key's dominant, and the tonic triad's quality follows the key's mode. The candidates it protects are whole readings, which are cut by the fit of chord and key together (see `layered-search.md`).
-  - **Merging stays in the key layer, and stays off.** Merging hypotheses by their chord layer's recent segments, compared by chord and bass, lost more than merging by whole readings on `tune` (prototype on branch `merge-chord`, commit d90b08d): at a depth of 4, RN -0.57 [-0.75,-0.38] and key -0.40 against no merging, with 30% more CPU time, where merging by whole readings loses RN -0.22 [-0.39,-0.08]. The default depth stays 0.
+  - **Merging is removed.** Merging hypotheses by their chord layer's recent segments, compared by chord and bass, lost more than merging by whole readings on `tune` (prototype on branch `merge-chord`, commit d90b08d): at a depth of 4, RN -0.57 [-0.75,-0.38] and key -0.40 against no merging, with 30% more CPU time, where merging by whole readings loses RN -0.22 [-0.39,-0.08]. Merging had been off by default since round 8, so the option, its hook and `function.distinct_readings` were removed, which changed no figure.
 
 ## Constraints
 

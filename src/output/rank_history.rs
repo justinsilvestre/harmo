@@ -28,8 +28,6 @@ pub struct DepartureOutput {
     pub measure: String,
     #[serde(flatten)]
     pub departure: Departure,
-    /// For `distinct_depth`, the reading that the hypothesis kept in its place gives the span.
-    pub merged_into_reading: Option<ReadingOutput>,
 }
 
 /// A reading that the beam held for a span's first slice but later dropped.
@@ -102,7 +100,6 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
             time: start,
             measure: measures[measure_at(measures, start)].number.clone(),
             departure: departure.clone(),
-            merged_into_reading: departure.merged_into.and_then(|keeper| held_reading(keeper, context)),
         }
     };
     RankChangeOutput {

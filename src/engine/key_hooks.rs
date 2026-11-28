@@ -1,7 +1,7 @@
 //! The hooks of the key layer. What they receive is in `key_contexts.rs`.
 
 use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext};
-use super::model::{Function, KeySegment, Reading};
+use super::model::{Function, Reading};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -13,8 +13,6 @@ pub type KeySliceFn = fn(&KeySliceContext, &[f64]) -> f32;
 pub type KeyTransitionFn = fn(&KeyTransitionContext, &[f64]) -> f32;
 pub type KeyDepartureFn = fn(&KeyDepartureContext, &[f64]) -> f32;
 pub type KeyCloseFn = fn(&KeyCloseContext, &[f64]) -> f32;
-/// Returns an opaque value for a segment; the engine only compares values for equality.
-pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
 /// Returns a rival reading of a slice for a candidate reading of it, or `None`.
 pub type RivalCandidateFn = fn(&Reading, &Slice, &[f64]) -> Option<Reading>;
 
@@ -34,10 +32,6 @@ pub enum KeyHook {
     Departure(KeyDepartureFn),
     /// Scores a segment once its extent is known.
     Close(KeyCloseFn),
-    /// Says which segments count as the same interpretation when the beam is pruned.
-    /// Of the hypotheses whose last `Config::distinct_depth` segments get the same values
-    /// from every distinguish hook, only the best is kept.
-    Distinguish(DistinguishFn),
     /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
     /// When the proposers and interpreters produce the rival reading
     /// but its fit to the slice falls below the candidate limit, it is kept as a candidate as well.
@@ -53,7 +47,6 @@ impl KeyHook {
             KeyHook::Transition(_) => "key_transition",
             KeyHook::Departure(_) => "key_departure",
             KeyHook::Close(_) => "key_close",
-            KeyHook::Distinguish(_) => "key_distinguish",
             KeyHook::RivalCandidate(_) => "key_rival_candidate",
         }
     }

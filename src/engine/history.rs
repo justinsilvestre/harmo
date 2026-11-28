@@ -1,7 +1,7 @@
 //! Tracks how readings' standing in the layers' rankings changes as the music unfolds.
 
 use super::model::{ChordHypothesisId, ChordSegment, Function, KeyHypothesisId, KeySegment, Reading};
-use super::pruning::{Departure, PruneCause};
+use super::pruning::Departure;
 use super::rank_history::{Holders, RankHistory, follow, follow_each};
 use super::search::Analysis;
 use crate::pitch::Tpc;
@@ -64,17 +64,11 @@ fn departure(
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holders.holds(p.parent))?;
     let beam = analysis.layers.key.ranking(slice).expect("the slice is stored");
     let best = beam.first().map_or(pruned.score, |first| analysis.layers.score(first));
-    let keeper = match pruned.cause {
-        PruneCause::Merged { keeper } => Some(keeper),
-        PruneCause::Width { .. } => None,
-    };
     Some(Departure {
         last_rank,
         competing_rank: pruned.rank,
         score_gap: best - pruned.score,
         cause: pruned.cause.name(),
-        merged_into_rank: keeper.map(|k| beam.position(k).expect("a keeper is in the beam") + 1),
-        merged_into: keeper,
     })
 }
 

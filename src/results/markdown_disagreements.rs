@@ -4,7 +4,7 @@ use super::markdown_table::{share, table};
 use crate::diagnose::summary::SetDiagnosis;
 use crate::diagnose::tally_class::ClassTally;
 
-const DISAGREEMENT_HEADER: [&str; 13] = [
+const DISAGREEMENT_HEADER: [&str; 12] = [
     "class",
     "frames",
     "top matches either",
@@ -15,7 +15,6 @@ const DISAGREEMENT_HEADER: [&str; 13] = [
     "its mean score gap",
     "missing: cut by beam width",
     "missing: cut by the chord hypothesis limit",
-    "missing: merged by distinct depth",
     "their mean time to pruning",
     "missing: never held",
 ];
@@ -25,7 +24,7 @@ const DISAGREEMENT_INTRODUCTION: &str = "### Where the analysts disagree, by cla
 Frames where two analysts differ are classed by what they differ on. **Frames** counts each pair of analysts once. **Top matches either** and **both offered** are percentages of the class's frames, as in the agreement tables. The other columns explain the readings that are not offered. They count readings rather than frames, since a frame can miss both of its analysts' readings:
 - **Cannot produce:** the engine has no way to produce the reading.
 - **In the beam, not offered:** a hypothesis in the beam holds it, but below the offer cut-off. Its mean rank (1 is the best hypothesis) and how far its score lies below the best are given beside it.
-- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**), because the beam already held as many chord hypotheses as it may, each read by a better hypothesis, and they read another (**cut by the chord hypothesis limit**), or because better ones gave their last segments the same readings with other boundaries (**merged by distinct depth**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
+- **Not in the beam:** no hypothesis in the beam holds it. Either the hypotheses that held it were all pruned, because the beam was full of better ones (**cut by beam width**), because the beam already held as many chord hypotheses as it may, each read by a better hypothesis, and they read another (**cut by the chord hypothesis limit**), or no hypothesis ever gave it to the frame (**never held**). The mean time to pruning is how many quarter notes after the frame's slice began the last of them was pruned; 0 means on arrival.
 ";
 
 pub fn render_disagreements(sets: &[&SetDiagnosis]) -> String {
@@ -58,7 +57,6 @@ fn class_row(name: &str, class: &ClassTally) -> Vec<String> {
         format!("{:.1}", class.below_cutoff_gap / below),
         class.missing_cut_by_width.to_string(),
         class.missing_cut_by_chord_hypotheses.to_string(),
-        class.missing_merged.to_string(),
         format!("{:.1}", class.mean_pruned_after()),
         class.missing_never_held.to_string(),
     ]

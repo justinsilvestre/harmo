@@ -11,7 +11,8 @@
 //! so the beam holds key hypotheses, and "hypothesis" alone means one of them.
 //!
 //! The beam at each slice is the set of interpretations a listener might hold at that moment.
-//! Hypotheses that open the same reading at the same slice are merged, keeping the best history.
+//! Hypotheses that open the same reading at the same slice after the same chord hypothesis are one,
+//! keeping the best history.
 
 use super::continuations::continuations;
 use super::exits::{Exits, Predecessor, chord_close, key_close};
@@ -37,11 +38,6 @@ pub struct Config {
     pub chord_hypothesis_width: usize,
     /// Number of new readings, ranked by their fit to the opening slice, considered per slice.
     pub candidate_limit: usize,
-    /// Number of recent segments that identify a hypothesis when the beam is pruned.
-    /// Of the hypotheses whose last `distinct_depth` segments the rules' distinguish hooks count
-    /// as the same, only the best is kept. Zero, or a rule set without distinguish hooks,
-    /// keeps them all.
-    pub distinct_depth: usize,
     /// Keeps the hypotheses that pruning drops at every slice, with the reason,
     /// for explaining why readings leave the beam.
     pub record_pruning: bool,
@@ -60,13 +56,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config {
-            beam_width: 80,
-            chord_hypothesis_width: 40,
-            candidate_limit: 48,
-            distinct_depth: 0,
-            record_pruning: false,
-        }
+        Config { beam_width: 80, chord_hypothesis_width: 40, candidate_limit: 48, record_pruning: false }
     }
 }
 
@@ -87,7 +77,7 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut pruned = Vec::new();
     for index in 0..slices.len() {
         let pending = step(&Moment { slices, index, layers: &layers }, &beam, rules, config);
-        let (kept, dropped) = prune(&pending, &layers, rules, config);
+        let (kept, dropped) = prune(&pending, config);
         beam = commit(&mut layers, &pending.chord, kept);
         if config.record_pruning {
             pruned.push(dropped);

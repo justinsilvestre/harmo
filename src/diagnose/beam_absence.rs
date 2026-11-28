@@ -20,10 +20,6 @@ pub enum Absence {
     /// of the chords as it may (see `Config::chord_hypothesis_width`), each read by a better hypothesis,
     /// and they read another chord hypothesis.
     ChordHypotheses { after: f64 },
-    /// The last hypotheses holding it were pruned
-    /// in favour of better ones that give their recent segments the same readings
-    /// with other boundaries (see `Config::distinct_depth`).
-    Merged { after: f64 },
     /// No hypothesis that reached the frame's slice gave it the reading.
     NeverHeld,
 }
@@ -50,7 +46,6 @@ pub fn find_pruning(
     Some(match cause {
         PruneCause::Width { layer: Layer::Key } => Absence::Width { after },
         PruneCause::Width { layer: Layer::Chord } => Absence::ChordHypotheses { after },
-        PruneCause::Merged { .. } => Absence::Merged { after },
     })
 }
 

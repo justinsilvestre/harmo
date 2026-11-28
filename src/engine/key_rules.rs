@@ -2,10 +2,9 @@
 
 use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeySliceContext, KeyTransitionContext};
 use super::key_hooks::{
-    DistinguishFn, InterpretFn, KeyCloseFn, KeyDepartureFn, KeyHook, KeySliceFn, KeyTransitionFn,
-    ProposeKeysFn, RivalCandidateFn,
+    InterpretFn, KeyCloseFn, KeyDepartureFn, KeyHook, KeySliceFn, KeyTransitionFn, ProposeKeysFn,
+    RivalCandidateFn,
 };
-use super::model::KeySegment;
 use super::ruleset::Scorer;
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -26,7 +25,6 @@ pub struct KeyRules {
     pub slice: Vec<Scorer<KeySliceFn>>,
     pub transition: Vec<Scorer<TransitionScorer>>,
     pub close: Vec<Scorer<KeyCloseFn>>,
-    pub distinguish: Vec<(DistinguishFn, Box<[f64]>)>,
     pub rival_candidate: Vec<(RivalCandidateFn, Box<[f64]>)>,
 }
 
@@ -39,7 +37,6 @@ impl KeyRules {
             KeyHook::Transition(f) => self.transition.push((TransitionScorer::Each(f), weight, params)),
             KeyHook::Departure(f) => self.transition.push((TransitionScorer::Departure(f), weight, params)),
             KeyHook::Close(f) => self.close.push((f, weight, params)),
-            KeyHook::Distinguish(f) => self.distinguish.push((f, params)),
             KeyHook::RivalCandidate(f) => self.rival_candidate.push((f, params)),
         }
     }
@@ -80,10 +77,5 @@ impl KeyRules {
 
     pub fn score_close(&self, context: &KeyCloseContext) -> f32 {
         self.close.iter().map(|(f, w, params)| w * f(context, params)).sum()
-    }
-
-    /// Appends each distinguish hook's value for the segment, in rule order.
-    pub fn distinguish(&self, segment: &KeySegment, values: &mut Vec<u64>) {
-        values.extend(self.distinguish.iter().map(|(f, params)| f(segment, params)));
     }
 }
