@@ -17,7 +17,7 @@ fn piece(labels: impl Fn(&Analysis, &BenchPiece) -> Vec<Option<Label>>) -> (Anal
     let frames = (score.end() / FRAME).ceil() as usize;
     let sounds = FrameSounds::new(&slices, &frame_slices(&slices, frames));
     let rules = RuleSet::new(default_rules(), &Weights::new()).unwrap();
-    let analysis = analyze(&slices, &rules, &Config { record_snapshots: true, ..Config::default() });
+    let analysis = analyze(&slices, &rules, &Config::default());
     let mut piece = BenchPiece {
         id: "cadence".into(),
         sets: vec![],

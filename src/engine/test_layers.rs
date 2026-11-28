@@ -34,7 +34,7 @@ pub fn chord_layer_of(segments: &[ChordSegment], previous: &[ChordHypothesisId])
         unit: segments[i],
         score: 0.0,
     };
-    Store { hypotheses: (0..segments.len()).map(chord_hypothesis).collect() }
+    Store::of((0..segments.len()).map(chord_hypothesis).collect())
 }
 
 /// Builds a key layer over a chord layer: key hypothesis i reads chord hypothesis `read[i]`
@@ -53,7 +53,7 @@ pub fn key_layer_of(
         unit: functions[i],
         score: 0.0,
     };
-    Store { hypotheses: (0..read.len()).map(hypothesis).collect() }
+    Store::of((0..read.len()).map(hypothesis).collect())
 }
 
 /// Holds segments in layers, one chord hypothesis for each key hypothesis:

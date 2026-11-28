@@ -1,6 +1,8 @@
 //! End-to-end tests of rank histories and of the record of why readings leave the beam.
 
 use harmo::engine::history::{RankChange, rank_histories, reading_at};
+use harmo::engine::model::Function;
+use harmo::engine::ranking::Ranking;
 use harmo::engine::ruleset::{RuleSet, Weights};
 use harmo::engine::search::{Analysis, Config, analyze};
 use harmo::rules::default_rules;
@@ -10,7 +12,7 @@ use std::path::Path;
 
 /// A beam narrow enough that the cadence fixture loses readings to pruning.
 fn narrow(record_pruning: bool) -> Config {
-    Config { beam_width: 8, record_snapshots: true, record_pruning, ..Config::default() }
+    Config { beam_width: 8, record_pruning, ..Config::default() }
 }
 
 fn analyze_cadence(config: &Config) -> (Analysis, usize) {
@@ -27,11 +29,11 @@ fn all_histories(analysis: &Analysis, slices: usize) -> Vec<Vec<RankChange>> {
 /// Ranks found by looking up each hypothesis's path, slice by slice.
 fn walked_ranks(analysis: &Analysis, at: usize) -> Vec<Vec<Option<usize>>> {
     let histories = rank_histories(analysis, at);
-    let rank_of = |beam: &Vec<harmo::engine::model::KeyHypothesisId>,
-                   h: &harmo::engine::history::ReadingHistory| {
-        beam.iter().position(|&n| reading_at(analysis, n, at) == Some(h.reading)).map(|r| r + 1)
+    let rank_of = |beam: Ranking<Function>, h: &harmo::engine::history::ReadingHistory| {
+        beam.iter().position(|n| reading_at(analysis, n, at) == Some(h.reading)).map(|r| r + 1)
     };
-    histories.iter().map(|h| analysis.snapshots[at..].iter().map(|beam| rank_of(beam, h)).collect()).collect()
+    let later = || analysis.layers.key.rankings().skip(at);
+    histories.iter().map(|h| later().map(|beam| rank_of(beam, h)).collect()).collect()
 }
 
 /// Expands a history of rank changes into a rank per slice, from `at` to the end.

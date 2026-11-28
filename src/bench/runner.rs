@@ -10,8 +10,9 @@ use super::manifest::{Manifest, ManifestPiece};
 use super::metrics::{Accuracy, Agreement, EquivalentMatches};
 use super::offer_delay::{OfferDelays, offer_delays};
 use crate::engine::history::segment_at;
-use crate::engine::model::KeyHypothesisId;
+use crate::engine::model::{Function, KeyHypothesisId};
 use crate::engine::path::segments_of;
+use crate::engine::ranking::Ranking;
 use crate::engine::ruleset::RuleSet;
 use crate::engine::search::{Analysis, Config, analyze};
 use crate::score::model::Measure;
@@ -173,8 +174,7 @@ pub fn evaluate(pieces: &[BenchPiece], rules: &RuleSet, config: &EvalConfig) -> 
 
 pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) -> PieceResult {
     let started = Instant::now();
-    let engine = Config { record_snapshots: true, ..config.engine.clone() };
-    let analysis = analyze(&piece.slices, rules, &engine);
+    let analysis = analyze(&piece.slices, rules, &config.engine);
     let search = started.elapsed().as_secs_f64();
     let top = top_frames(&analysis, piece);
     let offered = offered_frames(&analysis, piece, top.len(), config);
@@ -327,14 +327,8 @@ pub(super) fn slice_values_by_frame<T: Clone + Default>(
 }
 
 /// Returns the beam as it stood `lag` quarter notes after the slice `at` began, best first.
-/// Requires an analysis run with `Config::record_snapshots`.
-pub fn lagged_beam<'a>(
-    analysis: &'a Analysis,
-    slices: &[Slice],
-    at: usize,
-    lag: f64,
-) -> Option<&'a [KeyHypothesisId]> {
-    analysis.snapshots.get(lagged_slice(slices, at, lag)).map(Vec::as_slice)
+pub fn lagged_beam(analysis: &Analysis, slices: &[Slice], at: usize, lag: f64) -> Option<Ranking<Function>> {
+    analysis.layers.key.ranking(lagged_slice(slices, at, lag))
 }
 
 /// Returns the last slice that begins within `lag` quarter notes of the slice `at`.
@@ -354,19 +348,18 @@ fn offered_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalCon
 /// Returns the distinct readings of slice `at` that `beam` offers under the offer count and margin.
 pub fn offered_from(
     analysis: &Analysis,
-    beam: &[KeyHypothesisId],
+    beam: Ranking<Function>,
     at: usize,
     config: &EvalConfig,
 ) -> Vec<Label> {
-    let Some(&best) = beam.first() else {
+    let Some(best) = beam.first() else {
         return vec![];
     };
     let best_score = analysis.layers.score(best);
-    let is_close = |hypothesis: &&KeyHypothesisId| {
-        best_score - analysis.layers.score(**hypothesis) <= config.offer_margin
-    };
+    let is_close =
+        |hypothesis: &KeyHypothesisId| best_score - analysis.layers.score(*hypothesis) <= config.offer_margin;
     let mut labels: Vec<Label> = Vec::new();
-    for &hypothesis in beam.iter().filter(is_close) {
+    for hypothesis in beam.iter().filter(is_close) {
         if labels.len() == config.offer_count {
             break;
         }
@@ -381,7 +374,7 @@ pub fn offered_from(
 }
 
 fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> Option<Label> {
-    let best = *lagged_beam(analysis, slices, at, config.offer_lag)?.first()?;
+    let best = lagged_beam(analysis, slices, at, config.offer_lag)?.first()?;
     reading_at(analysis, best, at)
 }
 

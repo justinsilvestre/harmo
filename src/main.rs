@@ -267,7 +267,6 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
                 as usize,
             candidate_limit: number("candidates", defaults.engine.candidate_limit as f64)? as usize,
             distinct_depth: number("distinct-depth", defaults.engine.distinct_depth as f64)? as usize,
-            record_snapshots: false,
             record_pruning: false,
         },
         offer_count: number("offer-count", defaults.offer_count as f64)? as usize,

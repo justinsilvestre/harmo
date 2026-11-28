@@ -41,7 +41,7 @@ pub fn hindsight_frames(
         let Some(beam) = lagged_beam(analysis, slices, at, config.offer_lag) else {
             return LayerOffers::default();
         };
-        let held = held_readings(analysis, beam.iter().copied(), at, |n| bests[n.0 as usize]);
+        let held = held_readings(analysis, beam.iter(), at, |n| bests[n.0 as usize]);
         let numerals = by_shortfall(held.iter().copied(), best, config.offer_margin, config.offer_count);
         let offers = layer_offers(&held, best, &config.layer_limits());
         LayerOffers { numerals: numerals.into_iter().map(|(label, _)| label).collect(), ..offers }
@@ -54,13 +54,13 @@ fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalCo
     let Some(beam) = lagged_beam(analysis, &piece.slices, at, config.offer_lag) else {
         return LayerOffers::default();
     };
-    let Some(&first) = beam.first() else {
+    let Some(first) = beam.first() else {
         return LayerOffers::default();
     };
     let score = |hypothesis: KeyHypothesisId| analysis.layers.score(hypothesis);
     let limits = config.layer_limits();
     let reach = limits.key_margin.max(limits.chord_margin).max(limits.numeral_margin);
-    let close = beam.iter().copied().take_while(|&n| score(first) - score(n) <= reach);
+    let close = beam.iter().take_while(|&n| score(first) - score(n) <= reach);
     layer_offers(&held_readings(analysis, close, at, score), score(first), &limits)
 }
 

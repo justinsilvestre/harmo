@@ -31,12 +31,11 @@ impl BeamTally {
 
 /// Counts, at every slice, the hypotheses in the beam and their distinct readings of that slice,
 /// among all hypotheses and among the first `leading` ones.
-/// Requires an analysis run with `Config::record_snapshots`.
 pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
     let mut tally = BeamTally::default();
-    for beam in &analysis.snapshots {
+    for beam in analysis.layers.key.rankings() {
         let segments: Vec<KeySegment> =
-            beam.iter().map(|&hypothesis| analysis.layers.segment(hypothesis)).collect();
+            beam.iter().map(|hypothesis| analysis.layers.segment(hypothesis)).collect();
         let readings: HashSet<Label> = segments.iter().map(KeySegment::label).collect();
         let chord_keys: HashSet<_> = segments.iter().map(|s| (s.heard.chord, s.function.key)).collect();
         let leading_readings: HashSet<Label> = segments.iter().take(leading).map(KeySegment::label).collect();

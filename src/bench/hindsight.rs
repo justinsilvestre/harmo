@@ -39,15 +39,21 @@ mod tests {
     fn analysis() -> Analysis {
         let score = read_score(Path::new("tests/fixtures/cadence.musicxml")).unwrap();
         let rules = RuleSet::new(default_rules(), &Weights::new()).unwrap();
-        analyze(&slice_score(&score), &rules, &Config { record_snapshots: true, ..Config::default() })
+        analyze(&slice_score(&score), &rules, &Config::default())
     }
 
     #[test]
     fn every_first_beam_hypothesis_leading_to_the_best_final_hypothesis_carries_its_score() {
         let analysis = analysis();
         let bests = descendant_bests(&analysis);
-        let first =
-            analysis.snapshots[0].iter().map(|&n| bests[n.0 as usize]).fold(f32::NEG_INFINITY, f32::max);
+        let first = analysis
+            .layers
+            .key
+            .ranking(0)
+            .unwrap()
+            .iter()
+            .map(|n| bests[n.0 as usize])
+            .fold(f32::NEG_INFINITY, f32::max);
         assert_eq!(first, analysis.ranking[0].1);
     }
 
@@ -72,12 +78,13 @@ mod tests {
         let analysis = analysis();
         let bests = descendant_bests(&analysis);
         let pruned_away = analysis
-            .snapshots
-            .iter()
+            .layers
+            .key
+            .rankings()
             .rev()
             .skip(1)
-            .flatten()
-            .any(|&n| bests[n.0 as usize] == f32::NEG_INFINITY);
+            .flat_map(|beam| beam.iter())
+            .any(|n| bests[n.0 as usize] == f32::NEG_INFINITY);
         assert!(pruned_away);
     }
 }

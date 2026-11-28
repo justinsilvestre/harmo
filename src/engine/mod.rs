@@ -20,6 +20,7 @@ pub mod path;
 pub mod pending;
 pub mod proposals;
 pub mod pruning;
+pub mod ranking;
 pub mod rule;
 pub mod ruleset;
 pub mod search;

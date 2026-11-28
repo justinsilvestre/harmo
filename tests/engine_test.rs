@@ -48,9 +48,8 @@ fn unknown_rule_ids_in_weights_are_rejected() {
 }
 
 #[test]
-fn snapshots_record_one_beam_per_slice() {
+fn the_key_layer_ranks_its_hypotheses_at_every_slice() {
     let slices = cadence();
-    let analysis =
-        analyze(&slices, &default_ruleset(), &Config { record_snapshots: true, ..Config::default() });
-    assert_eq!(analysis.snapshots.len(), slices.len());
+    let analysis = analyze(&slices, &default_ruleset(), &Config::default());
+    assert_eq!(analysis.layers.key.rankings().count(), slices.len());
 }

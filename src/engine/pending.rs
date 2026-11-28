@@ -93,13 +93,16 @@ impl Pending {
 }
 
 /// Adds the kept hypotheses to the layers, with the pending chord hypotheses that they read,
-/// in the order in which the hypotheses first read them. Returns the new beam.
+/// in the order in which the hypotheses first read them, as each layer's ranking at the next slice.
+/// Returns the new beam.
 pub fn commit(
     layers: &mut Layers,
     chord: &Proposed<ChordSegment, u32>,
     kept: Vec<PendingKeyHypothesis>,
 ) -> Vec<KeyHypothesisId> {
     let first = layers.key.len() as u32;
+    layers.chord.begin_slice();
+    layers.key.begin_slice();
     let mut stored = vec![HypothesisId::NONE; chord.hypotheses.len()];
     for hypothesis in kept {
         let reads = store_once(&mut layers.chord, chord, &mut stored, hypothesis.reads, |slice| slice);

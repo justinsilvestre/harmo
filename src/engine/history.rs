@@ -26,18 +26,19 @@ pub struct ReadingHistory {
     pub changes: Vec<RankChange>,
 }
 
-/// Follows every reading that the beam holds for slice `at` through the later beam snapshots,
-/// in order of their rank at `at`. Requires an analysis run with `Config::record_snapshots`.
+/// Follows every reading that the beam holds for slice `at` through the later beams,
+/// in order of their rank at `at`.
 ///
 /// Every hypothesis in a later beam descends from one in the previous beam and keeps its reading
 /// of `at`, so each beam's readings are found from its parents' and no path is walked.
 pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
-    let Some(first_beam) = analysis.snapshots.get(at) else {
+    let key = &analysis.layers.key;
+    let Some(first_beam) = key.ranking(at) else {
         return Vec::new();
     };
     let mut histories: Vec<ReadingHistory> = Vec::new();
     let mut held: Vec<usize> = Vec::with_capacity(first_beam.len());
-    for (position, &hypothesis) in first_beam.iter().enumerate() {
+    for (position, hypothesis) in first_beam.iter().enumerate() {
         let reading = reading_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice");
         let id = histories.iter().position(|h| h.reading == reading).unwrap_or_else(|| {
             let changes = vec![RankChange { slice: at, rank: Some(position + 1), left_beam: None }];
@@ -47,16 +48,16 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
         held.push(id);
     }
     let mut alive = histories.len();
-    for slice in at + 1..analysis.snapshots.len() {
+    let mut previous = first_beam;
+    for (slice, beam) in key.rankings().enumerate().skip(at + 1) {
         if alive <= 1 {
             break;
         }
-        let (previous, beam) = (&analysis.snapshots[slice - 1], &analysis.snapshots[slice]);
-        let held_by_parent = |parent: KeyHypothesisId| held[(parent.0 - previous[0].0) as usize];
-        let next: Vec<usize> = beam
-            .iter()
-            .map(|&hypothesis| held_by_parent(analysis.layers.key.get(hypothesis).parent))
-            .collect();
+        let held_by_parent = |parent: KeyHypothesisId| {
+            held[previous.position(parent).expect("a parent is in the beam before")]
+        };
+        let next: Vec<usize> =
+            beam.iter().map(|hypothesis| held_by_parent(key.get(hypothesis).parent)).collect();
         let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
         for (position, &id) in next.iter().enumerate() {
             ranks[id].get_or_insert(position + 1);
@@ -73,6 +74,7 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
             history.changes.push(RankChange { slice, rank: ranks[id], left_beam: left_beam.flatten() });
         }
         held = next;
+        previous = beam;
     }
     histories
 }
@@ -87,8 +89,8 @@ fn departure(
     holds: impl Fn(KeyHypothesisId) -> bool,
 ) -> Option<Departure> {
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
-    let beam = &analysis.snapshots[slice];
-    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.score(first));
+    let beam = analysis.layers.key.ranking(slice).expect("the slice is stored");
+    let best = beam.first().map_or(pruned.score, |first| analysis.layers.score(first));
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
         PruneCause::Width { .. } => None,
@@ -98,7 +100,7 @@ fn departure(
         competing_rank: pruned.rank,
         score_gap: best - pruned.score,
         cause: pruned.cause.name(),
-        merged_into_rank: keeper.map(|k| (k.0 - beam[0].0) as usize + 1),
+        merged_into_rank: keeper.map(|k| beam.position(k).expect("a keeper is in the beam") + 1),
         merged_into: keeper,
     })
 }

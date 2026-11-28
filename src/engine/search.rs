@@ -42,8 +42,6 @@ pub struct Config {
     /// as the same, only the best is kept. Zero, or a rule set without distinguish hooks,
     /// keeps them all.
     pub distinct_depth: usize,
-    /// Keeps the beam of every slice, for tracing how readings rise and fall in the ranking.
-    pub record_snapshots: bool,
     /// Keeps the hypotheses that pruning drops at every slice, with the reason,
     /// for explaining why readings leave the beam.
     pub record_pruning: bool,
@@ -67,7 +65,6 @@ impl Default for Config {
             chord_hypothesis_width: 40,
             candidate_limit: 48,
             distinct_depth: 0,
-            record_snapshots: false,
             record_pruning: false,
         }
     }
@@ -76,11 +73,10 @@ impl Default for Config {
 pub struct Analysis {
     /// Every hypothesis that survived pruning,
     /// and every chord hypothesis that one of them interprets.
+    /// The key layer's ranking at each slice is the beam after it.
     pub layers: Layers,
     /// The final hypotheses, best first, each with its score once its last segment is closed.
     pub ranking: Vec<(KeyHypothesisId, f32)>,
-    /// The beam after each slice, best first. Empty unless `Config::record_snapshots` is set.
-    pub snapshots: Vec<Vec<KeyHypothesisId>>,
     /// The hypotheses dropped at each slice, best first. Empty unless `Config::record_pruning` is set.
     pub pruned: Vec<Vec<Pruned>>,
 }
@@ -88,21 +84,17 @@ pub struct Analysis {
 pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut layers = Layers::default();
     let mut beam: Vec<KeyHypothesisId> = Vec::new();
-    let mut snapshots = Vec::new();
     let mut pruned = Vec::new();
     for index in 0..slices.len() {
         let pending = step(&Moment { slices, index, layers: &layers }, &beam, rules, config);
         let (kept, dropped) = prune(&pending, &layers, rules, config);
         beam = commit(&mut layers, &pending.chord, kept);
-        if config.record_snapshots {
-            snapshots.push(beam.clone());
-        }
         if config.record_pruning {
             pruned.push(dropped);
         }
     }
     let ranking = rank_final(slices, &layers, &beam, rules);
-    Analysis { layers, ranking, snapshots, pruned }
+    Analysis { layers, ranking, pruned }
 }
 
 /// Proposes the hypotheses of one slice: every hypothesis in the beam extended by the slice,

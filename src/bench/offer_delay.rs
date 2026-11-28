@@ -92,7 +92,6 @@ impl LayerDelays {
 }
 
 /// Measures, for every label of every analysis of the piece, how soon its reading is offered.
-/// Requires an analysis run with `Config::record_snapshots`.
 pub fn offer_delays(analysis: &Analysis, piece: &BenchPiece, config: &EvalConfig) -> OfferDelays {
     let frames = piece.analyses[0].1.len();
     let mut search = DelaySearch {
@@ -157,7 +156,7 @@ impl DelaySearch<'_> {
     fn offered(&mut self, heard: usize, at: usize) -> &[Label] {
         let (analysis, config) = (self.analysis, self.config);
         self.offered.entry((heard, at)).or_insert_with(|| {
-            analysis.snapshots.get(heard).map_or(vec![], |beam| offered_from(analysis, beam, at, config))
+            analysis.layers.key.ranking(heard).map_or(vec![], |beam| offered_from(analysis, beam, at, config))
         })
     }
 }

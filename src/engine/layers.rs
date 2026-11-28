@@ -2,6 +2,7 @@
 
 use super::hypothesis::{Hypothesis, HypothesisId};
 use super::model::{ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesisId, KeySegment};
+use super::ranking::Ranking;
 
 /// What the search keeps of every layer, in order: the chord layer's hypotheses,
 /// and the key layer's hypotheses, each of which reads one chord hypothesis.
@@ -16,9 +17,12 @@ pub static NO_LAYERS: Layers = Layers { chord: Store::new(), key: Store::new() }
 
 /// The hypotheses of the layer whose unit is `U`, each reading an `R`,
 /// and each linked by index to its own layer's past.
+/// Each slice's hypotheses are stored together, best first (see `ranking`).
 #[derive(Clone, Debug)]
 pub struct Store<U, R> {
     pub hypotheses: Vec<Hypothesis<U, R>>,
+    /// The index of the first hypothesis stored at each slice.
+    pub slice_starts: Vec<u32>,
 }
 
 impl<U, R> Default for Store<U, R> {
@@ -29,7 +33,12 @@ impl<U, R> Default for Store<U, R> {
 
 impl<U, R> Store<U, R> {
     pub const fn new() -> Store<U, R> {
-        Store { hypotheses: Vec::new() }
+        Store { hypotheses: Vec::new(), slice_starts: Vec::new() }
+    }
+
+    /// Holds hypotheses that were not stored slice by slice, so that it has no rankings.
+    pub fn of(hypotheses: Vec<Hypothesis<U, R>>) -> Store<U, R> {
+        Store { hypotheses, slice_starts: Vec::new() }
     }
 
     pub fn get(&self, id: HypothesisId<U>) -> &Hypothesis<U, R> {
@@ -48,6 +57,24 @@ impl<U, R> Store<U, R> {
     pub fn push(&mut self, hypothesis: Hypothesis<U, R>) -> HypothesisId<U> {
         self.hypotheses.push(hypothesis);
         HypothesisId::new(self.hypotheses.len() as u32 - 1)
+    }
+
+    /// Marks the hypotheses pushed from now on as those of the next slice.
+    pub fn begin_slice(&mut self) {
+        self.slice_starts.push(self.hypotheses.len() as u32);
+    }
+
+    /// Returns the layer's ranking at a slice: the hypotheses stored at it, best first,
+    /// or `None` if the store holds no slice of that index.
+    pub fn ranking(&self, slice: usize) -> Option<Ranking<U>> {
+        let start = *self.slice_starts.get(slice)?;
+        let end = self.slice_starts.get(slice + 1).copied().unwrap_or(self.hypotheses.len() as u32);
+        Some(Ranking::new(start, end))
+    }
+
+    /// Returns the layer's ranking at every slice, in order.
+    pub fn rankings(&self) -> impl DoubleEndedIterator<Item = Ranking<U>> + '_ {
+        (0..self.slice_starts.len()).map(|slice| self.ranking(slice).expect("the slice is stored"))
     }
 
     /// Returns the last hypothesis of each segment on the path to `last`,
