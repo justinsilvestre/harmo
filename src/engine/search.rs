@@ -148,8 +148,8 @@ impl Opened<'_> {
         let slice = self.slice;
         *self.chord_hypotheses.entry((chord_exit.chord_hypothesis, opening.chord_index)).or_insert_with(
             || {
-                let score =
-                    chord_exit.score + chord_exit.close + predecessor.chord_transition + opening.fit.chord;
+                let transition = chord_exit.transitions[opening.chord_index];
+                let score = chord_exit.score + chord_exit.close + transition + opening.fit.chord;
                 pending.add_chord_hypothesis(ChordHypothesis {
                     previous: chord_exit.chord_hypothesis,
                     slice,

@@ -51,8 +51,6 @@ pub struct Exits {
 pub struct Predecessor {
     /// The position of the hypothesis's exit in `Exits::keys`.
     pub exit: usize,
-    /// The chord transition rules' score of opening the new reading's chord after it.
-    pub chord_transition: f32,
     /// The score of the path up to the new segment, closing and transition scores included.
     pub score: f32,
 }
@@ -139,7 +137,7 @@ impl Exits {
         }
         let transition = chord_transition + rules.key.score_transition(&context, &exit.departures);
         let score = exit.score + (chord_exit.close + exit.close) + transition;
-        Some(Predecessor { exit: position, chord_transition, score })
+        Some(Predecessor { exit: position, score })
     }
 }
 
