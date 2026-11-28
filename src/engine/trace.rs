@@ -34,13 +34,13 @@ pub fn trace_segment(
 ) -> Vec<Contribution> {
     let layers = &analysis.layers;
     let state = layers.segment(segment.hypothesis);
-    let previous_hypothesis = layers.key_hypothesis(segment.hypothesis).previous;
+    let previous_hypothesis = layers.key.get(segment.hypothesis).previous;
     let heard = layers.chord_hypothesis_of(segment.hypothesis);
-    let chord_hypothesis = &heard.segment;
+    let chord_hypothesis = &heard.unit;
     let previous =
         (previous_hypothesis != KeyHypothesisId::NONE).then(|| layers.segment(previous_hypothesis));
     let previous_chord_hypothesis =
-        (heard.previous != ChordHypothesisId::NONE).then(|| &layers.chord_hypothesis(heard.previous).segment);
+        (heard.previous != ChordHypothesisId::NONE).then(|| &layers.chord.get(heard.previous).unit);
     let (first, end) = segment.slices;
     let transition = KeyTransitionContext {
         previous: previous.as_ref(),
@@ -120,11 +120,11 @@ mod tests {
         let expected = |&(hypothesis, score): &(KeyHypothesisId, f32)| match layer {
             Some(Layer::Chord) => {
                 let chord_hypothesis = analysis.layers.chord_hypothesis_of(hypothesis);
-                chord_hypothesis.score + chord_close(&slices, &chord_hypothesis.segment, slices.len(), &rules)
+                chord_hypothesis.score + chord_close(&slices, &chord_hypothesis.unit, slices.len(), &rules)
             }
             Some(Layer::Key) => {
                 let segment = analysis.layers.segment(hypothesis);
-                let own = analysis.layers.key_hypothesis(hypothesis).score;
+                let own = analysis.layers.key.get(hypothesis).score;
                 own + key_close(&slices, &segment, slices.len(), &rules)
             }
             None => score,

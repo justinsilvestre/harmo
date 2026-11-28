@@ -15,8 +15,9 @@
 
 use super::continuations::continuations;
 use super::exits::{Exits, Predecessor, chord_close, key_close};
+use super::hypothesis::Hypothesis;
 use super::layers::Layers;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId};
+use super::model::{ChordHypothesisId, KeyHypothesisId};
 use super::moment::Moment;
 use super::pending::{Pending, PendingChordHypothesisId, commit};
 use super::proposals::{Opening, Proposals, propose};
@@ -80,7 +81,7 @@ pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     for index in 0..slices.len() {
         let pending = step(&Moment { slices, index, layers: &layers }, &beam, rules, config);
         let (kept, dropped) = prune(&pending, &layers, rules, config);
-        beam = commit(&mut layers, &pending.chord_hypotheses, kept);
+        beam = commit(&mut layers, &pending.chord, kept);
         if config.record_snapshots {
             snapshots.push(beam.clone());
         }
@@ -125,16 +126,10 @@ struct Opened<'a> {
 impl Opened<'_> {
     /// Adds a hypothesis that opens a new segment with the opening's reading after a predecessor.
     fn open(&mut self, pending: &mut Pending, opening: &Opening, predecessor: &Predecessor) {
-        let chord_hypothesis = self.chord_hypothesis(pending, opening, predecessor);
-        let (parent, function) = (self.exits.keys[predecessor.exit].hypothesis, opening.reading.function);
+        let reads = self.chord_hypothesis(pending, opening, predecessor);
+        let (parent, unit) = (self.exits.keys[predecessor.exit].hypothesis, opening.reading.function);
         let score = predecessor.score.key + opening.fit.key;
-        pending.key_hypotheses.push(KeyHypothesis {
-            parent,
-            previous: parent,
-            chord_hypothesis,
-            function,
-            score,
-        });
+        pending.key.add(Hypothesis { parent, previous: parent, reads, unit, score });
     }
 
     /// Returns the chord hypothesis in which the opening's chord opens after the predecessor's chord hypothesis.
@@ -145,18 +140,13 @@ impl Opened<'_> {
         predecessor: &Predecessor,
     ) -> PendingChordHypothesisId {
         let chord_exit = &self.exits.chords[self.exits.keys[predecessor.exit].chord_exit];
-        let segment = self.proposals.chords[opening.chord_index].segment;
-        let slice = self.slice;
+        let unit = self.proposals.chords[opening.chord_index].segment;
+        let reads = self.slice;
         *self.chord_hypotheses.entry((chord_exit.chord_hypothesis, opening.chord_index)).or_insert_with(
             || {
                 let score = predecessor.score.chord + opening.fit.chord;
-                pending.add_chord_hypothesis(ChordHypothesis {
-                    parent: chord_exit.chord_hypothesis,
-                    previous: chord_exit.chord_hypothesis,
-                    slice,
-                    segment,
-                    score,
-                })
+                let parent = chord_exit.chord_hypothesis;
+                pending.chord.add(Hypothesis { parent, previous: parent, reads, unit, score })
             },
         )
     }
@@ -171,9 +161,9 @@ fn rank_final(
 ) -> Vec<(KeyHypothesisId, f32)> {
     let end = slices.len();
     let finish = |hypothesis: KeyHypothesisId| {
-        let (segment, key_hypothesis) = (layers.segment(hypothesis), layers.key_hypothesis(hypothesis));
-        let chord = layers.chord_hypothesis(key_hypothesis.chord_hypothesis).score
-            + chord_close(slices, &segment.heard, end, rules);
+        let (segment, key_hypothesis) = (layers.segment(hypothesis), layers.key.get(hypothesis));
+        let chord =
+            layers.chord.get(key_hypothesis.reads).score + chord_close(slices, &segment.heard, end, rules);
         let key = key_hypothesis.score + key_close(slices, &segment, end, rules);
         (hypothesis, chord + key)
     };

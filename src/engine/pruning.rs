@@ -84,11 +84,11 @@ pub fn prune(
     config: &Config,
 ) -> (Vec<PendingKeyHypothesis>, Vec<Pruned>) {
     let mut ranked: Vec<(f32, PendingKeyHypothesis)> =
-        pending.key_hypotheses.iter().map(|h| (pending.score(h), *h)).collect();
+        pending.key.hypotheses.iter().map(|h| (pending.score(h), *h)).collect();
     ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
     let merges = config.distinct_depth > 0 && !rules.key.distinguish.is_empty();
     let pruner = Pruner { pending, layers, rules, config, merges };
-    let mut kept = Kept::new(layers.key_hypotheses.len() as u32, config.beam_width);
+    let mut kept = Kept::new(layers.key.hypotheses.len() as u32, config.beam_width);
     let mut dropped = Vec::new();
     for (rank, (score, hypothesis)) in ranked.into_iter().enumerate() {
         match pruner.judge(&kept, &hypothesis) {
@@ -131,7 +131,7 @@ impl Pruner<'_> {
         if kept.key_hypotheses.len() == config.beam_width {
             return Err(PruneCause::Width);
         }
-        let is_new_chord_hypothesis = !kept.chord_hypotheses.contains(&hypothesis.chord_hypothesis);
+        let is_new_chord_hypothesis = !kept.chord_hypotheses.contains(&hypothesis.reads);
         if config.chord_hypothesis_width > 0
             && kept.chord_hypotheses.len() == config.chord_hypothesis_width
             && is_new_chord_hypothesis
@@ -155,7 +155,7 @@ impl Pruner<'_> {
         let depth = self.config.distinct_depth;
         let mut values = Vec::with_capacity(depth * key_rules.distinguish.len());
         key_rules.distinguish(&self.pending.segment(hypothesis), &mut values);
-        for earlier in layers.key_path_back(hypothesis.previous).take(depth - 1) {
+        for earlier in layers.key.path_back(hypothesis.previous).take(depth - 1) {
             key_rules.distinguish(&layers.segment(earlier), &mut values);
         }
         values
@@ -182,9 +182,10 @@ impl Kept {
 
     fn add(&mut self, hypothesis: PendingKeyHypothesis, signature: Option<Vec<u64>>) {
         if let Some(signature) = signature {
-            self.signatures.insert(signature, KeyHypothesisId(self.first + self.key_hypotheses.len() as u32));
+            self.signatures
+                .insert(signature, KeyHypothesisId::new(self.first + self.key_hypotheses.len() as u32));
         }
-        self.chord_hypotheses.insert(hypothesis.chord_hypothesis);
+        self.chord_hypotheses.insert(hypothesis.reads);
         self.key_hypotheses.push(hypothesis);
     }
 }

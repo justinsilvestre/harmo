@@ -70,7 +70,7 @@ impl Exits {
         let (mut chords, mut keys) = (Vec::new(), Vec::with_capacity(beam.len()));
         let mut positions: HashMap<ChordHypothesisId, usize> = HashMap::new();
         for &hypothesis in beam {
-            let chord_hypothesis = moment.layers.key_hypothesis(hypothesis).chord_hypothesis;
+            let chord_hypothesis = moment.layers.key.get(hypothesis).reads;
             let chord_exit = *positions.entry(chord_hypothesis).or_insert_with(|| {
                 chords.push(chord_exit(moment, chord_hypothesis, proposed, rules));
                 chords.len() - 1
@@ -147,8 +147,8 @@ fn chord_exit(
     proposed: &[ProposedChord],
     rules: &RuleSet,
 ) -> ChordExit {
-    let heard = moment.layers.chord_hypothesis(chord_hypothesis);
-    let close = chord_close(moment.slices, &heard.segment, moment.index, rules);
+    let heard = moment.layers.chord.get(chord_hypothesis);
+    let close = chord_close(moment.slices, &heard.unit, moment.index, rules);
     let transitions = chord_transitions(moment, chord_hypothesis, proposed, rules);
     ChordExit { chord_hypothesis, score: heard.score, close, transitions }
 }
@@ -162,7 +162,7 @@ fn chord_transitions(
     rules: &RuleSet,
 ) -> Vec<f32> {
     let previous = (chord_hypothesis != ChordHypothesisId::NONE)
-        .then(|| &moment.layers.chord_hypothesis(chord_hypothesis).segment);
+        .then(|| &moment.layers.chord.get(chord_hypothesis).unit);
     let (slice, history) = (moment.slice(), moment.chord_history(chord_hypothesis));
     let score = |next: &ProposedChord| {
         let context = ChordTransitionContext { previous, next: next.chord, slice, history };
@@ -187,7 +187,7 @@ fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rul
     KeyExit {
         hypothesis,
         chord_exit,
-        score: moment.layers.key_hypothesis(hypothesis).score,
+        score: moment.layers.key.get(hypothesis).score,
         segment: Some(segment),
         close: key_close(moment.slices, &segment, moment.index, rules),
         departures: rules.key.score_departures(&departure),

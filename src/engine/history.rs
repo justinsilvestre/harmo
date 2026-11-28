@@ -55,7 +55,7 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
         let held_by_parent = |parent: KeyHypothesisId| held[(parent.0 - previous[0].0) as usize];
         let next: Vec<usize> = beam
             .iter()
-            .map(|&hypothesis| held_by_parent(analysis.layers.key_hypothesis(hypothesis).parent))
+            .map(|&hypothesis| held_by_parent(analysis.layers.key.get(hypothesis).parent))
             .collect();
         let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
         for (position, &id) in next.iter().enumerate() {
@@ -111,5 +111,5 @@ pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -
 /// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.
 pub fn segment_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<KeySegment> {
     let layers = &analysis.layers;
-    layers.key_path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
+    layers.key.path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
 }

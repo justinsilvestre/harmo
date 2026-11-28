@@ -1,22 +1,23 @@
-//! Extends the hypotheses in the beam, and the chord hypotheses they interpret, by one more slice.
+//! Extends the hypotheses in the beam, and the chord hypotheses they read, by one more slice.
 
 use super::chord_hooks::ChordSliceContext;
+use super::hypothesis::Hypothesis;
 use super::key_contexts::KeySliceContext;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId, Reading};
+use super::model::{ChordHypothesisId, KeyHypothesisId, Reading};
 use super::moment::Moment;
-use super::pending::{Pending, PendingChordHypothesisId};
+use super::pending::{Pending, PendingChordHypothesisId, Proposed};
 use super::ruleset::RuleSet;
 use super::segment_extension::extend_segment;
 use crate::theory::chord::Chord;
 use std::collections::HashMap;
 
-/// Extends every hypothesis in the beam by the moment's slice, and with it the chord hypothesis it interprets.
-/// Each chord hypothesis is extended once, however many hypotheses interpret it.
+/// Extends every hypothesis in the beam by the moment's slice, and with it the chord hypothesis it reads.
+/// Each chord hypothesis is extended once, however many hypotheses read it.
 pub fn continuations(moment: &Moment, beam: &[KeyHypothesisId], rules: &RuleSet) -> Pending {
     let mut extension = Extension {
         moment,
         rules,
-        pending: Pending { chord_hypotheses: Vec::new(), key_hypotheses: Vec::with_capacity(beam.len()) },
+        pending: Pending { chord: Proposed::with_capacity(0), key: Proposed::with_capacity(beam.len()) },
         extended: HashMap::new(),
         chord_fits: HashMap::new(),
         key_fits: HashMap::new(),
@@ -40,20 +41,14 @@ struct Extension<'a> {
 
 impl Extension<'_> {
     fn extend(&mut self, parent: KeyHypothesisId) {
-        let hypothesis = *self.moment.layers.key_hypothesis(parent);
-        let chord = self.moment.layers.chord_hypothesis(hypothesis.chord_hypothesis).segment.chord;
+        let hypothesis = *self.moment.layers.key.get(parent);
+        let chord = self.moment.layers.chord.get(hypothesis.reads).unit.chord;
         let chord_fit = self.chord_fit(chord);
-        let chord_hypothesis = self.extend_chord_hypothesis(hypothesis.chord_hypothesis, chord_fit);
-        let key_fit = self.key_fit(Reading { chord, function: hypothesis.function });
-        let (previous, function) = (hypothesis.previous, hypothesis.function);
+        let reads = self.extend_chord_hypothesis(hypothesis.reads, chord_fit);
+        let key_fit = self.key_fit(Reading { chord, function: hypothesis.unit });
+        let (previous, unit) = (hypothesis.previous, hypothesis.unit);
         let score = hypothesis.score + key_fit;
-        self.pending.key_hypotheses.push(KeyHypothesis {
-            parent,
-            previous,
-            chord_hypothesis,
-            function,
-            score,
-        });
+        self.pending.key.add(Hypothesis { parent, previous, reads, unit, score });
     }
 
     /// Returns the extension of a chord hypothesis by the slice, given its chord's fit to the slice.
@@ -61,17 +56,15 @@ impl Extension<'_> {
         if let Some(&extended) = self.extended.get(&id) {
             return extended;
         }
-        let chord_hypothesis = self.moment.layers.chord_hypothesis(id);
-        let segment = extend_segment(chord_hypothesis.segment, self.moment.slice(), self.rules);
-        let slice = self.moment.index as u32;
-        let next = ChordHypothesis {
+        let chord_hypothesis = self.moment.layers.chord.get(id);
+        let next = Hypothesis {
             parent: id,
             previous: chord_hypothesis.previous,
-            slice,
-            segment,
+            reads: self.moment.index as u32,
+            unit: extend_segment(chord_hypothesis.unit, self.moment.slice(), self.rules),
             score: chord_hypothesis.score + chord_fit,
         };
-        let extended = self.pending.add_chord_hypothesis(next);
+        let extended = self.pending.chord.add(next);
         self.extended.insert(id, extended);
         extended
     }

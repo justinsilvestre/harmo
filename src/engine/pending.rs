@@ -1,82 +1,135 @@
 //! What the search proposes at one slice before pruning,
 //! and how the hypotheses that pruning keeps are stored.
 
-use super::layers::Layers;
-use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothesisId, KeySegment};
+use super::hypothesis::{Hypothesis, HypothesisId};
+use super::layers::{Layers, Store};
+use super::model::{ChordSegment, Function, KeyHypothesisId, KeySegment};
+use std::marker::PhantomData;
 
-/// The index of a chord hypothesis among those proposed at one slice, before they are stored.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct PendingChordHypothesisId(pub u32);
+/// The index of a hypothesis of the layer whose unit is `U`
+/// among those proposed at one slice, before they are stored.
+pub struct PendingId<U>(pub u32, PhantomData<fn() -> U>);
+
+impl<U> PendingId<U> {
+    pub const fn new(index: u32) -> PendingId<U> {
+        PendingId(index, PhantomData)
+    }
+}
+
+// These are written out because deriving them would require them of `U` as well.
+impl<U> Clone for PendingId<U> {
+    fn clone(&self) -> PendingId<U> {
+        *self
+    }
+}
+
+impl<U> Copy for PendingId<U> {}
+
+impl<U> PartialEq for PendingId<U> {
+    fn eq(&self, other: &PendingId<U>) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<U> Eq for PendingId<U> {}
+
+impl<U> std::hash::Hash for PendingId<U> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<U> std::fmt::Debug for PendingId<U> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "PendingId({})", self.0)
+    }
+}
+
+/// The index of a chord hypothesis among those proposed at one slice.
+pub type PendingChordHypothesisId = PendingId<ChordSegment>;
 
 /// A hypothesis proposed at one slice, which reads one of the chord hypotheses proposed with it.
-pub type PendingKeyHypothesis = KeyHypothesis<PendingChordHypothesisId>;
+pub type PendingKeyHypothesis = Hypothesis<Function, PendingChordHypothesisId>;
 
-/// What the search proposes at one slice, before pruning: hypotheses,
-/// each extending or opening after one in the beam,
-/// and the new chord hypotheses that they interpret.
-#[derive(Default)]
+/// The hypotheses of one layer proposed at one slice, each reading an `R`.
+pub struct Proposed<U, R> {
+    pub hypotheses: Vec<Hypothesis<U, R>>,
+}
+
+impl<U, R> Proposed<U, R> {
+    pub fn with_capacity(capacity: usize) -> Proposed<U, R> {
+        Proposed { hypotheses: Vec::with_capacity(capacity) }
+    }
+
+    pub fn get(&self, id: PendingId<U>) -> &Hypothesis<U, R> {
+        &self.hypotheses[id.0 as usize]
+    }
+
+    pub fn add(&mut self, hypothesis: Hypothesis<U, R>) -> PendingId<U> {
+        self.hypotheses.push(hypothesis);
+        PendingId::new(self.hypotheses.len() as u32 - 1)
+    }
+}
+
+/// What the search proposes at one slice, before pruning, in every layer:
+/// hypotheses, each extending or opening after one in the beam,
+/// and the new chord hypotheses that they read.
 pub struct Pending {
-    pub chord_hypotheses: Vec<ChordHypothesis>,
-    pub key_hypotheses: Vec<PendingKeyHypothesis>,
+    pub chord: Proposed<ChordSegment, u32>,
+    pub key: Proposed<Function, PendingChordHypothesisId>,
 }
 
 impl Pending {
-    pub fn add_chord_hypothesis(&mut self, chord_hypothesis: ChordHypothesis) -> PendingChordHypothesisId {
-        self.chord_hypotheses.push(chord_hypothesis);
-        PendingChordHypothesisId(self.chord_hypotheses.len() as u32 - 1)
-    }
-
-    pub fn chord_hypothesis(&self, id: PendingChordHypothesisId) -> &ChordHypothesis {
-        &self.chord_hypotheses[id.0 as usize]
-    }
-
     /// Returns the score of the complete interpretation that a proposed hypothesis ends:
     /// its chord hypothesis's score plus its own.
     pub fn score(&self, hypothesis: &PendingKeyHypothesis) -> f32 {
-        self.chord_hypothesis(hypothesis.chord_hypothesis).score + hypothesis.score
+        self.chord.get(hypothesis.reads).score + hypothesis.score
     }
 
     /// Returns the segment that a proposed hypothesis ends in, as the key layer reads it.
     pub fn segment(&self, hypothesis: &PendingKeyHypothesis) -> KeySegment {
-        KeySegment {
-            heard: self.chord_hypothesis(hypothesis.chord_hypothesis).segment,
-            function: hypothesis.function,
-        }
+        KeySegment { heard: self.chord.get(hypothesis.reads).unit, function: hypothesis.unit }
     }
 }
 
-/// Adds the kept hypotheses to the layers, with the pending chord hypotheses that they interpret,
-/// in the order in which the hypotheses first interpret them. Returns the new beam.
+/// Adds the kept hypotheses to the layers, with the pending chord hypotheses that they read,
+/// in the order in which the hypotheses first read them. Returns the new beam.
 pub fn commit(
     layers: &mut Layers,
-    chord_hypotheses: &[ChordHypothesis],
+    chord: &Proposed<ChordSegment, u32>,
     kept: Vec<PendingKeyHypothesis>,
 ) -> Vec<KeyHypothesisId> {
-    let first = layers.key_hypotheses.len() as u32;
-    let mut stored = vec![ChordHypothesisId::NONE; chord_hypotheses.len()];
+    let first = layers.key.len() as u32;
+    let mut stored = vec![HypothesisId::NONE; chord.hypotheses.len()];
     for hypothesis in kept {
-        let pending = hypothesis.chord_hypothesis.0 as usize;
-        if stored[pending] == ChordHypothesisId::NONE {
-            stored[pending] = ChordHypothesisId(layers.chord_hypotheses.len() as u32);
-            layers.chord_hypotheses.push(chord_hypotheses[pending]);
-        }
-        let (parent, previous, function, score) =
-            (hypothesis.parent, hypothesis.previous, hypothesis.function, hypothesis.score);
-        layers.key_hypotheses.push(KeyHypothesis {
-            parent,
-            previous,
-            chord_hypothesis: stored[pending],
-            function,
-            score,
-        });
+        let reads = store_once(&mut layers.chord, chord, &mut stored, hypothesis.reads, |slice| slice);
+        layers.key.push(hypothesis.reading(reads));
     }
-    (first..layers.key_hypotheses.len() as u32).map(KeyHypothesisId).collect()
+    (first..layers.key.len() as u32).map(HypothesisId::new).collect()
+}
+
+/// Stores a proposed hypothesis of a lower layer the first time a kept hypothesis reads it,
+/// and returns its index in the store. `stored` holds the index of each proposed hypothesis stored so far,
+/// and `stored_reads` gives the stored index of what a proposed hypothesis reads.
+fn store_once<U: Copy, R: Copy, S>(
+    store: &mut Store<U, S>,
+    proposed: &Proposed<U, R>,
+    stored: &mut [HypothesisId<U>],
+    id: PendingId<U>,
+    stored_reads: impl FnOnce(R) -> S,
+) -> HypothesisId<U> {
+    let index = id.0 as usize;
+    if stored[index] == HypothesisId::NONE {
+        let hypothesis = proposed.hypotheses[index];
+        stored[index] = store.push(hypothesis.reading(stored_reads(hypothesis.reads)));
+    }
+    stored[index]
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::Function;
+    use crate::engine::model::{ChordHypothesis, Function};
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
@@ -85,9 +138,9 @@ mod tests {
     /// Three pending chord hypotheses, of C, F and G major, opening on slice 1 after nothing.
     fn chord_hypotheses() -> Vec<ChordHypothesis> {
         let chord_hypothesis = |root: &str| {
-            let segment = chord_segment(Chord::new(tpc_from_name(root).unwrap(), Quality::Major));
-            let none = ChordHypothesisId::NONE;
-            ChordHypothesis { parent: none, previous: none, slice: 1, segment, score: 0.0 }
+            let unit = chord_segment(Chord::new(tpc_from_name(root).unwrap(), Quality::Major));
+            let none = HypothesisId::NONE;
+            Hypothesis { parent: none, previous: none, reads: 1, unit, score: 0.0 }
         };
         vec![chord_hypothesis("C"), chord_hypothesis("F"), chord_hypothesis("G")]
     }
@@ -97,23 +150,24 @@ mod tests {
     /// and the stored chord hypothesis of each stored hypothesis.
     fn committed(readers: &[u32]) -> (Vec<String>, Vec<u32>) {
         let function = Function::diatonic(Key::new(tpc_from_name("C").unwrap(), Mode::Major));
-        let mut layers =
-            Layers { chord_hypotheses: chord_hypotheses()[..1].to_vec(), key_hypotheses: vec![] };
-        let pending = |&chord_hypothesis: &u32| KeyHypothesis {
-            parent: KeyHypothesisId::NONE,
-            previous: KeyHypothesisId::NONE,
-            chord_hypothesis: PendingChordHypothesisId(chord_hypothesis),
-            function,
+        let mut layers = Layers::default();
+        layers.chord.push(chord_hypotheses()[0]);
+        let pending = |&chord_hypothesis: &u32| Hypothesis {
+            parent: HypothesisId::NONE,
+            previous: HypothesisId::NONE,
+            reads: PendingId::new(chord_hypothesis),
+            unit: function,
             score: 0.0,
         };
-        commit(&mut layers, &chord_hypotheses(), readers.iter().map(pending).collect());
+        let proposed = Proposed { hypotheses: chord_hypotheses() };
+        commit(&mut layers, &proposed, readers.iter().map(pending).collect());
         let roots =
-            layers.chord_hypotheses.iter().map(|h| crate::pitch::tpc_name(h.segment.chord.root)).collect();
-        (roots, layers.key_hypotheses.iter().map(|h| h.chord_hypothesis.0).collect())
+            layers.chord.hypotheses.iter().map(|h| crate::pitch::tpc_name(h.unit.chord.root)).collect();
+        (roots, layers.key.hypotheses.iter().map(|h| h.reads.0).collect())
     }
 
     #[test]
-    fn chord_hypotheses_that_no_kept_hypothesis_interprets_are_not_stored() {
+    fn chord_hypotheses_that_no_kept_hypothesis_reads_are_not_stored() {
         assert_eq!(committed(&[1]), (vec!["C".into(), "F".into()], vec![1]));
     }
 

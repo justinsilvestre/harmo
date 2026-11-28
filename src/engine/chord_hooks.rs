@@ -97,7 +97,7 @@ impl<'a> ChordHistory<'a> {
 
     pub fn segments(self) -> impl Iterator<Item = ChordSegment> + 'a {
         let layers = self.layers;
-        layers.chord_path_back(self.last).map(|id| layers.chord_hypothesis(id).segment)
+        layers.chord.path_back(self.last).map(|id| layers.chord.get(id).unit)
     }
 
     /// A history with no segments before it.
@@ -123,7 +123,7 @@ mod tests {
             function: Function::diatonic(key),
         };
         let path = path_of(&["C", "F", "G"].map(|root| key_segment(reading(root))));
-        let history = ChordHistory::new(&path, &[], ChordHypothesisId(2));
+        let history = ChordHistory::new(&path, &[], ChordHypothesisId::new(2));
         let starts: Vec<u32> = history.segments().map(|s| s.start).collect();
         assert_eq!(starts, [2, 1, 0]);
     }

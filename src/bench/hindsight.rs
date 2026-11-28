@@ -12,12 +12,12 @@ use crate::engine::search::Analysis;
 /// A hypothesis is added after its parent, so one sweep from the last hypothesis
 /// to the first carries every final score back to all of its ancestors.
 pub fn descendant_bests(analysis: &Analysis) -> Vec<f32> {
-    let mut bests = vec![f32::NEG_INFINITY; analysis.layers.key_hypotheses.len()];
+    let mut bests = vec![f32::NEG_INFINITY; analysis.layers.key.hypotheses.len()];
     for &(hypothesis, score) in &analysis.ranking {
         bests[hypothesis.0 as usize] = bests[hypothesis.0 as usize].max(score);
     }
-    for index in (0..analysis.layers.key_hypotheses.len()).rev() {
-        let parent = analysis.layers.key_hypotheses[index].parent;
+    for index in (0..analysis.layers.key.hypotheses.len()).rev() {
+        let parent = analysis.layers.key.hypotheses[index].parent;
         if parent != KeyHypothesisId::NONE {
             debug_assert!((parent.0 as usize) < index, "a parent precedes its children");
             bests[parent.0 as usize] = bests[parent.0 as usize].max(bests[index]);
@@ -61,7 +61,7 @@ mod tests {
     #[test]
     fn every_parent_precedes_its_children() {
         let analysis = analysis();
-        let hypotheses = &analysis.layers.key_hypotheses;
+        let hypotheses = &analysis.layers.key.hypotheses;
         let precedes =
             |i: usize| hypotheses[i].parent == KeyHypothesisId::NONE || (hypotheses[i].parent.0 as usize) < i;
         assert!((0..hypotheses.len()).all(precedes));

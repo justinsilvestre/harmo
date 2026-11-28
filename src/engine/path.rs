@@ -27,7 +27,7 @@ pub fn segments_of(
 ) -> Vec<SegmentReading> {
     let layers = &analysis.layers;
     let mut segments: Vec<SegmentReading> =
-        layers.key_path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
+        layers.key.path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
     segments.reverse();
     segments
 }
@@ -35,7 +35,7 @@ pub fn segments_of(
 /// Returns the segment whose last hypothesis is `last`.
 fn segment_reading(layers: &Layers, slices: &[Slice], last: KeyHypothesisId) -> SegmentReading {
     let segment = layers.segment(last);
-    let (first, end) = (segment.heard.start as usize, layers.chord_hypothesis_of(last).slice as usize + 1);
+    let (first, end) = (segment.heard.start as usize, layers.chord_hypothesis_of(last).reads as usize + 1);
     let last_slice = &slices[end - 1];
     SegmentReading {
         slices: (first, end),

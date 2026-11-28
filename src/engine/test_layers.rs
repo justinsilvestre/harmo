@@ -2,7 +2,7 @@
 
 use super::bass::Bass;
 use super::key_contexts::KeyHistory;
-use super::layers::Layers;
+use super::layers::{Layers, Store};
 use super::model::{
     ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesis, KeyHypothesisId, KeySegment,
     Reading,
@@ -26,15 +26,15 @@ pub fn key_segment(reading: Reading) -> KeySegment {
 /// Holds chord segments in a chord layer: segment i becomes the last segment of chord hypothesis i,
 /// which ends on slice i and opened after chord hypothesis `previous[i]`,
 /// or after nothing if that is `ChordHypothesisId::NONE`.
-pub fn chord_layer_of(segments: &[ChordSegment], previous: &[ChordHypothesisId]) -> Vec<ChordHypothesis> {
+pub fn chord_layer_of(segments: &[ChordSegment], previous: &[ChordHypothesisId]) -> Store<ChordSegment, u32> {
     let chord_hypothesis = |i: usize| ChordHypothesis {
         parent: previous[i],
         previous: previous[i],
-        slice: i as u32,
-        segment: segments[i],
+        reads: i as u32,
+        unit: segments[i],
         score: 0.0,
     };
-    (0..segments.len()).map(chord_hypothesis).collect()
+    Store { hypotheses: (0..segments.len()).map(chord_hypothesis).collect() }
 }
 
 /// Builds a key layer over a chord layer: key hypothesis i reads chord hypothesis `read[i]`
@@ -45,15 +45,15 @@ pub fn key_layer_of(
     read: &[ChordHypothesisId],
     functions: &[Function],
     previous: &[KeyHypothesisId],
-) -> Vec<KeyHypothesis> {
+) -> Store<Function, ChordHypothesisId> {
     let hypothesis = |i: usize| KeyHypothesis {
         parent: previous[i],
         previous: previous[i],
-        chord_hypothesis: read[i],
-        function: functions[i],
+        reads: read[i],
+        unit: functions[i],
         score: 0.0,
     };
-    (0..read.len()).map(hypothesis).collect()
+    Store { hypotheses: (0..read.len()).map(hypothesis).collect() }
 }
 
 /// Holds segments in layers, one chord hypothesis for each key hypothesis:
@@ -61,18 +61,12 @@ pub fn key_layer_of(
 /// Hypothesis i opened after hypothesis `previous[i]`, or after nothing if that is `KeyHypothesisId::NONE`,
 /// and its chord hypothesis after the chord hypothesis with the same index.
 pub fn layers_of(segments: &[KeySegment], previous: &[KeyHypothesisId]) -> Layers {
-    let chord_index = |id: &KeyHypothesisId| match *id {
-        KeyHypothesisId::NONE => ChordHypothesisId::NONE,
-        KeyHypothesisId(i) => ChordHypothesisId(i),
-    };
+    let chord_index = |id: &KeyHypothesisId| ChordHypothesisId::new(id.0);
     let chord_previous: Vec<ChordHypothesisId> = previous.iter().map(chord_index).collect();
     let heard: Vec<ChordSegment> = segments.iter().map(|s| s.heard).collect();
-    let read: Vec<ChordHypothesisId> = (0..segments.len() as u32).map(ChordHypothesisId).collect();
+    let read: Vec<ChordHypothesisId> = (0..segments.len() as u32).map(ChordHypothesisId::new).collect();
     let functions: Vec<Function> = segments.iter().map(|s| s.function).collect();
-    Layers {
-        chord_hypotheses: chord_layer_of(&heard, &chord_previous),
-        key_hypotheses: key_layer_of(&read, &functions, previous),
-    }
+    Layers { chord: chord_layer_of(&heard, &chord_previous), key: key_layer_of(&read, &functions, previous) }
 }
 
 /// Holds segments in layers as the path of one hypothesis,
@@ -83,7 +77,7 @@ pub fn path_of(segments: &[KeySegment]) -> Layers {
         ..*s
     };
     let previous: Vec<KeyHypothesisId> = (0..segments.len() as u32)
-        .map(|i| i.checked_sub(1).map_or(KeyHypothesisId::NONE, KeyHypothesisId))
+        .map(|i| i.checked_sub(1).map_or(KeyHypothesisId::NONE, KeyHypothesisId::new))
         .collect();
     layers_of(&segments.iter().enumerate().map(opened).collect::<Vec<_>>(), &previous)
 }
@@ -116,5 +110,5 @@ pub fn i_v_i() -> Vec<Slice> {
 
 /// Returns the history that a transition after the last segment of a path reads.
 pub fn history_after<'a>(path: &'a Layers, slices: &'a [Slice]) -> KeyHistory<'a> {
-    KeyHistory { layers: path, slices, last: KeyHypothesisId(path.key_hypotheses.len() as u32 - 1) }
+    KeyHistory { layers: path, slices, last: KeyHypothesisId::new(path.key.len() as u32 - 1) }
 }

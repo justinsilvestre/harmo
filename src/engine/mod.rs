@@ -6,6 +6,7 @@ pub mod chord_rules;
 pub mod continuations;
 pub mod exits;
 pub mod history;
+pub mod hypothesis;
 pub mod key_contexts;
 pub mod key_hooks;
 pub mod key_rules;

@@ -46,7 +46,7 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
     let rules = rules(rival_hook);
     let mut layers = layers_of(&readings.map(key_segment), &[KeyHypothesisId::NONE; 2]);
     for (i, score) in scores.into_iter().enumerate() {
-        (layers.key_hypotheses[i].score, layers.chord_hypotheses[i].slice) = (score, 2);
+        (layers.key.hypotheses[i].score, layers.chord.hypotheses[i].reads) = (score, 2);
     }
     let slices = vec![slice_of(0.0, &[]); 4];
     let moment = Moment { slices: &slices, index: 3, layers: &layers };
@@ -56,7 +56,7 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
         fit: 0.0,
         segment: chord_segment(opening.reading.chord),
     }];
-    let exits = Exits::of(&moment, &[KeyHypothesisId(0), KeyHypothesisId(1)], &proposed, &rules);
+    let exits = Exits::of(&moment, &[KeyHypothesisId::new(0), KeyHypothesisId::new(1)], &proposed, &rules);
     let found = exits.predecessors(&opening, &moment, &rules);
     found.iter().map(|p| exits.keys[p.exit].hypothesis.0).collect()
 }
@@ -92,12 +92,12 @@ fn shared_chord_exits() -> Vec<usize> {
     let in_g = Function::diatonic(Key::new(tpc_from_name("G").unwrap(), Mode::Major));
     let none = KeyHypothesisId::NONE;
     let layers = Layers {
-        chord_hypotheses: chord_layer_of(&[chord_segment(g_major)], &[ChordHypothesisId::NONE]),
-        key_hypotheses: key_layer_of(&[ChordHypothesisId(0); 2], &[reading("G").function, in_g], &[none; 2]),
+        chord: chord_layer_of(&[chord_segment(g_major)], &[ChordHypothesisId::NONE]),
+        key: key_layer_of(&[ChordHypothesisId::new(0); 2], &[reading("G").function, in_g], &[none; 2]),
     };
     let slices = vec![slice_of(0.0, &[]); 2];
     let moment = Moment { slices: &slices, index: 1, layers: &layers };
-    let exits = Exits::of(&moment, &[KeyHypothesisId(0), KeyHypothesisId(1)], &[], &rules(false));
+    let exits = Exits::of(&moment, &[KeyHypothesisId::new(0), KeyHypothesisId::new(1)], &[], &rules(false));
     exits.keys.iter().map(|exit| exit.chord_exit).collect()
 }
 

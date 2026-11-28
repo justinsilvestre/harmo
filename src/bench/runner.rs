@@ -191,8 +191,8 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let (layers, hindsight, timing) = layered_frames(&analysis, piece, top.len(), config);
     let timing = Timing {
         search,
-        hypotheses: analysis.layers.key_hypotheses.len(),
-        chord_hypotheses: analysis.layers.chord_hypotheses.len(),
+        hypotheses: analysis.layers.key.hypotheses.len(),
+        chord_hypotheses: analysis.layers.chord.hypotheses.len(),
         ..timing
     };
     let layered = (layers.as_slice(), hindsight.as_deref());

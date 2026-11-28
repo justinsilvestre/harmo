@@ -2,6 +2,7 @@
 //! and the key layer's segments and hypotheses.
 
 use super::bass::Bass;
+use super::hypothesis::{Hypothesis, HypothesisId};
 use crate::pitch::Tpc;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -9,22 +10,23 @@ use crate::theory::label::Label;
 use serde::Serialize;
 
 /// The index of a chord hypothesis in the chord layer's store.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct ChordHypothesisId(pub u32);
+pub type ChordHypothesisId = HypothesisId<ChordSegment>;
 
-impl ChordHypothesisId {
-    /// Marks the absence of a chord hypothesis.
-    pub const NONE: ChordHypothesisId = ChordHypothesisId(u32::MAX);
-}
+/// A chord hypothesis: the chord layer's reading of every slice up to and including the slice it reads,
+/// ending in a chord segment.
+pub type ChordHypothesis = Hypothesis<ChordSegment, u32>;
 
 /// The index of a key hypothesis in the key layer's store.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct KeyHypothesisId(pub u32);
+pub type KeyHypothesisId = HypothesisId<Function>;
 
-impl KeyHypothesisId {
-    /// Marks the absence of a key hypothesis.
-    pub const NONE: KeyHypothesisId = KeyHypothesisId(u32::MAX);
-}
+/// A key hypothesis, or complete interpretation, which reads the latest segment of one chord hypothesis
+/// in a key. Its unit is the function of that segment's chord in the key.
+/// Through its parents it reads every slice up to its chord hypothesis's last slice.
+///
+/// `R` is the type of the index of its chord hypothesis.
+/// The search proposes hypotheses that read chord hypotheses not yet stored,
+/// and indexes those with a type of its own.
+pub type KeyHypothesis<R = ChordHypothesisId> = Hypothesis<Function, R>;
 
 /// How a chord relates to the key it is read in.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
@@ -84,41 +86,6 @@ impl ChordSegment {
     pub fn has_heard_member(&self, index: usize) -> bool {
         self.members_heard & (1 << index) != 0
     }
-}
-
-/// A chord hypothesis: the chord layer's reading of every slice up to and including `slice`.
-#[derive(Clone, Copy, Debug)]
-pub struct ChordHypothesis {
-    /// The chord hypothesis up to the slice before, or `ChordHypothesisId::NONE`.
-    pub parent: ChordHypothesisId,
-    /// The last chord hypothesis of the preceding segment, or `ChordHypothesisId::NONE`.
-    pub previous: ChordHypothesisId,
-    pub slice: u32,
-    /// The segment that the chord hypothesis ends in.
-    pub segment: ChordSegment,
-    /// The sum of the chord rules' weighted scores along the chord hypothesis.
-    pub score: f32,
-}
-
-/// A key hypothesis, or complete interpretation,
-/// which reads the latest segment of one chord hypothesis in a key.
-/// Through its parents it reads every slice up to its chord hypothesis's last slice.
-///
-/// `H` is the type of the index of its chord hypothesis.
-/// The search proposes hypotheses that read chord hypotheses not yet stored,
-/// and indexes those with a type of its own.
-#[derive(Clone, Copy, Debug)]
-pub struct KeyHypothesis<H = ChordHypothesisId> {
-    /// The hypothesis up to the slice before, or `KeyHypothesisId::NONE`.
-    pub parent: KeyHypothesisId,
-    /// The last hypothesis of the preceding segment, or `KeyHypothesisId::NONE`.
-    pub previous: KeyHypothesisId,
-    /// The chord hypothesis that this key hypothesis interprets.
-    pub chord_hypothesis: H,
-    /// The function of the chord hypothesis's latest chord, in the key the hypothesis hears it in.
-    pub function: Function,
-    /// The sum of the key layer's weighted rule scores along the hypothesis.
-    pub score: f32,
 }
 
 /// A segment as the key layer reads it: a chord segment that the chord layer heard,

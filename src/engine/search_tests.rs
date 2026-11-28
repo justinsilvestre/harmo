@@ -1,7 +1,9 @@
 use super::*;
 use crate::engine::key_contexts::{Rival, RivalContext};
 use crate::engine::key_hooks::KeyHook;
-use crate::engine::model::{ChordSegment, Function, KeyHypothesisId, Reading};
+use crate::engine::model::{
+    ChordHypothesis, ChordSegment, Function, KeyHypothesis, KeyHypothesisId, Reading,
+};
 use crate::engine::pending::PendingKeyHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{i_v_i, key_segment, layers_of, slice_of};
@@ -33,7 +35,7 @@ fn key_scoring_rules() -> Vec<(&'static str, f32)> {
 #[test]
 fn without_key_scores_a_key_hypothesis_scores_nothing_of_its_own() {
     let layers = analyze_i_v_i(&key_scoring_rules()).layers;
-    assert!(layers.key_hypotheses.iter().all(|h| h.score == 0.0));
+    assert!(layers.key.hypotheses.iter().all(|h| h.score == 0.0));
 }
 
 /// Returns the chord hypothesis that a key hypothesis reads, or `ChordHypothesisId::NONE` for none.
@@ -41,7 +43,7 @@ fn chord_hypothesis_read(layers: &Layers, hypothesis: KeyHypothesisId) -> ChordH
     if hypothesis == KeyHypothesisId::NONE {
         return ChordHypothesisId::NONE;
     }
-    layers.key_hypothesis(hypothesis).chord_hypothesis
+    layers.key.get(hypothesis).reads
 }
 
 /// Reports whether, for every key hypothesis, the chord hypothesis it reads links to the chord hypothesis
@@ -51,10 +53,9 @@ fn links_agree(
     chord_link: fn(&ChordHypothesis) -> ChordHypothesisId,
 ) -> bool {
     let layers = analyze_i_v_i(&[]).layers;
-    let agrees = |h: &KeyHypothesis| {
-        chord_link(layers.chord_hypothesis(h.chord_hypothesis)) == chord_hypothesis_read(&layers, link(h))
-    };
-    layers.key_hypotheses.iter().all(agrees)
+    let agrees =
+        |h: &KeyHypothesis| chord_link(layers.chord.get(h.reads)) == chord_hypothesis_read(&layers, link(h));
+    layers.key.hypotheses.iter().all(agrees)
 }
 
 #[test]
@@ -72,10 +73,9 @@ fn the_chord_path_of_a_final_hypothesis_holds_the_chords_of_its_key_path() {
     let analysis = analyze_i_v_i(&[]);
     let layers = &analysis.layers;
     let chords_of = |hypothesis: KeyHypothesisId| {
-        let along_keys = layers.key_path_back(hypothesis).map(|h| layers.chord_hypothesis_of(h).segment);
-        let chord_hypothesis = layers.key_hypothesis(hypothesis).chord_hypothesis;
-        let along_chords =
-            layers.chord_path_back(chord_hypothesis).map(|c| layers.chord_hypothesis(c).segment);
+        let along_keys = layers.key.path_back(hypothesis).map(|h| layers.chord_hypothesis_of(h).unit);
+        let chord_hypothesis = layers.key.get(hypothesis).reads;
+        let along_chords = layers.chord.path_back(chord_hypothesis).map(|c| layers.chord.get(c).unit);
         let starts =
             |segments: Vec<ChordSegment>| segments.iter().map(|s| (s.start, s.chord)).collect::<Vec<_>>();
         starts(along_keys.collect()) == starts(along_chords.collect())
@@ -109,14 +109,14 @@ fn rules_with(rival_hook: bool) -> RuleSet {
 fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
     let previous = vec![KeyHypothesisId::NONE; readings.len()];
     let mut layers = layers_of(&readings.iter().map(|&r| key_segment(r)).collect::<Vec<_>>(), &previous);
-    for (i, hypothesis) in layers.key_hypotheses.iter_mut().enumerate() {
+    for (i, hypothesis) in layers.key.hypotheses.iter_mut().enumerate() {
         hypothesis.score = -(i as f32);
     }
     let slices = [
         slice_of(0.0, &[("G", 43), ("B", 62), ("D", 67)]),
         slice_of(1.0, &[("C", 48), ("E", 64), ("G", 67)]),
     ];
-    let beam: Vec<KeyHypothesisId> = (0..readings.len() as u32).map(KeyHypothesisId).collect();
+    let beam: Vec<KeyHypothesisId> = (0..readings.len() as u32).map(KeyHypothesisId::new).collect();
     step(&Moment { slices: &slices, index: 1, layers: &layers }, &beam, rules, &Config::default())
 }
 
@@ -124,17 +124,15 @@ fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
 fn c_major_chord_hypotheses(pending: &Pending, parent: KeyHypothesisId) -> Vec<PendingChordHypothesisId> {
     let c_major = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
     let opens_c = |h: &&PendingKeyHypothesis| {
-        h.parent == parent
-            && h.previous == parent
-            && pending.chord_hypothesis(h.chord_hypothesis).segment.chord == c_major
+        h.parent == parent && h.previous == parent && pending.chord.get(h.reads).unit.chord == c_major
     };
-    pending.key_hypotheses.iter().filter(opens_c).map(|h| h.chord_hypothesis).collect()
+    pending.key.hypotheses.iter().filter(opens_c).map(|h| h.reads).collect()
 }
 
 #[test]
 fn readings_of_one_chord_after_one_chord_hypothesis_share_a_chord_hypothesis() {
     let pending = step_after(&[in_c("G", Quality::Major)], &rules_with(false));
-    let chord_hypotheses = c_major_chord_hypotheses(&pending, KeyHypothesisId(0));
+    let chord_hypotheses = c_major_chord_hypotheses(&pending, KeyHypothesisId::new(0));
     assert!(chord_hypotheses.len() > 1 && chord_hypotheses.iter().all(|&h| h == chord_hypotheses[0]));
 }
 
@@ -143,8 +141,8 @@ fn a_new_segment_after_a_rival_has_a_chord_hypothesis_of_its_own() {
     let rules = rules_with(true);
     let pending = step_after(&[in_c("G", Quality::Major), in_c("G", Quality::DominantSeventh)], &rules);
     let (after_best, after_rival) = (
-        c_major_chord_hypotheses(&pending, KeyHypothesisId(0)),
-        c_major_chord_hypotheses(&pending, KeyHypothesisId(1)),
+        c_major_chord_hypotheses(&pending, KeyHypothesisId::new(0)),
+        c_major_chord_hypotheses(&pending, KeyHypothesisId::new(1)),
     );
     assert!(!after_rival.is_empty() && after_rival.iter().all(|h| !after_best.contains(h)));
 }
