@@ -42,7 +42,7 @@ pub fn find_pruning(
     let (slice, cause) = last?;
     let after = slices[slice].start - slices[at].start;
     Some(match cause {
-        PruneCause::Width => Absence::Width { after },
+        PruneCause::Width | PruneCause::HearingWidth | PruneCause::KeysPerHearing => Absence::Width { after },
         PruneCause::Merged { .. } => Absence::Merged { after },
     })
 }

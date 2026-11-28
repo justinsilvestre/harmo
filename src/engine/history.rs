@@ -88,7 +88,7 @@ fn departure(
     let best = beam.first().map_or(pruned.node.score, |&b| analysis.arena[b as usize].score);
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
-        PruneCause::Width => None,
+        PruneCause::Width | PruneCause::HearingWidth | PruneCause::KeysPerHearing => None,
     };
     Some(Departure {
         last_rank,

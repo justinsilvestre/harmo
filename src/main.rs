@@ -26,7 +26,8 @@ const USAGE: &str = "usage:
   harmo inspect <piece-id> [--analyst NAME]
   harmo labelfit [--set NAME]... [--piece TEXT [--measures A-B]] [--min-gain FRAMES] [--top N] [--json]
   harmo rules
-common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
+common options: --data DIR (default: data) --beam N --hearings N --keys-per-hearing N
+  --candidates N --chord-candidates N --key-candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
   --key-offer-margin X --chord-offer-margin X --numeral-offer-margin X (the margins of readings
     offered one layer at a time; each defaults to --offer-margin)
@@ -263,7 +264,11 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
     Ok(EvalConfig {
         engine: Config {
             beam_width: number("beam", defaults.engine.beam_width as f64)? as usize,
+            hearing_width: number("hearings", defaults.engine.hearing_width as f64)? as usize,
+            keys_per_hearing: number("keys-per-hearing", defaults.engine.keys_per_hearing as f64)? as usize,
             candidate_limit: number("candidates", defaults.engine.candidate_limit as f64)? as usize,
+            chord_candidates: number("chord-candidates", defaults.engine.chord_candidates as f64)? as usize,
+            key_candidates: number("key-candidates", defaults.engine.key_candidates as f64)? as usize,
             distinct_depth: number("distinct-depth", defaults.engine.distinct_depth as f64)? as usize,
             record_snapshots: false,
             record_pruning: false,
@@ -283,7 +288,11 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
 fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
     [
         ("beam", config.engine.beam_width as f64),
+        ("hearings", config.engine.hearing_width as f64),
+        ("keys_per_hearing", config.engine.keys_per_hearing as f64),
         ("candidates", config.engine.candidate_limit as f64),
+        ("chord_candidates", config.engine.chord_candidates as f64),
+        ("key_candidates", config.engine.key_candidates as f64),
         ("distinct_depth", config.engine.distinct_depth as f64),
         ("offer_count", config.offer_count as f64),
         ("offer_margin", config.offer_margin as f64),
