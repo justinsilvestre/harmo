@@ -1,13 +1,15 @@
-//! The analysis document: the favored reading of each chord span, its competitors,
+//! The analysis document: the favored reading of each chord span, the readings offered for it,
 //! the rules behind each reading and how its ranking changed over time.
 
+use super::offers::{OfferContext, OfferSettings, OffersOutput, offers_output};
 use super::rank_history::{
     HistoryContext, PrunedAlternativeOutput, RankChangeOutput, RankHistoriesByLayerOutput,
     pruned_alternatives, rank_histories_by_layer, rank_history_output,
 };
+use crate::bench::runner::EvalConfig;
 use crate::engine::history::{ReadingHistory, rank_histories};
 use crate::engine::model::{Category, Reading};
-use crate::engine::path::{SegmentReading, segments_of};
+use crate::engine::path::{SegmentReading, best_segments};
 use crate::engine::rule::{Citation, Rule, Topic};
 use crate::engine::ruleset::RuleSet;
 use crate::engine::search::Analysis;
@@ -21,6 +23,7 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct AnalysisOutput {
+    pub offer_settings: OfferSettings,
     pub sources: &'static [Source],
     pub rules: Vec<RuleInfo>,
     pub segments: Vec<SegmentOutput>,
@@ -36,7 +39,8 @@ pub struct RuleInfo {
     pub weight: f32,
 }
 
-/// Whether a span's reading is settled by the rules or open to interpretation.
+/// Whether a span's reading is settled by the rules or open to interpretation:
+/// interpretive when the joint list of readings offered for its first slice holds another reading.
 #[derive(Serialize, PartialEq)]
 pub enum Status {
     Determined,
@@ -50,7 +54,8 @@ pub struct SegmentOutput {
     pub measure: String,
     pub reading: ReadingOutput,
     pub status: Status,
-    pub alternatives: Vec<AlternativeOutput>,
+    /// The readings offered for the span's first slice, as the bench offers them.
+    pub offered: OffersOutput,
     pub trace: Vec<Contribution>,
     pub rank_history: Vec<RankChangeOutput>,
     /// Readings that the beam held for the span's first slice but later dropped, best first.
@@ -73,22 +78,8 @@ pub struct ReadingOutput {
     pub category: Category,
 }
 
-#[derive(Serialize)]
-pub struct AlternativeOutput {
-    pub reading: ReadingOutput,
-    /// Rank of the best final hypothesis holding this reading.
-    pub final_rank: usize,
-    /// How far that hypothesis's score falls below the best hypothesis.
-    pub score_gap: f32,
-    pub trace: Vec<Contribution>,
-    pub rank_history: Vec<RankChangeOutput>,
-}
-
-pub struct OutputOptions {
-    pub alternatives: usize,
-    /// Alternatives within this score gap make a span interpretive.
-    pub margin: f32,
-}
+/// The most readings of a span that `pruned_alternatives` lists.
+const PRUNED_ALTERNATIVES: usize = 8;
 
 /// Everything needed to describe one segment of the favored hypothesis.
 struct Context<'a> {
@@ -96,32 +87,26 @@ struct Context<'a> {
     slices: &'a [Slice],
     analysis: &'a Analysis,
     rules: &'a RuleSet,
-    ranked: Vec<(Vec<SegmentReading>, f32)>,
-    margin: f32,
-    alternatives: usize,
+    config: &'a EvalConfig,
 }
 
+/// Describes each span of the best final hypothesis,
+/// offering readings under the offer settings of `config`.
 pub fn build_output(
     score: &Score,
     slices: &[Slice],
     analysis: &Analysis,
     rules: &RuleSet,
-    options: &OutputOptions,
+    config: &EvalConfig,
 ) -> AnalysisOutput {
-    let leading = analysis.ranking.iter().take(options.alternatives + 1);
-    let ranked = leading.map(|&(hypothesis, s)| (segments_of(analysis, slices, hypothesis), s)).collect();
-    let context = Context {
-        score,
-        slices,
-        analysis,
-        rules,
-        ranked,
-        margin: options.margin,
-        alternatives: options.alternatives,
-    };
-    let best = context.ranked.first().map(|(path, _)| path.clone()).unwrap_or_default();
-    let segments = best.iter().map(|s| segment_output(s, &context)).collect();
-    AnalysisOutput { sources: SOURCES, rules: rule_infos(rules), segments }
+    let context = Context { score, slices, analysis, rules, config };
+    let segments = best_segments(analysis, slices).iter().map(|s| segment_output(s, &context)).collect();
+    AnalysisOutput {
+        offer_settings: OfferSettings::of(config),
+        sources: SOURCES,
+        rules: rule_infos(rules),
+        segments,
+    }
 }
 
 fn segment_output(segment: &SegmentReading, context: &Context) -> SegmentOutput {
@@ -130,9 +115,14 @@ fn segment_output(segment: &SegmentReading, context: &Context) -> SegmentOutput 
     let histories = rank_histories(context.analysis, at);
     let history_context =
         HistoryContext { at, score: context.score, slices: context.slices, analysis: context.analysis };
-    let history_of = |reading: &Reading| history_for(&histories, reading, &history_context);
-    let alternatives = alternatives_at(segment, context, &reading, history_of);
-    let is_open = alternatives.iter().any(|a| a.score_gap <= context.margin);
+    let offer_context = OfferContext {
+        history: &history_context,
+        histories: &histories,
+        rules: context.rules,
+        config: context.config,
+    };
+    let offered = offers_output(&offer_context);
+    let is_open = offered.joint.iter().any(|offer| offer.reading != reading);
     let measures = &context.score.measures;
     SegmentOutput {
         start: segment.start,
@@ -140,51 +130,21 @@ fn segment_output(segment: &SegmentReading, context: &Context) -> SegmentOutput 
         measure: measures[measure_at(measures, segment.start)].number.clone(),
         reading,
         status: if is_open { Status::Interpretive } else { Status::Determined },
-        alternatives,
+        offered,
         trace: trace_segment(context.analysis, context.slices, context.rules, segment),
-        rank_history: history_of(&segment.reading),
-        pruned_alternatives: pruned_alternatives(&histories, &history_context, context.alternatives),
+        rank_history: history_for(&histories, &segment.reading, &history_context),
+        pruned_alternatives: pruned_alternatives(&histories, &history_context, PRUNED_ALTERNATIVES),
         rank_histories_by_layer: rank_histories_by_layer(segment, &history_context),
     }
 }
 
-fn history_for(
+pub(super) fn history_for(
     histories: &[ReadingHistory],
     reading: &Reading,
     context: &HistoryContext,
 ) -> Vec<RankChangeOutput> {
     let history = histories.iter().find(|h| h.reading == *reading);
     history.map(|h| rank_history_output(h, context)).unwrap_or_default()
-}
-
-/// Collects the distinct readings that lower-ranked hypotheses give to the segment's first slice.
-fn alternatives_at(
-    segment: &SegmentReading,
-    context: &Context,
-    favored: &ReadingOutput,
-    history_of: impl Fn(&Reading) -> Vec<RankChangeOutput>,
-) -> Vec<AlternativeOutput> {
-    let best_score = context.ranked[0].1;
-    let at = segment.slices.0;
-    let mut alternatives: Vec<AlternativeOutput> = Vec::new();
-    for (rank, (path, score)) in context.ranked.iter().enumerate().skip(1) {
-        let Some(rival) = path.iter().find(|s| s.slices.0 <= at && at < s.slices.1) else {
-            continue;
-        };
-        let reading = reading_output(&rival.label, rival.reading.function.category);
-        if reading == *favored || alternatives.iter().any(|a| a.reading == reading) {
-            continue;
-        }
-        let trace = trace_segment(context.analysis, context.slices, context.rules, rival);
-        alternatives.push(AlternativeOutput {
-            reading,
-            final_rank: rank + 1,
-            score_gap: best_score - score,
-            trace,
-            rank_history: history_of(&rival.reading),
-        });
-    }
-    alternatives
 }
 
 pub fn reading_output(label: &Label, category: Category) -> ReadingOutput {

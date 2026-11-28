@@ -55,3 +55,16 @@ pub fn best_segments(analysis: &Analysis, slices: &[Slice]) -> Vec<SegmentReadin
         .map(|&(hypothesis, _)| segments_of(analysis, slices, hypothesis))
         .unwrap_or_default()
 }
+
+/// Returns the segment of the hypothesis ending at `hypothesis` that covers slice `at`.
+pub fn segment_covering(
+    analysis: &Analysis,
+    slices: &[Slice],
+    hypothesis: KeyHypothesisId,
+    at: usize,
+) -> Option<SegmentReading> {
+    let layers = &analysis.layers;
+    let last =
+        layers.key.path_back(hypothesis).find(|&last| layers.segment(last).heard.start as usize <= at)?;
+    Some(segment_reading(layers, slices, last))
+}

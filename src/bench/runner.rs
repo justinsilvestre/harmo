@@ -352,25 +352,36 @@ pub fn offered_from(
     at: usize,
     config: &EvalConfig,
 ) -> Vec<Label> {
+    offered_holders(analysis, beam, at, config).into_iter().map(|(_, label)| label).collect()
+}
+
+/// Returns the readings that `offered_from` gives, best first,
+/// each with the best hypothesis of `beam` holding it.
+pub fn offered_holders(
+    analysis: &Analysis,
+    beam: Ranking<Function>,
+    at: usize,
+    config: &EvalConfig,
+) -> Vec<(KeyHypothesisId, Label)> {
     let Some(best) = beam.first() else {
         return vec![];
     };
     let best_score = analysis.layers.score(best);
     let is_close =
         |hypothesis: &KeyHypothesisId| best_score - analysis.layers.score(*hypothesis) <= config.offer_margin;
-    let mut labels: Vec<Label> = Vec::new();
+    let mut offered: Vec<(KeyHypothesisId, Label)> = Vec::new();
     for hypothesis in beam.iter().filter(is_close) {
-        if labels.len() == config.offer_count {
+        if offered.len() == config.offer_count {
             break;
         }
         let Some(label) = reading_at(analysis, hypothesis, at) else {
             continue;
         };
-        if !labels.contains(&label) {
-            labels.push(label);
+        if !offered.iter().any(|(_, seen)| *seen == label) {
+            offered.push((hypothesis, label));
         }
     }
-    labels
+    offered
 }
 
 fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> Option<Label> {
@@ -379,6 +390,6 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
 }
 
 /// Returns the label that the hypothesis `hypothesis` gives the slice `at`.
-pub(super) fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<Label> {
+pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<Label> {
     segment_at(analysis, hypothesis, at).map(|segment| segment.label())
 }

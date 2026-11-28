@@ -5,6 +5,7 @@ use super::layer_offers::{LayerLimits, LayerOffers, by_shortfall, layer_offers};
 use super::runner::{BenchPiece, EvalConfig, lagged_beam, reading_at, slice_values_by_frame};
 use crate::engine::model::KeyHypothesisId;
 use crate::engine::search::Analysis;
+use crate::score::slicing::Slice;
 use crate::theory::label::Label;
 
 /// Returns, for each frame,
@@ -18,7 +19,7 @@ pub fn layer_frames(
 ) -> Vec<LayerOffers> {
     let slices = &piece.slices;
     let per_slice: Vec<LayerOffers> =
-        (0..slices.len()).map(|at| layers_at(analysis, piece, at, config)).collect();
+        (0..slices.len()).map(|at| layer_offers_at(analysis, slices, at, config)).collect();
     slice_values_by_frame(slices, count, &per_slice)
 }
 
@@ -50,18 +51,32 @@ pub fn hindsight_frames(
     slice_values_by_frame(slices, count, &per_slice)
 }
 
-fn layers_at(analysis: &Analysis, piece: &BenchPiece, at: usize, config: &EvalConfig) -> LayerOffers {
-    let Some(beam) = lagged_beam(analysis, &piece.slices, at, config.offer_lag) else {
-        return LayerOffers::default();
-    };
-    let Some(first) = beam.first() else {
+/// Returns the keys, chords and numerals offered for slice `at` one layer at a time,
+/// from the beam a short time later (see `EvalConfig::offer_lag`).
+pub fn layer_offers_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig) -> LayerOffers {
+    let Some((best, close)) = layer_candidates(analysis, slices, at, config) else {
         return LayerOffers::default();
     };
     let score = |hypothesis: KeyHypothesisId| analysis.layers.score(hypothesis);
+    layer_offers(&held_readings(analysis, close.into_iter(), at, score), best, &config.layer_limits())
+}
+
+/// Returns the best score of the beam a short time after slice `at`
+/// and the hypotheses of that beam whose readings may be offered one layer at a time:
+/// those within the largest layer margin of the best, best first.
+pub fn layer_candidates(
+    analysis: &Analysis,
+    slices: &[Slice],
+    at: usize,
+    config: &EvalConfig,
+) -> Option<(f32, Vec<KeyHypothesisId>)> {
+    let beam = lagged_beam(analysis, slices, at, config.offer_lag)?;
+    let first = beam.first()?;
+    let score = |hypothesis: KeyHypothesisId| analysis.layers.score(hypothesis);
     let limits = config.layer_limits();
     let reach = limits.key_margin.max(limits.chord_margin).max(limits.numeral_margin);
-    let close = beam.iter().take_while(|&n| score(first) - score(n) <= reach);
-    layer_offers(&held_readings(analysis, close, at, score), score(first), &limits)
+    let close = beam.iter().take_while(|&n| score(first) - score(n) <= reach).collect();
+    Some((score(first), close))
 }
 
 /// Returns each hypothesis's value with its label of slice `at`.
