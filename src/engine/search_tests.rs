@@ -136,7 +136,7 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
     let mut layers = layers_of(&readings.map(key_segment), &[NONE, NONE]);
     for (i, score) in scores.into_iter().enumerate() {
-        (layers.hypotheses[i].score, layers.hypotheses[i].slice, layers.hearings[i].slice) = (score, 2, 2);
+        (layers.hypotheses[i].score, layers.hearings[i].slice) = (score, 2);
     }
     let slice = Slice {
         start: 0.0,

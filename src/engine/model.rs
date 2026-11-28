@@ -74,8 +74,6 @@ impl ChordSegment {
 /// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
 pub struct Hearing {
-    /// Index in the hearings of the hearing up to the slice before, or `NONE`.
-    pub parent: u32,
     /// Index in the hearings of the last hearing of the preceding segment, or `NONE`.
     pub previous: u32,
     pub slice: u32,
@@ -86,14 +84,13 @@ pub struct Hearing {
 }
 
 /// A hypothesis, or complete interpretation, which reads the latest segment of one hearing of the
-/// chords in a key, and through its parents every slice up to and including `slice`.
+/// chords in a key. Through its parents it reads every slice up to its hearing's last slice.
 #[derive(Clone, Copy, Debug)]
 pub struct Hypothesis {
     /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
     pub parent: u32,
     /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
-    pub slice: u32,
     /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
     pub hearing: u32,
     /// The function of the hearing's latest chord, in the key the hypothesis hears it in.

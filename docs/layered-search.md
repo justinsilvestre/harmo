@@ -56,5 +56,5 @@ Each stage was measured on `tune` and `agreement-tune` against the one before. C
 
 - Whether a key may change within a chord segment.
 - A cadence and phrase layer. The interaction rules that judge cadences and progressions are the natural start, but they stay in the key layer for now.
-- Rank histories for chord hearings on their own, beside the histories of whole readings.
+- Rank histories for chord hearings on their own, beside the histories of whole readings. A hearing links only to the hearing of the segment before it, not to the hearing it extends at the slice before. Such a history can follow the hypotheses' links instead, since the parent of a hypothesis interprets the hearing that its own hearing extends.
 - `chord.seventh_rival` decides whether a chord is a dominant from its key, so it is not yet a pure chord rule.

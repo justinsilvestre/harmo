@@ -174,14 +174,12 @@ fn step(moment: &Moment, beam: &[u32], rules: &RuleSet, config: &Config) -> Pend
             };
             let score = previous_score + close + predecessor.chord_transition + opening.fit.chord;
             let segment = open_segment(chord, moment, rules);
-            let (parent, previous, slice) = (parent_hearing, parent_hearing, moment.index as u32);
-            hearings.push(Hearing { parent, previous, slice, segment, score });
+            hearings.push(Hearing { previous: parent_hearing, slice: moment.index as u32, segment, score });
             hearings.len() as u32 - 1
         });
         pending.hypotheses.push(Hypothesis {
             parent,
             previous: parent,
-            slice: moment.index as u32,
             hearing,
             function: opening.reading.function,
             score: predecessor.score + opening.fit.total(),
@@ -209,7 +207,6 @@ fn continuations(moment: &Moment, beam: &[u32], rules: &RuleSet) -> Pending {
         });
         let next_hearing = *extended.entry(hypothesis.hearing).or_insert_with(|| {
             hearings.push(Hearing {
-                parent: hypothesis.hearing,
                 slice: index as u32,
                 segment: extend(hearing.segment, slice, rules),
                 score: hearing.score + chord_fit,
@@ -225,7 +222,6 @@ fn continuations(moment: &Moment, beam: &[u32], rules: &RuleSet) -> Pending {
         });
         hypotheses.push(Hypothesis {
             parent: b,
-            slice: index as u32,
             hearing: next_hearing,
             score: hypothesis.score + chord_fit + key_fit,
             ..*hypothesis

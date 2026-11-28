@@ -26,18 +26,12 @@ pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
     let hypothesis = |i: usize| Hypothesis {
         parent: previous[i],
         previous: previous[i],
-        slice: i as u32,
         hearing: i as u32,
         function: segments[i].function,
         score: 0.0,
     };
-    let hearing = |i: usize| Hearing {
-        parent: previous[i],
-        previous: previous[i],
-        slice: i as u32,
-        segment: segments[i].heard,
-        score: 0.0,
-    };
+    let hearing =
+        |i: usize| Hearing { previous: previous[i], slice: i as u32, segment: segments[i].heard, score: 0.0 };
     Layers {
         hearings: (0..segments.len()).map(hearing).collect(),
         hypotheses: (0..segments.len()).map(hypothesis).collect(),
