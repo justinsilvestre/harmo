@@ -152,6 +152,14 @@ mod tests {
     /// into layers that already hold one chord hypothesis. Returns the root of each stored chord hypothesis,
     /// and the stored chord hypothesis of each stored hypothesis.
     fn committed(readers: &[u32]) -> (Vec<String>, Vec<u32>) {
+        let layers = committed_layers(readers);
+        let roots =
+            layers.chord.hypotheses.iter().map(|h| crate::pitch::tpc_name(h.unit.chord.root)).collect();
+        (roots, layers.key.hypotheses.iter().map(|h| h.reads.0).collect())
+    }
+
+    /// Commits a pending hypothesis for each given pending chord hypothesis, as `committed` does.
+    fn committed_layers(readers: &[u32]) -> Layers {
         let function = Function::diatonic(Key::new(tpc_from_name("C").unwrap(), Mode::Major));
         let mut layers = Layers::default();
         layers.chord.push(chord_hypotheses()[0]);
@@ -164,9 +172,20 @@ mod tests {
         };
         let proposed = Proposed { hypotheses: chord_hypotheses() };
         commit(&mut layers, &proposed, readers.iter().map(pending).collect());
-        let roots =
-            layers.chord.hypotheses.iter().map(|h| crate::pitch::tpc_name(h.unit.chord.root)).collect();
-        (roots, layers.key.hypotheses.iter().map(|h| h.reads.0).collect())
+        layers
+    }
+
+    #[test]
+    fn the_chord_ranking_holds_each_chord_hypothesis_once_at_the_rank_of_its_best_reader() {
+        let layers = committed_layers(&[2, 0, 2]);
+        let ranking = layers.chord.ranking(0).unwrap();
+        assert_eq!(ranking.iter().map(|h| h.0).collect::<Vec<_>>(), vec![1, 2]);
+    }
+
+    #[test]
+    fn the_key_ranking_holds_the_kept_hypotheses_in_order() {
+        let layers = committed_layers(&[2, 0, 2]);
+        assert_eq!(layers.key.ranking(0).unwrap().iter().map(|h| h.0).collect::<Vec<_>>(), vec![0, 1, 2]);
     }
 
     #[test]

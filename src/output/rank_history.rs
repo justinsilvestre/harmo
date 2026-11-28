@@ -1,9 +1,10 @@
 //! Rank histories in the analysis document, with an account of when and why a reading left the beam.
 
 use super::analysis::{ReadingOutput, reading_output};
-use crate::engine::history::{RankChange, ReadingHistory, segment_at};
+use crate::engine::history::{ReadingHistory, segment_at};
 use crate::engine::model::KeyHypothesisId;
 use crate::engine::pruning::Departure;
+use crate::engine::rank_history::RankChange;
 use crate::engine::search::Analysis;
 use crate::score::model::Score;
 use crate::score::slicing::{Slice, measure_at};

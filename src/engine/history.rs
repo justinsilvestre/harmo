@@ -1,94 +1,64 @@
-//! Tracks how a reading's standing in the beam changes as the music unfolds.
+//! Tracks how readings' standing in the layers' rankings changes as the music unfolds.
 
-use super::model::{KeyHypothesisId, KeySegment, Reading};
+use super::model::{ChordHypothesisId, ChordSegment, Function, KeyHypothesisId, KeySegment, Reading};
 use super::pruning::{Departure, PruneCause};
+use super::rank_history::{Holders, RankHistory, follow};
 use super::search::Analysis;
-use serde::Serialize;
+use crate::pitch::Tpc;
+use crate::theory::chord::Chord;
 
-/// The rank (1 = best) at which a reading was held after a given slice,
-/// or `None` once no hypothesis in the beam holds it.
-/// Only slices where the rank changed are listed.
-/// A reading that has left the beam never returns, so a `None` rank ends the history.
-#[derive(Clone, Debug, Serialize, PartialEq)]
-pub struct RankChange {
-    pub slice: usize,
-    pub rank: Option<usize>,
-    /// Why the reading left the beam, when the analysis recorded pruning.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub left_beam: Option<Departure>,
+/// The rank history of one whole reading of a slice (its chord and function), followed through the beam.
+pub type ReadingHistory = RankHistory<Reading, Function>;
+
+/// The chord layer's reading of a slice: its chord, and the spelling of its bass as heard by that slice.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ChordReading {
+    pub chord: Chord,
+    pub bass: Tpc,
 }
 
-/// The rank history of one reading of a slice.
-pub struct ReadingHistory {
-    pub reading: Reading,
-    /// The best hypothesis holding the reading in the beam of the slice itself.
-    pub hypothesis: KeyHypothesisId,
-    pub changes: Vec<RankChange>,
+/// The rank histories of each layer's readings of one slice, each followed through its own layer's rankings.
+pub struct LayerRankHistories {
+    pub chord: Vec<RankHistory<ChordReading, ChordSegment>>,
+    /// The key layer's histories, which record why a function left the beam.
+    pub key: Vec<RankHistory<Function, Function>>,
 }
 
 /// Follows every reading that the beam holds for slice `at` through the later beams,
 /// in order of their rank at `at`.
-///
-/// Every hypothesis in a later beam descends from one in the previous beam and keeps its reading
-/// of `at`, so each beam's readings are found from its parents' and no path is walked.
 pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
-    let key = &analysis.layers.key;
-    let Some(first_beam) = key.ranking(at) else {
-        return Vec::new();
-    };
-    let mut histories: Vec<ReadingHistory> = Vec::new();
-    let mut held: Vec<usize> = Vec::with_capacity(first_beam.len());
-    for (position, hypothesis) in first_beam.iter().enumerate() {
-        let reading = reading_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice");
-        let id = histories.iter().position(|h| h.reading == reading).unwrap_or_else(|| {
-            let changes = vec![RankChange { slice: at, rank: Some(position + 1), left_beam: None }];
-            histories.push(ReadingHistory { reading, hypothesis, changes });
-            histories.len() - 1
-        });
-        held.push(id);
-    }
-    let mut alive = histories.len();
-    let mut previous = first_beam;
-    for (slice, beam) in key.rankings().enumerate().skip(at + 1) {
-        if alive <= 1 {
-            break;
-        }
-        let held_by_parent = |parent: KeyHypothesisId| {
-            held[previous.position(parent).expect("a parent is in the beam before")]
-        };
-        let next: Vec<usize> =
-            beam.iter().map(|hypothesis| held_by_parent(key.get(hypothesis).parent)).collect();
-        let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
-        for (position, &id) in next.iter().enumerate() {
-            ranks[id].get_or_insert(position + 1);
-        }
-        for (id, history) in histories.iter_mut().enumerate() {
-            let last = history.changes.last().expect("histories start with a rank");
-            let Some(last_rank) = last.rank.filter(|_| last.rank != ranks[id]) else {
-                continue;
-            };
-            let left_beam = ranks[id]
-                .is_none()
-                .then(|| departure(analysis, slice, last_rank, |parent| held_by_parent(parent) == id));
-            alive -= left_beam.is_some() as usize;
-            history.changes.push(RankChange { slice, rank: ranks[id], left_beam: left_beam.flatten() });
-        }
-        held = next;
-        previous = beam;
-    }
-    histories
+    let reading_of =
+        |hypothesis| reading_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice");
+    follow(&analysis.layers.key, at, reading_of, |slice, last_rank, holders| {
+        departure(analysis, slice, last_rank, holders)
+    })
 }
 
-/// Explains why a reading left the beam at `slice`,
-/// from the best pruned hypothesis that held it (`holds` tests a pruned hypothesis's parent).
+/// Follows each layer's readings of slice `at` through that layer's later rankings.
+pub fn layer_rank_histories(analysis: &Analysis, at: usize) -> LayerRankHistories {
+    let chord_reading_of = |hypothesis| {
+        chord_reading_at(analysis, hypothesis, at).expect("a chord hypothesis covers its own slice")
+    };
+    let function_of = |hypothesis| {
+        segment_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice").function
+    };
+    LayerRankHistories {
+        chord: follow(&analysis.layers.chord, at, chord_reading_of, |_, _, _| None),
+        key: follow(&analysis.layers.key, at, function_of, |slice, last_rank, holders| {
+            departure(analysis, slice, last_rank, holders)
+        }),
+    }
+}
+
+/// Explains why a reading left the beam at `slice`, from the best pruned hypothesis that held it.
 /// Returns `None` unless the analysis recorded pruning.
 fn departure(
     analysis: &Analysis,
     slice: usize,
     last_rank: usize,
-    holds: impl Fn(KeyHypothesisId) -> bool,
+    holders: &Holders<Function>,
 ) -> Option<Departure> {
-    let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
+    let pruned = analysis.pruned.get(slice)?.iter().find(|p| holders.holds(p.parent))?;
     let beam = analysis.layers.key.ranking(slice).expect("the slice is stored");
     let best = beam.first().map_or(pruned.score, |first| analysis.layers.score(first));
     let keeper = match pruned.cause {
@@ -108,6 +78,20 @@ fn departure(
 /// Returns the reading that the hypothesis ending at `hypothesis` assigns to slice `at`.
 pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<Reading> {
     segment_at(analysis, hypothesis, at).map(|s| s.reading())
+}
+
+/// Returns the chord layer's reading of slice `at` by the chord hypothesis ending at `hypothesis`.
+/// Its bass is the one heard by the slice the hypothesis ends on, so a hypothesis stored at `at` gives
+/// the reading that its descendants' rank histories follow.
+pub fn chord_reading_at(
+    analysis: &Analysis,
+    hypothesis: ChordHypothesisId,
+    at: usize,
+) -> Option<ChordReading> {
+    let chord = &analysis.layers.chord;
+    let mut segments = chord.path_back(hypothesis).map(|last| chord.get(last).unit);
+    let segment = segments.find(|s| s.start as usize <= at)?;
+    Some(ChordReading { chord: segment.chord, bass: segment.bass_tpc() })
 }
 
 /// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.

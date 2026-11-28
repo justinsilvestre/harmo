@@ -77,6 +77,13 @@ impl<U, R> Store<U, R> {
         (0..self.slice_starts.len()).map(|slice| self.ranking(slice).expect("the slice is stored"))
     }
 
+    /// Returns the hypothesis of `ranking` from which `hypothesis` descends by parent links (or is itself),
+    /// or `None` if there is none.
+    pub fn ancestor_in(&self, hypothesis: HypothesisId<U>, ranking: Ranking<U>) -> Option<HypothesisId<U>> {
+        let parent = |&id: &HypothesisId<U>| Some(self.get(id).parent).filter(|&p| p != HypothesisId::NONE);
+        std::iter::successors(Some(hypothesis), parent).find(|&id| ranking.position(id).is_some())
+    }
+
     /// Returns the last hypothesis of each segment on the path to `last`,
     /// from `last` back to the first segment. A `last` of `HypothesisId::NONE` gives no segments.
     pub fn path_back(&self, last: HypothesisId<U>) -> impl Iterator<Item = HypothesisId<U>> + '_ {
@@ -102,5 +109,61 @@ impl Layers {
     pub fn segment(&self, hypothesis: KeyHypothesisId) -> KeySegment {
         let function = self.key.get(hypothesis).unit;
         KeySegment { heard: self.chord_hypothesis_of(hypothesis).unit, function }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A store of five hypotheses: two stored at slice 0, none at slice 1 and three at slice 2.
+    fn store() -> Store<(), ()> {
+        let none = HypothesisId::NONE;
+        let hypothesis = Hypothesis { parent: none, previous: none, reads: (), unit: (), score: 0.0 };
+        let mut store = Store::new();
+        for count in [2, 0, 3] {
+            store.begin_slice();
+            (0..count).for_each(|_| _ = store.push(hypothesis));
+        }
+        store
+    }
+
+    #[test]
+    fn a_slice_ranks_the_hypotheses_stored_at_it() {
+        assert_eq!(store().ranking(0).unwrap().iter().map(|h| h.0).collect::<Vec<_>>(), vec![0, 1]);
+    }
+
+    #[test]
+    fn a_slice_at_which_nothing_was_stored_ranks_nothing() {
+        assert!(store().ranking(1).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_last_slice_ranks_the_hypotheses_up_to_the_end_of_the_store() {
+        assert_eq!(store().ranking(2).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn a_slice_the_store_does_not_hold_has_no_ranking() {
+        assert!(store().ranking(3).is_none());
+    }
+
+    #[test]
+    fn a_hypothesis_descends_from_its_parent_in_the_ranking_before() {
+        let mut store = store();
+        store.hypotheses[4].parent = HypothesisId::new(1);
+        let ranking = store.ranking(0).unwrap();
+        assert_eq!(store.ancestor_in(HypothesisId::new(4), ranking), Some(HypothesisId::new(1)));
+    }
+
+    #[test]
+    fn a_hypothesis_without_parents_has_no_ancestor_in_an_earlier_ranking() {
+        let store = store();
+        assert_eq!(store.ancestor_in(HypothesisId::new(4), store.ranking(0).unwrap()), None);
+    }
+
+    #[test]
+    fn a_store_gives_a_ranking_for_every_slice() {
+        assert_eq!(store().rankings().count(), 3);
     }
 }
