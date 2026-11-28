@@ -3,7 +3,9 @@
 use super::bass::Bass;
 use super::key_contexts::History;
 use super::layers::Layers;
-use super::model::{ChordSegment, Hearing, HearingId, Hypothesis, KeySegment, NONE, Reading};
+use super::model::{
+    ChordHypothesis, ChordHypothesisId, ChordSegment, KeyHypothesis, KeySegment, NONE, Reading,
+};
 use crate::pitch::tpc_from_name;
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
@@ -21,27 +23,27 @@ pub fn key_segment(reading: Reading) -> KeySegment {
 }
 
 /// Holds segments in layers: segment i becomes the last segment of hypothesis i,
-/// which interprets hearing i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`,
-/// or nothing if that is `NONE`, and its hearing follows the hearing with the same index.
+/// which interprets chord hypothesis i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`,
+/// or nothing if that is `NONE`, and its chord hypothesis follows the chord hypothesis with the same index.
 pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
-    let hypothesis = |i: usize| Hypothesis {
+    let hypothesis = |i: usize| KeyHypothesis {
         parent: previous[i],
         previous: previous[i],
-        hearing: HearingId(i as u32),
+        chord_hypothesis: ChordHypothesisId(i as u32),
         function: segments[i].function,
         score: 0.0,
     };
-    let previous_hearing =
-        |i: usize| if previous[i] == NONE { HearingId::NONE } else { HearingId(previous[i]) };
-    let hearing = |i: usize| Hearing {
-        previous: previous_hearing(i),
+    let previous_chord_hypothesis =
+        |i: usize| if previous[i] == NONE { ChordHypothesisId::NONE } else { ChordHypothesisId(previous[i]) };
+    let chord_hypothesis = |i: usize| ChordHypothesis {
+        previous: previous_chord_hypothesis(i),
         slice: i as u32,
         segment: segments[i].heard,
         score: 0.0,
     };
     Layers {
-        hearings: (0..segments.len()).map(hearing).collect(),
-        hypotheses: (0..segments.len()).map(hypothesis).collect(),
+        chord_hypotheses: (0..segments.len()).map(chord_hypothesis).collect(),
+        key_hypotheses: (0..segments.len()).map(hypothesis).collect(),
     }
 }
 
@@ -84,5 +86,5 @@ pub fn i_v_i() -> Vec<Slice> {
 
 /// Returns the history that a transition after the last segment of a path reads.
 pub fn history_after<'a>(path: &'a Layers, slices: &'a [Slice]) -> History<'a> {
-    History { layers: path, slices, last: path.hypotheses.len() as u32 - 1 }
+    History { layers: path, slices, last: path.key_hypotheses.len() as u32 - 1 }
 }

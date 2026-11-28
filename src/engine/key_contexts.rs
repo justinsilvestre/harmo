@@ -5,7 +5,7 @@ use super::layers::{Layers, NO_LAYERS};
 use super::model::{KeySegment, NONE, Reading};
 use crate::score::slicing::Slice;
 
-/// A segment's place among rival hearings of the same music.
+/// A segment's place among rival readings of the same music.
 /// The engine only compares the values for equality:
 /// two segments are rivals when they have the same group and different members.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

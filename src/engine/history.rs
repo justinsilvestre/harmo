@@ -55,7 +55,7 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
         let held_by_parent = |parent: u32| held[(parent - previous[0]) as usize];
         let next: Vec<usize> = beam
             .iter()
-            .map(|&hypothesis| held_by_parent(analysis.layers.hypotheses[hypothesis as usize].parent))
+            .map(|&hypothesis| held_by_parent(analysis.layers.key_hypotheses[hypothesis as usize].parent))
             .collect();
         let mut ranks: Vec<Option<usize>> = vec![None; histories.len()];
         for (position, &id) in next.iter().enumerate() {
@@ -88,10 +88,11 @@ fn departure(
 ) -> Option<Departure> {
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
     let beam = &analysis.snapshots[slice];
-    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.hypotheses[first as usize].score);
+    let best =
+        beam.first().map_or(pruned.score, |&first| analysis.layers.key_hypotheses[first as usize].score);
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
-        PruneCause::Width | PruneCause::HearingWidth => None,
+        PruneCause::Width | PruneCause::ChordHypothesisWidth => None,
     };
     Some(Departure {
         last_rank,

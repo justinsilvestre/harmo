@@ -2,7 +2,7 @@ use super::*;
 use crate::engine::key_contexts::{Rival, RivalContext};
 use crate::engine::key_hooks::KeyHook;
 use crate::engine::model::{Function, NONE, Reading};
-use crate::engine::pending::PendingHypothesis;
+use crate::engine::pending::PendingKeyHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{i_v_i, key_segment, layers_of, slice_of};
 use crate::pitch::tpc_from_name;
@@ -31,10 +31,10 @@ fn key_scoring_rules() -> Vec<(&'static str, f32)> {
 }
 
 #[test]
-fn without_key_scores_a_hypothesis_scores_exactly_its_hearing() {
+fn without_key_scores_a_hypothesis_scores_exactly_its_chord_hypothesis() {
     let layers = analyze_i_v_i(&key_scoring_rules()).layers;
-    let differs = |h: &Hypothesis| h.score != layers.hearing(h.hearing).score;
-    assert!(!layers.hypotheses.iter().any(differs));
+    let differs = |h: &KeyHypothesis| h.score != layers.chord_hypothesis(h.chord_hypothesis).score;
+    assert!(!layers.key_hypotheses.iter().any(differs));
 }
 
 /// Puts every segment in one rival group, as a member named by its chord.
@@ -63,7 +63,7 @@ fn rules_with(rival_hook: bool) -> RuleSet {
 fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
     let previous = vec![NONE; readings.len()];
     let mut layers = layers_of(&readings.iter().map(|&r| key_segment(r)).collect::<Vec<_>>(), &previous);
-    for (i, hypothesis) in layers.hypotheses.iter_mut().enumerate() {
+    for (i, hypothesis) in layers.key_hypotheses.iter_mut().enumerate() {
         hypothesis.score = -(i as f32);
     }
     let slices = [
@@ -74,26 +74,29 @@ fn step_after(readings: &[Reading], rules: &RuleSet) -> Pending {
     step(&Moment { slices: &slices, index: 1, layers: &layers }, &beam, rules, &Config::default())
 }
 
-/// Returns the pending hearing of each hypothesis that opens a C major chord after `parent`.
-fn c_major_hearings(pending: &Pending, parent: u32) -> Vec<PendingHearingId> {
+/// Returns the pending chord hypothesis of each hypothesis that opens a C major chord after `parent`.
+fn c_major_chord_hypotheses(pending: &Pending, parent: u32) -> Vec<PendingChordHypothesisId> {
     let c_major = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
-    let opens_c = |h: &&PendingHypothesis| {
-        h.parent == parent && h.previous == parent && pending.hearing(h.hearing).segment.chord == c_major
+    let opens_c = |h: &&PendingKeyHypothesis| {
+        h.parent == parent
+            && h.previous == parent
+            && pending.chord_hypothesis(h.chord_hypothesis).segment.chord == c_major
     };
-    pending.hypotheses.iter().filter(opens_c).map(|h| h.hearing).collect()
+    pending.key_hypotheses.iter().filter(opens_c).map(|h| h.chord_hypothesis).collect()
 }
 
 #[test]
-fn readings_of_one_chord_after_one_hearing_share_a_hearing() {
+fn readings_of_one_chord_after_one_chord_hypothesis_share_a_chord_hypothesis() {
     let pending = step_after(&[in_c("G", Quality::Major)], &rules_with(false));
-    let hearings = c_major_hearings(&pending, 0);
-    assert!(hearings.len() > 1 && hearings.iter().all(|&h| h == hearings[0]));
+    let chord_hypotheses = c_major_chord_hypotheses(&pending, 0);
+    assert!(chord_hypotheses.len() > 1 && chord_hypotheses.iter().all(|&h| h == chord_hypotheses[0]));
 }
 
 #[test]
-fn a_new_segment_after_a_rival_has_a_hearing_of_its_own() {
+fn a_new_segment_after_a_rival_has_a_chord_hypothesis_of_its_own() {
     let rules = rules_with(true);
     let pending = step_after(&[in_c("G", Quality::Major), in_c("G", Quality::DominantSeventh)], &rules);
-    let (after_best, after_rival) = (c_major_hearings(&pending, 0), c_major_hearings(&pending, 1));
+    let (after_best, after_rival) =
+        (c_major_chord_hypotheses(&pending, 0), c_major_chord_hypotheses(&pending, 1));
     assert!(!after_rival.is_empty() && after_rival.iter().all(|h| !after_best.contains(h)));
 }

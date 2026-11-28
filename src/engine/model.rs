@@ -1,4 +1,4 @@
-//! What the search's two layers hold: readings, the chord layer's segments and hearings,
+//! What the search's two layers hold: readings, the chord layer's segments and hypotheses,
 //! and the key layer's segments and hypotheses.
 
 use super::bass::Bass;
@@ -11,13 +11,13 @@ use serde::Serialize;
 /// Marks the absence of an index into the hypotheses.
 pub const NONE: u32 = u32::MAX;
 
-/// The index of a hearing in the chord layer's store.
+/// The index of a chord hypothesis in the chord layer's store.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct HearingId(pub u32);
+pub struct ChordHypothesisId(pub u32);
 
-impl HearingId {
-    /// Marks the absence of a hearing.
-    pub const NONE: HearingId = HearingId(u32::MAX);
+impl ChordHypothesisId {
+    /// Marks the absence of a chord hypothesis.
+    pub const NONE: ChordHypothesisId = ChordHypothesisId(u32::MAX);
 }
 
 /// How a chord relates to the key it is read in.
@@ -80,37 +80,37 @@ impl ChordSegment {
     }
 }
 
-/// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
+/// A chord hypothesis: the chord layer's reading of every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
-pub struct Hearing {
-    /// The last hearing of the preceding segment, or `HearingId::NONE`.
-    pub previous: HearingId,
+pub struct ChordHypothesis {
+    /// The last chord hypothesis of the preceding segment, or `ChordHypothesisId::NONE`.
+    pub previous: ChordHypothesisId,
     pub slice: u32,
-    /// The segment that the hearing ends in.
+    /// The segment that the chord hypothesis ends in.
     pub segment: ChordSegment,
-    /// The sum of the chord rules' weighted scores along the hearing.
+    /// The sum of the chord rules' weighted scores along the chord hypothesis.
     pub score: f32,
 }
 
-/// A hypothesis, or complete interpretation,
-/// which reads the latest segment of one hearing of the chords in a key.
-/// Through its parents it reads every slice up to its hearing's last slice.
+/// A key hypothesis, or complete interpretation,
+/// which reads the latest segment of one chord hypothesis in a key.
+/// Through its parents it reads every slice up to its chord hypothesis's last slice.
 ///
-/// `H` is the type of the index of its hearing.
-/// The search proposes hypotheses that read hearings not yet stored,
+/// `H` is the type of the index of its chord hypothesis.
+/// The search proposes hypotheses that read chord hypotheses not yet stored,
 /// and indexes those with a type of its own.
 #[derive(Clone, Copy, Debug)]
-pub struct Hypothesis<H = HearingId> {
-    /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
+pub struct KeyHypothesis<H = ChordHypothesisId> {
+    /// Index in the key hypotheses of the hypothesis up to the slice before, or `NONE`.
     pub parent: u32,
-    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
+    /// Index in the key hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
-    /// The hearing of the chords that this hypothesis interprets.
-    pub hearing: H,
-    /// The function of the hearing's latest chord, in the key the hypothesis hears it in.
+    /// The chord hypothesis that this key hypothesis interprets.
+    pub chord_hypothesis: H,
+    /// The function of the chord hypothesis's latest chord, in the key the hypothesis hears it in.
     pub function: Function,
     /// The sum of every weighted rule score along the hypothesis:
-    /// its hearing's score plus the key layer's rule scores.
+    /// its chord hypothesis's score plus the key layer's rule scores.
     pub score: f32,
 }
 

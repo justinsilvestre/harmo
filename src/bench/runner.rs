@@ -119,8 +119,8 @@ pub struct Timing {
     pub hindsight: f64,
     /// The number of hypotheses that the search kept, over all slices.
     pub hypotheses: usize,
-    /// The number of hearings of the chords that the search kept, over all slices.
-    pub hearings: usize,
+    /// The number of chord hypotheses that the search kept, over all slices.
+    pub chord_hypotheses: usize,
 }
 
 /// Loads pieces in parallel, returning the loaded pieces and (piece id, error) pairs for failures.
@@ -190,8 +190,8 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let (layers, hindsight, timing) = layered_frames(&analysis, piece, top.len(), config);
     let timing = Timing {
         search,
-        hypotheses: analysis.layers.hypotheses.len(),
-        hearings: analysis.layers.hearings.len(),
+        hypotheses: analysis.layers.key_hypotheses.len(),
+        chord_hypotheses: analysis.layers.chord_hypotheses.len(),
         ..timing
     };
     let layered = (layers.as_slice(), hindsight.as_deref());
@@ -350,9 +350,9 @@ pub fn offered_from(analysis: &Analysis, beam: &[u32], at: usize, config: &EvalC
     let Some(&best) = beam.first() else {
         return vec![];
     };
-    let best_score = analysis.layers.hypotheses[best as usize].score;
+    let best_score = analysis.layers.key_hypotheses[best as usize].score;
     let is_close = |hypothesis: &&u32| {
-        best_score - analysis.layers.hypotheses[**hypothesis as usize].score <= config.offer_margin
+        best_score - analysis.layers.key_hypotheses[**hypothesis as usize].score <= config.offer_margin
     };
     let mut labels: Vec<Label> = Vec::new();
     for &hypothesis in beam.iter().filter(is_close) {

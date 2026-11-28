@@ -26,7 +26,7 @@ const USAGE: &str = "usage:
   harmo inspect <piece-id> [--analyst NAME]
   harmo labelfit [--set NAME]... [--piece TEXT [--measures A-B]] [--min-gain FRAMES] [--top N] [--json]
   harmo rules
-common options: --data DIR (default: data) --beam N --hearings N --candidates N --distinct-depth N
+common options: --data DIR (default: data) --beam N --chord-hypotheses N --candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
   --key-offer-margin X --chord-offer-margin X --numeral-offer-margin X (the margins of readings
     offered one layer at a time; each defaults to --offer-margin)
@@ -263,7 +263,8 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
     Ok(EvalConfig {
         engine: Config {
             beam_width: number("beam", defaults.engine.beam_width as f64)? as usize,
-            hearing_width: number("hearings", defaults.engine.hearing_width as f64)? as usize,
+            chord_hypothesis_width: number("chord-hypotheses", defaults.engine.chord_hypothesis_width as f64)?
+                as usize,
             candidate_limit: number("candidates", defaults.engine.candidate_limit as f64)? as usize,
             distinct_depth: number("distinct-depth", defaults.engine.distinct_depth as f64)? as usize,
             record_snapshots: false,
@@ -284,7 +285,7 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
 fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
     [
         ("beam", config.engine.beam_width as f64),
-        ("hearings", config.engine.hearing_width as f64),
+        ("chord_hypotheses", config.engine.chord_hypothesis_width as f64),
         ("candidates", config.engine.candidate_limit as f64),
         ("distinct_depth", config.engine.distinct_depth as f64),
         ("offer_count", config.offer_count as f64),

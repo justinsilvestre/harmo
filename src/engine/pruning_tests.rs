@@ -1,5 +1,7 @@
 use super::*;
-use crate::engine::model::{ChordSegment, Function, Hearing, HearingId, Hypothesis, NONE, Reading};
+use crate::engine::model::{
+    ChordHypothesis, ChordHypothesisId, ChordSegment, Function, KeyHypothesis, NONE, Reading,
+};
 use crate::engine::test_layers::{key_segment, layers_of};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
@@ -19,15 +21,15 @@ fn segment(root: &str, start: u32) -> KeySegment {
 }
 
 /// A pending hypothesis reading G in C major, after hypothesis `previous`,
-/// that reads pending hearing `hearing`.
-fn to_g(previous: u32, hearing: u32, score: f32) -> PendingHypothesis {
-    let (function, hearing) = (reading("G").function, PendingHearingId(hearing));
-    Hypothesis { parent: previous, previous, hearing, function, score }
+/// that reads pending chord hypothesis `chord_hypothesis`.
+fn to_g(previous: u32, chord_hypothesis: u32, score: f32) -> PendingKeyHypothesis {
+    let (function, chord_hypothesis) = (reading("G").function, PendingChordHypothesisId(chord_hypothesis));
+    KeyHypothesis { parent: previous, previous, chord_hypothesis, function, score }
 }
 
 /// Two opening segments with the given roots (hypotheses 0 and 1),
 /// and two pending hypotheses that move to G after the first and the second of them respectively,
-/// with scores -2 and -1. Each reads a pending hearing of its own: the first opens on slice 1,
+/// with scores -2 and -1. Each reads a pending chord hypothesis of its own: the first opens on slice 1,
 /// the second on slice 2.
 struct Fixture {
     layers: Layers,
@@ -36,14 +38,17 @@ struct Fixture {
 
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
     let layers = layers_of(&[segment(first_root, 0), segment(second_root, 0)], &[NONE, NONE]);
-    let hearing = |previous: u32, start: u32| Hearing {
-        previous: HearingId(previous),
+    let chord_hypothesis = |previous: u32, start: u32| ChordHypothesis {
+        previous: ChordHypothesisId(previous),
         slice: start,
         segment: segment("G", start).heard,
         score: 0.0,
     };
-    let hearings = vec![hearing(0, 1), hearing(1, 2)];
-    Fixture { layers, pending: Pending { hearings, hypotheses: vec![to_g(0, 0, -2.0), to_g(1, 1, -1.0)] } }
+    let chord_hypotheses = vec![chord_hypothesis(0, 1), chord_hypothesis(1, 2)];
+    Fixture {
+        layers,
+        pending: Pending { chord_hypotheses, key_hypotheses: vec![to_g(0, 0, -2.0), to_g(1, 1, -1.0)] },
+    }
 }
 
 /// A rule set whose only rule counts segments with equal readings as the same.
@@ -63,7 +68,7 @@ fn pruned(fixture: Fixture, rules: &RuleSet, config: &Config) -> (Vec<f32>, Vec<
 fn kept_starts(fixture: Fixture, config: &Config) -> Vec<u32> {
     let Fixture { layers, pending } = fixture;
     let (kept, _) = prune(&pending, &layers, &distinguishing_rules(), config);
-    kept.iter().map(|h| pending.hearing(h.hearing).segment.start).collect()
+    kept.iter().map(|h| pending.chord_hypothesis(h.chord_hypothesis).segment.start).collect()
 }
 
 /// The search with merging turned on, at the depth used before round 8.
@@ -121,24 +126,24 @@ fn prune_keeps_at_most_beam_width_hypotheses() {
     assert_eq!(kept_starts(fixture("C", "F"), &config), [2]);
 }
 
-/// The fixture with a third pending hypothesis, the worst, that reads the same hearing as the best.
+/// The fixture with a third pending hypothesis, the worst, that reads the same chord hypothesis as the best.
 fn sharing() -> Fixture {
     let mut fixture = fixture("C", "F");
-    fixture.pending.hypotheses.push(to_g(1, 1, -3.0));
+    fixture.pending.key_hypotheses.push(to_g(1, 1, -3.0));
     fixture
 }
 
-/// The search with room for one hearing of the chords in the beam.
-fn one_hearing() -> Config {
-    Config { hearing_width: 1, ..Config::default() }
+/// The search with room for one chord hypothesis in the beam.
+fn one_chord_hypothesis() -> Config {
+    Config { chord_hypothesis_width: 1, ..Config::default() }
 }
 
 #[test]
-fn prune_records_hypotheses_cut_by_the_hearing_limit() {
-    assert_eq!(dropped_causes(sharing(), &one_hearing()), [PruneCause::HearingWidth]);
+fn prune_records_hypotheses_cut_by_the_chord_hypothesis_limit() {
+    assert_eq!(dropped_causes(sharing(), &one_chord_hypothesis()), [PruneCause::ChordHypothesisWidth]);
 }
 
 #[test]
-fn prune_keeps_hypotheses_that_read_a_kept_hearing_beyond_the_hearing_limit() {
-    assert_eq!(pruned(sharing(), &distinguishing_rules(), &one_hearing()).0, [-1.0, -3.0]);
+fn prune_keeps_hypotheses_that_read_a_kept_chord_hypothesis_beyond_the_chord_hypothesis_limit() {
+    assert_eq!(pruned(sharing(), &distinguishing_rules(), &one_chord_hypothesis()).0, [-1.0, -3.0]);
 }

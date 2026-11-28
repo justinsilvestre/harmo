@@ -7,7 +7,7 @@ use super::chord_hooks::{
 };
 use super::key_contexts::{History, KeyCloseContext, KeySliceContext, KeyTransitionContext};
 use super::key_hooks::{KeyHook, KeySliceFn};
-use super::model::{HearingId, NONE};
+use super::model::{ChordHypothesisId, NONE};
 use super::path::SegmentReading;
 use super::rule::{Hook, Topic};
 use super::ruleset::RuleSet;
@@ -34,12 +34,12 @@ pub fn trace_segment(
 ) -> Vec<Contribution> {
     let layers = &analysis.layers;
     let state = layers.segment(segment.hypothesis);
-    let previous_hypothesis = layers.hypotheses[segment.hypothesis as usize].previous;
-    let heard = layers.hearing_of(segment.hypothesis);
-    let hearing = &heard.segment;
+    let previous_hypothesis = layers.key_hypotheses[segment.hypothesis as usize].previous;
+    let heard = layers.chord_hypothesis_of(segment.hypothesis);
+    let chord_hypothesis = &heard.segment;
     let previous = (previous_hypothesis != NONE).then(|| layers.segment(previous_hypothesis));
-    let previous_hearing =
-        (heard.previous != HearingId::NONE).then(|| &layers.hearing(heard.previous).segment);
+    let previous_chord_hypothesis =
+        (heard.previous != ChordHypothesisId::NONE).then(|| &layers.chord_hypothesis(heard.previous).segment);
     let (first, end) = segment.slices;
     let transition = KeyTransitionContext {
         previous: previous.as_ref(),
@@ -48,20 +48,23 @@ pub fn trace_segment(
         history: History { layers, slices, last: previous_hypothesis },
     };
     let chord_transition = ChordTransitionContext {
-        previous: previous_hearing,
-        next: hearing.chord,
+        previous: previous_chord_hypothesis,
+        next: chord_hypothesis.chord,
         slice: &slices[first],
         slices,
     };
     let close = KeyCloseContext { segment: &state, slices: &slices[first..end], next_slice: slices.get(end) };
-    let chord_close =
-        ChordCloseContext { segment: hearing, slices: &slices[first..end], next_slice: slices.get(end) };
+    let chord_close = ChordCloseContext {
+        segment: chord_hypothesis,
+        slices: &slices[first..end],
+        next_slice: slices.get(end),
+    };
     let slice_sum = |f: KeySliceFn, params: &[f64]| -> f32 {
         let context = |i: usize| KeySliceContext::at(slices, i, &segment.reading, i == first);
         (first..end).map(|i| f(&context(i), params)).sum()
     };
     let chord_slice_sum = |f: ChordSliceFn, params: &[f64]| -> f32 {
-        let context = |i: usize| ChordSliceContext::at(slices, i, hearing.chord, i == first);
+        let context = |i: usize| ChordSliceContext::at(slices, i, chord_hypothesis.chord, i == first);
         (first..end).map(|i| f(&context(i), params)).sum()
     };
     let mut contributions = Vec::new();
@@ -102,7 +105,7 @@ mod tests {
     /// For each final hypothesis of I–V–I,
     /// returns its trace's weighted sum in the given layer beside the score it should equal:
     /// the ranking score for both layers together,
-    /// or the hearing's score plus its last close for the chord layer.
+    /// or the chord hypothesis's score plus its last close for the chord layer.
     fn sums(layer: Option<Layer>) -> Vec<(f32, f32)> {
         let (slices, rules) =
             (i_v_i(), RuleSet::new(crate::rules::default_rules(), &Default::default()).unwrap());
@@ -115,8 +118,8 @@ mod tests {
         };
         let expected = |&(hypothesis, score): &(u32, f32)| match layer {
             Some(_) => {
-                let hearing = analysis.layers.hearing_of(hypothesis);
-                hearing.score + chord_close(&slices, &hearing.segment, slices.len(), &rules)
+                let chord_hypothesis = analysis.layers.chord_hypothesis_of(hypothesis);
+                chord_hypothesis.score + chord_close(&slices, &chord_hypothesis.segment, slices.len(), &rules)
             }
             None => score,
         };
@@ -134,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    fn the_chord_layer_of_a_trace_sums_to_the_hearing_score_and_its_last_close() {
+    fn the_chord_layer_of_a_trace_sums_to_the_chord_hypothesis_score_and_its_last_close() {
         assert!(agree(&sums(Some(Layer::Chord))));
     }
 }

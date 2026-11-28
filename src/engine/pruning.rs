@@ -8,7 +8,7 @@
 
 use super::layers::Layers;
 use super::model::KeySegment;
-use super::pending::{Pending, PendingHearingId, PendingHypothesis};
+use super::pending::{Pending, PendingChordHypothesisId, PendingKeyHypothesis};
 use super::ruleset::RuleSet;
 use super::search::Config;
 use serde::Serialize;
@@ -19,9 +19,9 @@ use std::collections::{HashMap, HashSet};
 pub enum PruneCause {
     /// The beam was already full of better hypotheses.
     Width,
-    /// The beam already held `Config::hearing_width` hearings of the chords,
+    /// The beam already held `Config::chord_hypothesis_width` chord hypotheses,
     /// each interpreted by a better hypothesis, and this hypothesis interprets another.
-    HearingWidth,
+    ChordHypothesisWidth,
     /// A better hypothesis whose last `Config::distinct_depth` segments the distinguish rules count
     /// as the same was kept instead. `keeper` is its index in the hypotheses.
     Merged { keeper: u32 },
@@ -31,7 +31,7 @@ impl PruneCause {
     pub fn name(self) -> &'static str {
         match self {
             PruneCause::Width => "beam_width",
-            PruneCause::HearingWidth => "hearing_width",
+            PruneCause::ChordHypothesisWidth => "chord_hypothesis_width",
             PruneCause::Merged { .. } => "distinct_depth",
         }
     }
@@ -61,7 +61,7 @@ pub struct Departure {
     pub competing_rank: usize,
     /// How far that hypothesis's score fell below the best competing hypothesis.
     pub score_gap: f32,
-    /// `beam_width`, `hearing_width` or `distinct_depth`.
+    /// `beam_width`, `chord_hypothesis_width` or `distinct_depth`.
     pub cause: &'static str,
     /// For `distinct_depth`, the rank in the new beam of the hypothesis kept in its place.
     pub merged_into_rank: Option<usize>,
@@ -72,7 +72,7 @@ pub struct Departure {
 
 /// Keeps the best of the pending hypotheses, in order,
 /// skipping any that would take the beam past its limit
-/// of hearings and any whose recent segments the rules count
+/// of chord hypotheses and any whose recent segments the rules count
 /// as the same as those of a better one (see `Config::distinct_depth`). The sort is stable,
 /// so ties are broken by the order in which the hypotheses were proposed.
 /// Also returns the dropped hypotheses when `Config::record_pruning` is set.
@@ -81,12 +81,12 @@ pub fn prune(
     layers: &Layers,
     rules: &RuleSet,
     config: &Config,
-) -> (Vec<PendingHypothesis>, Vec<Pruned>) {
-    let mut ranked = pending.hypotheses.clone();
+) -> (Vec<PendingKeyHypothesis>, Vec<Pruned>) {
+    let mut ranked = pending.key_hypotheses.clone();
     ranked.sort_by(|a, b| b.score.total_cmp(&a.score));
     let merges = config.distinct_depth > 0 && !rules.key.distinguish.is_empty();
     let pruner = Pruner { pending, layers, rules, config, merges };
-    let mut kept = Kept::new(layers.hypotheses.len() as u32, config.beam_width);
+    let mut kept = Kept::new(layers.key_hypotheses.len() as u32, config.beam_width);
     let mut dropped = Vec::new();
     for (rank, hypothesis) in ranked.into_iter().enumerate() {
         match pruner.judge(&kept, &hypothesis) {
@@ -96,7 +96,7 @@ pub fn prune(
             Err(_) => {}
         }
     }
-    (kept.hypotheses, dropped)
+    (kept.key_hypotheses, dropped)
 }
 
 /// What pruning judges each hypothesis by.
@@ -111,9 +111,9 @@ struct Pruner<'a> {
 
 /// The hypotheses kept so far, best first, with what later ones are compared against.
 struct Kept {
-    hypotheses: Vec<PendingHypothesis>,
-    /// The hearings that the kept hypotheses interpret.
-    hearings: HashSet<PendingHearingId>,
+    key_hypotheses: Vec<PendingKeyHypothesis>,
+    /// The chord hypotheses that the kept hypotheses interpret.
+    chord_hypotheses: HashSet<PendingChordHypothesisId>,
     /// The index in the hypotheses that each kept signature's hypothesis will have once stored.
     signatures: HashMap<Vec<u64>, u32>,
     /// The index in the hypotheses that the first kept hypothesis will have once stored.
@@ -122,14 +122,17 @@ struct Kept {
 
 impl Pruner<'_> {
     /// Returns why the hypothesis cannot join the beam, or else its signature if hypotheses are merged.
-    fn judge(&self, kept: &Kept, hypothesis: &PendingHypothesis) -> Result<Option<Vec<u64>>, PruneCause> {
+    fn judge(&self, kept: &Kept, hypothesis: &PendingKeyHypothesis) -> Result<Option<Vec<u64>>, PruneCause> {
         let config = self.config;
-        if kept.hypotheses.len() == config.beam_width {
+        if kept.key_hypotheses.len() == config.beam_width {
             return Err(PruneCause::Width);
         }
-        let is_new_hearing = !kept.hearings.contains(&hypothesis.hearing);
-        if config.hearing_width > 0 && kept.hearings.len() == config.hearing_width && is_new_hearing {
-            return Err(PruneCause::HearingWidth);
+        let is_new_chord_hypothesis = !kept.chord_hypotheses.contains(&hypothesis.chord_hypothesis);
+        if config.chord_hypothesis_width > 0
+            && kept.chord_hypotheses.len() == config.chord_hypothesis_width
+            && is_new_chord_hypothesis
+        {
+            return Err(PruneCause::ChordHypothesisWidth);
         }
         if !self.merges {
             return Ok(None);
@@ -143,7 +146,7 @@ impl Pruner<'_> {
 
     /// Returns the distinguish hooks' values for a hypothesis's last segment
     /// and for up to `distinct_depth - 1` segments before it, most recent first.
-    fn signature(&self, hypothesis: &PendingHypothesis) -> Vec<u64> {
+    fn signature(&self, hypothesis: &PendingKeyHypothesis) -> Vec<u64> {
         let (layers, key_rules) = (self.layers, &self.rules.key);
         let depth = self.config.distinct_depth;
         let mut values = Vec::with_capacity(depth * key_rules.distinguish.len());
@@ -154,7 +157,7 @@ impl Pruner<'_> {
         values
     }
 
-    fn record(&self, hypothesis: &PendingHypothesis, rank: usize, cause: PruneCause) -> Pruned {
+    fn record(&self, hypothesis: &PendingKeyHypothesis, rank: usize, cause: PruneCause) -> Pruned {
         let (parent, previous, score) = (hypothesis.parent, hypothesis.previous, hypothesis.score);
         Pruned { parent, previous, score, segment: self.pending.segment(hypothesis), rank, cause }
     }
@@ -162,16 +165,16 @@ impl Pruner<'_> {
 
 impl Kept {
     fn new(first: u32, beam_width: usize) -> Kept {
-        let (hearings, signatures) = (HashSet::new(), HashMap::new());
-        Kept { hypotheses: Vec::with_capacity(beam_width), hearings, signatures, first }
+        let (chord_hypotheses, signatures) = (HashSet::new(), HashMap::new());
+        Kept { key_hypotheses: Vec::with_capacity(beam_width), chord_hypotheses, signatures, first }
     }
 
-    fn add(&mut self, hypothesis: PendingHypothesis, signature: Option<Vec<u64>>) {
+    fn add(&mut self, hypothesis: PendingKeyHypothesis, signature: Option<Vec<u64>>) {
         if let Some(signature) = signature {
-            self.signatures.insert(signature, self.first + self.hypotheses.len() as u32);
+            self.signatures.insert(signature, self.first + self.key_hypotheses.len() as u32);
         }
-        self.hearings.insert(hypothesis.hearing);
-        self.hypotheses.push(hypothesis);
+        self.chord_hypotheses.insert(hypothesis.chord_hypothesis);
+        self.key_hypotheses.push(hypothesis);
     }
 }
 

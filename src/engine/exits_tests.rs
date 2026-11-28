@@ -43,7 +43,7 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
     let rules = rules(rival_hook);
     let mut layers = layers_of(&readings.map(key_segment), &[NONE, NONE]);
     for (i, score) in scores.into_iter().enumerate() {
-        (layers.hypotheses[i].score, layers.hearings[i].slice) = (score, 2);
+        (layers.key_hypotheses[i].score, layers.chord_hypotheses[i].slice) = (score, 2);
     }
     let slices = vec![slice_of(0.0, &[]); 4];
     let moment = Moment { slices: &slices, index: 3, layers: &layers };

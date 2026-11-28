@@ -2,22 +2,22 @@
 
 use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
 use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
-use super::model::{ChordSegment, HearingId, KeySegment, NONE};
+use super::model::{ChordHypothesisId, ChordSegment, KeySegment, NONE};
 use super::moment::Moment;
 use super::proposals::{Opening, ProposedChord};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use std::collections::HashMap;
 
-/// What leaving a hearing on the moment's slice scores in the chord layer.
+/// What leaving a chord hypothesis on the moment's slice scores in the chord layer.
 pub struct ChordExit {
-    /// The hearing, or `HearingId::NONE` at the start of the piece.
-    pub hearing: HearingId,
-    /// The hearing's score before it is left.
+    /// The chord hypothesis, or `ChordHypothesisId::NONE` at the start of the piece.
+    pub chord_hypothesis: ChordHypothesisId,
+    /// The chord hypothesis's score before it is left.
     pub score: f32,
-    /// The chord close rules' score of the hearing's last segment.
+    /// The chord close rules' score of the chord hypothesis's last segment.
     pub close: f32,
-    /// The chord transition rules' score of opening each proposed chord after the hearing,
+    /// The chord transition rules' score of opening each proposed chord after the chord hypothesis,
     /// in the order of `Proposals::chords`.
     pub transitions: Vec<f32>,
 }
@@ -27,7 +27,7 @@ pub struct ChordExit {
 pub struct KeyExit {
     /// The hypothesis, or `NONE` at the start of the piece.
     pub hypothesis: u32,
-    /// The position in `Exits::chords` of the exit of the hearing that the hypothesis interprets.
+    /// The position in `Exits::chords` of the exit of the chord hypothesis that the hypothesis interprets.
     pub chord_exit: usize,
     /// The hypothesis's score before it is left.
     pub score: f32,
@@ -40,7 +40,7 @@ pub struct KeyExit {
     pub rivals: Vec<Option<Rival>>,
 }
 
-/// The exits of every hypothesis in the beam, and one exit for each hearing that they interpret.
+/// The exits of every hypothesis in the beam, and one exit for each chord hypothesis that they interpret.
 pub struct Exits {
     pub chords: Vec<ChordExit>,
     pub keys: Vec<KeyExit>,
@@ -65,11 +65,11 @@ impl Exits {
             return Exits::from_start(moment, proposed, rules);
         }
         let (mut chords, mut keys) = (Vec::new(), Vec::with_capacity(beam.len()));
-        let mut positions: HashMap<HearingId, usize> = HashMap::new();
+        let mut positions: HashMap<ChordHypothesisId, usize> = HashMap::new();
         for &hypothesis in beam {
-            let hearing = moment.layers.hypotheses[hypothesis as usize].hearing;
-            let chord_exit = *positions.entry(hearing).or_insert_with(|| {
-                chords.push(chord_exit(moment, hearing, proposed, rules));
+            let chord_hypothesis = moment.layers.key_hypotheses[hypothesis as usize].chord_hypothesis;
+            let chord_exit = *positions.entry(chord_hypothesis).or_insert_with(|| {
+                chords.push(chord_exit(moment, chord_hypothesis, proposed, rules));
                 chords.len() - 1
             });
             keys.push(key_exit(moment, hypothesis, chord_exit, rules));
@@ -79,7 +79,8 @@ impl Exits {
 
     fn from_start(moment: &Moment, proposed: &[ProposedChord], rules: &RuleSet) -> Exits {
         let transitions = chord_transitions(moment, None, proposed, rules);
-        let chord = ChordExit { hearing: HearingId::NONE, score: 0.0, close: 0.0, transitions };
+        let chord =
+            ChordExit { chord_hypothesis: ChordHypothesisId::NONE, score: 0.0, close: 0.0, transitions };
         let (departures, rivals) = (Vec::new(), Vec::new());
         let key = KeyExit {
             hypothesis: NONE,
@@ -147,11 +148,16 @@ fn best_of(scored: &[Predecessor], positions: impl Iterator<Item = usize>) -> Op
     positions.max_by(|&a, &b| scored[a].score.total_cmp(&scored[b].score))
 }
 
-fn chord_exit(moment: &Moment, hearing: HearingId, proposed: &[ProposedChord], rules: &RuleSet) -> ChordExit {
-    let heard = moment.layers.hearing(hearing);
+fn chord_exit(
+    moment: &Moment,
+    chord_hypothesis: ChordHypothesisId,
+    proposed: &[ProposedChord],
+    rules: &RuleSet,
+) -> ChordExit {
+    let heard = moment.layers.chord_hypothesis(chord_hypothesis);
     let close = chord_close(moment.slices, &heard.segment, moment.index, rules);
     let transitions = chord_transitions(moment, Some(&heard.segment), proposed, rules);
-    ChordExit { hearing, score: heard.score, close, transitions }
+    ChordExit { chord_hypothesis, score: heard.score, close, transitions }
 }
 
 /// Scores, in the chord layer, opening each proposed chord after a segment,
@@ -186,7 +192,7 @@ fn key_exit(moment: &Moment, hypothesis: u32, chord_exit: usize, rules: &RuleSet
     KeyExit {
         hypothesis,
         chord_exit,
-        score: moment.layers.hypotheses[hypothesis as usize].score,
+        score: moment.layers.key_hypotheses[hypothesis as usize].score,
         segment: Some(segment),
         close: key_close(moment.slices, &segment, moment.index, rules),
         departures: rules.key.score_departures(&departure),

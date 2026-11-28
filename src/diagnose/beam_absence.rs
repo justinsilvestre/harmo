@@ -15,10 +15,10 @@ pub enum Absence {
     /// The last hypotheses holding it were pruned because the beam was full of better ones.
     /// `after` is how many quarter notes after the frame's slice began they were pruned.
     Width { after: f64 },
-    /// The last hypotheses holding it were pruned because the beam already held as many hearings
-    /// of the chords as it may (see `Config::hearing_width`), each read by a better hypothesis,
-    /// and they read another hearing.
-    Hearings { after: f64 },
+    /// The last hypotheses holding it were pruned because the beam already held as many chord hypotheses
+    /// of the chords as it may (see `Config::chord_hypothesis_width`), each read by a better hypothesis,
+    /// and they read another chord hypothesis.
+    ChordHypotheses { after: f64 },
     /// The last hypotheses holding it were pruned
     /// in favour of better ones that give their recent segments the same readings
     /// with other boundaries (see `Config::distinct_depth`).
@@ -48,7 +48,7 @@ pub fn find_pruning(
     let after = slices[slice].start - slices[at].start;
     Some(match cause {
         PruneCause::Width => Absence::Width { after },
-        PruneCause::HearingWidth => Absence::Hearings { after },
+        PruneCause::ChordHypothesisWidth => Absence::ChordHypotheses { after },
         PruneCause::Merged { .. } => Absence::Merged { after },
     })
 }

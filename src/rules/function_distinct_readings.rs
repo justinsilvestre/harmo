@@ -15,7 +15,7 @@ pub const RULES: &[Rule] = &[Rule {
               boundaries. Of such hypotheses the search keeps only the best, leaving room for \
               interpretations that differ in their harmony. A listener's interpretation is the \
               sequence of chords and keys heard, and two analyses that differ only in where a \
-              chord change falls by a slice or two are variants of one hearing.",
+              chord change falls by a slice or two are variants of one interpretation.",
     citations: &[Citation {
         source: TEMPERLEY_2001,
         locator: "pp. 15-19 (the search keeps the best analysis for each state, where a state is the label of the current segment)",

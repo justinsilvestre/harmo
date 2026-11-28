@@ -18,7 +18,7 @@ pub type KeyCloseFn = fn(&KeyCloseContext, &[f64]) -> f32;
 pub type AdmitFn = fn(&KeyTransitionContext) -> bool;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
 pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
-/// Returns the place of a hypothesis's last segment among rival hearings, or `None` if it has none.
+/// Returns the place of a hypothesis's last segment among rival readings, or `None` if it has none.
 pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<Rival>;
 /// Returns a rival reading of a slice for a candidate reading of it, or `None`.
 pub type RivalCandidateFn = fn(&Reading, &Slice, &[f64]) -> Option<Reading>;
@@ -45,12 +45,12 @@ pub enum KeyHook {
     /// Of the hypotheses whose last `Config::distinct_depth` segments get the same values
     /// from every distinguish hook, only the best is kept.
     Distinguish(DistinguishFn),
-    /// Names rival hearings of the same music.
+    /// Names rival readings of the same music.
     /// A new segment normally opens after the one hypothesis that leads into it best.
     /// When the hook puts that hypothesis's last segment in a group,
     /// the best hypothesis whose last segment is another member
     /// of the same group opens the new segment as well,
-    /// so that the rival hearing stays in the search.
+    /// so that the rival reading stays in the search.
     Rival(RivalFn),
     /// Names a rival reading of a slice for each candidate reading kept for a segment opening on it.
     /// When the proposers and interpreters produce the rival reading
