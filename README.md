@@ -52,7 +52,7 @@ Rules are pure functions with a weight, a topic (`chord`, `key` or `function`, t
 
 ### Layout
 
-- `src/engine/` is the core: the two layers' state (`model.rs`, `layers.rs`), the search (`search.rs`, which runs each slice's steps: `proposals.rs` proposes new readings, `exits.rs` scores leaving each hypothesis and finds the ones a new segment opens after, `continuations.rs` extends the beam by the slice, and `pruning.rs` chooses what the beam keeps), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and what key hooks receive in `key_contexts.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces and rank histories.
+- `src/engine/` is the core: what every layer shares (`hypothesis.rs`, the hypothesis record and typed index; `layers.rs`, each layer's store; `layer_history.rs`, the history that transition hooks read), each layer's units (`model.rs`), the search (`search.rs`, which runs each slice's steps: `proposals.rs` proposes new readings, `exits.rs` scores leaving each hypothesis and finds the ones a new segment opens after, `continuations.rs` extends the beam by the slice, and `pruning.rs` chooses what the beam keeps), the rule interface (`rule.rs`, with each layer's hooks in `chord_hooks.rs` and `key_hooks.rs`, and what key hooks receive in `key_contexts.rs`, and a rule set's hooks by layer in `ruleset.rs`, `chord_rules.rs` and `key_rules.rs`), path reconstruction, traces (`trace.rs`, with each layer's tracer in `chord_trace.rs` and `key_trace.rs`) and rank histories.
 - `src/rules/` is the rule catalog. Files are prefixed by topic (`chord_*`, `key_*`, `function_*`), and `sources.rs` holds the bibliography.
 - `src/theory/` holds keys, chord templates and Roman numeral labels.
 - `src/score/` holds the MusicXML reader, meter and slicing.
@@ -60,7 +60,7 @@ Rules are pure functions with a weight, a topic (`chord`, `key` or `function`, t
 - `src/bench/` loads the corpus, computes metrics, runs weight sweeps and writes reports.
 - `tools/prepare_corpus.py` is the only Python. It runs once, offline, to download the corpora and convert the RomanText analyses to JSON with music21. `tools/prepare_corpus_anet.py` adds the AugmentedNet corpora that When in Rome has no MusicXML for, converting Humdrum scores to MusicXML.
 
-The code avoids trait objects and macros: rules are plain structs holding function pointers, and chord hypotheses and key hypotheses live in two index-linked arenas. This keeps a TypeScript port straightforward.
+The code avoids trait objects and macros: rules are plain structs holding function pointers, and each layer's hypotheses live in an index-linked arena of one generic record. The layers form an ordered sequence, lowest first, with one store and one step of the search per layer and the same machinery for each; [docs/layers-in-the-engine.md](docs/layers-in-the-engine.md) describes it and how a layer would be added. This keeps a TypeScript port straightforward.
 
 ## Search
 
