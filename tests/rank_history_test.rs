@@ -8,6 +8,7 @@ use harmo::engine::rank_history::RankChange;
 use harmo::engine::ranking::Ranking;
 use harmo::engine::ruleset::{RuleSet, Weights};
 use harmo::engine::search::{Analysis, Config, analyze};
+use harmo::output::analysis::{OutputOptions, build_output};
 use harmo::rules::default_rules;
 use harmo::score::musicxml::read_score;
 use harmo::score::slicing::slice_score;
@@ -112,4 +113,18 @@ fn chord_layer_histories_match_the_ranks_found_by_walking_each_path() {
         histories.iter().map(|h| expanded_ranks(&h.changes, at, slices)).collect()
     };
     assert!((0..slices).all(|at| expanded(at) == walked_chord_ranks(&analysis, at)));
+}
+
+#[test]
+fn every_span_has_a_rank_history_in_each_layer() {
+    let score = read_score(Path::new("tests/fixtures/cadence.musicxml")).unwrap();
+    let slices = slice_score(&score);
+    let rules = RuleSet::new(default_rules(), &Weights::new()).unwrap();
+    let analysis = analyze(&slices, &rules, &narrow(true));
+    let output =
+        build_output(&score, &slices, &analysis, &rules, &OutputOptions { alternatives: 4, margin: 4.0 });
+    let histories = output.segments.iter().map(|s| &s.rank_histories_by_layer);
+    assert!(
+        histories.clone().count() > 0 && histories.clone().all(|h| !h.chord.is_empty() && !h.key.is_empty())
+    );
 }

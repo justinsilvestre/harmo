@@ -2,7 +2,8 @@
 //! the rules behind each reading and how its ranking changed over time.
 
 use super::rank_history::{
-    HistoryContext, PrunedAlternativeOutput, RankChangeOutput, pruned_alternatives, rank_history_output,
+    HistoryContext, PrunedAlternativeOutput, RankChangeOutput, RankHistoriesByLayerOutput,
+    pruned_alternatives, rank_histories_by_layer, rank_history_output,
 };
 use crate::engine::history::{ReadingHistory, rank_histories};
 use crate::engine::model::{Category, Reading};
@@ -55,6 +56,8 @@ pub struct SegmentOutput {
     /// Readings that the beam held for the span's first slice but later dropped, best first.
     /// Each rank history ends with when and why the reading left the beam.
     pub pruned_alternatives: Vec<PrunedAlternativeOutput>,
+    /// The rank histories of the span's reading in each layer's own rankings.
+    pub rank_histories_by_layer: RankHistoriesByLayerOutput,
 }
 
 #[derive(Serialize, Clone, PartialEq)]
@@ -141,6 +144,7 @@ fn segment_output(segment: &SegmentReading, context: &Context) -> SegmentOutput 
         trace: trace_segment(context.analysis, context.slices, context.rules, segment),
         rank_history: history_of(&segment.reading),
         pruned_alternatives: pruned_alternatives(&histories, &history_context, context.alternatives),
+        rank_histories_by_layer: rank_histories_by_layer(segment, &history_context),
     }
 }
 

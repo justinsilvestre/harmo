@@ -1,20 +1,20 @@
 # What a layer is
 
-The search now has two layers: chord hypotheses, and key hypotheses that read them (see `layered-listener.md` and `layered-search.md`). The two layers are built differently, and the second has no unit of its own. This note states what every layer should have in common, for the work that generalizes the engine to more layers.
+The search has two layers: chord hypotheses, and key hypotheses that read them (see `layered-listener.md` and `layered-search.md`). This note states what every layer has in common, and records the decisions about what each layer's unit is and how layers relate. [`layers-in-the-engine.md`](layers-in-the-engine.md) describes how the engine builds them.
 
 ## Where the two layers stand
 
 - **Chord hypotheses** have segments of their own: where a chord begins, what it is and its bass.
-- **Key hypotheses** have no unit of their own. A key hypothesis's segment is a chord segment with a key and a function added. A layer whose unit spans several chords, such as a cadence or a phrase, cannot be built this way.
-- **The machinery is shared where nothing musical tells the two layers apart.** Both layers:
+- **Key hypotheses** hold one key reading of each chord segment: its key and its function there. A key hypothesis's segment is therefore a chord segment with a key and a function added (see the settled questions).
+- **The engine runs the layers as one ordered sequence,** with the same machinery for each. Both layers:
   - index their hypotheses with the same kind of typed index;
   - link each hypothesis to its own layer's hypothesis at the slice before and to the last one of the segment before;
   - give transition hooks their own layer's earlier segments;
   - walk paths and traces by their own links;
-  - store only their own layer's score.
+  - store only their own layer's score;
+  - are ranked at every slice in their own stores, and have rank histories of their own readings.
 
-  One difference remains: rank histories exist only for whole readings. The hooks that merge readings and name rival candidates stay in the key layer, and the hook that names rival chords is in the chord layer (see the settled questions).
-- **The engine names exactly two layers.** Each is special-cased rather than handled as one step in a sequence.
+  Each layer has the hooks whose judgments it makes: the hook that names rival chords is in the chord layer, and the hooks that merge readings and name rival candidates are in the key layer (see the settled questions).
 
 ## A topic can be judged at more than one layer
 

@@ -1,10 +1,11 @@
 //! Rank histories in the analysis document, with an account of when and why a reading left the beam.
 
 use super::analysis::{ReadingOutput, reading_output};
-use crate::engine::history::{ReadingHistory, segment_at};
+use crate::engine::history::{ReadingHistory, chord_reading_at, layer_rank_histories, segment_at};
 use crate::engine::model::KeyHypothesisId;
+use crate::engine::path::SegmentReading;
 use crate::engine::pruning::Departure;
-use crate::engine::rank_history::RankChange;
+use crate::engine::rank_history::{RankChange, RankHistory};
 use crate::engine::search::Analysis;
 use crate::score::model::Score;
 use crate::score::slicing::{Slice, measure_at};
@@ -38,6 +39,14 @@ pub struct PrunedAlternativeOutput {
     pub rank_history: Vec<RankChangeOutput>,
 }
 
+/// The rank histories of a span's reading in each layer, named for the layer's unit:
+/// its chord and bass in the chord layer's rankings, and its function in the key layer's.
+#[derive(Serialize)]
+pub struct RankHistoriesByLayerOutput {
+    pub chord: Vec<RankChangeOutput>,
+    pub key: Vec<RankChangeOutput>,
+}
+
 /// What converting a rank history needs: the slice whose reading is followed, and the music.
 pub struct HistoryContext<'a> {
     pub at: usize,
@@ -46,8 +55,31 @@ pub struct HistoryContext<'a> {
     pub analysis: &'a Analysis,
 }
 
-pub fn rank_history_output(history: &ReadingHistory, context: &HistoryContext) -> Vec<RankChangeOutput> {
+pub fn rank_history_output<T, U>(
+    history: &RankHistory<T, U>,
+    context: &HistoryContext,
+) -> Vec<RankChangeOutput> {
     history.changes.iter().map(|change| rank_change_output(change, context)).collect()
+}
+
+/// Gives the rank histories of the span's reading of its first slice in each layer.
+/// The chord layer's reading has the bass heard by that slice, which may differ from the span's final inversion.
+pub fn rank_histories_by_layer(
+    segment: &SegmentReading,
+    context: &HistoryContext,
+) -> RankHistoriesByLayerOutput {
+    let (analysis, at) = (context.analysis, context.at);
+    let histories = layer_rank_histories(analysis, at);
+    let chord = &analysis.layers.chord;
+    let last = analysis.layers.key.get(segment.hypothesis).reads;
+    let reading = chord.ranking(at).and_then(|first| chord.ancestor_in(last, first));
+    let reading = reading.and_then(|ancestor| chord_reading_at(analysis, ancestor, at));
+    let chord_history = histories.chord.iter().find(|h| Some(h.reading) == reading);
+    let key_history = histories.key.iter().find(|h| h.reading == segment.reading.function);
+    RankHistoriesByLayerOutput {
+        chord: chord_history.map_or(vec![], |h| rank_history_output(h, context)),
+        key: key_history.map_or(vec![], |h| rank_history_output(h, context)),
+    }
 }
 
 /// Lists, best first, up to `count` readings of the span's first slice that left the beam.
