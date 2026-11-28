@@ -1,6 +1,6 @@
 //! The stores of the search's two layers.
 
-use super::model::{Hearing, Hypothesis, KeySegment, NONE};
+use super::model::{Hearing, HearingId, Hypothesis, KeySegment, NONE};
 
 /// What the search keeps of both layers: the chord layer's hearings, and the key layer's
 /// hypotheses, each of which interprets one hearing. Each links to the one before it by index.
@@ -14,9 +14,13 @@ pub struct Layers {
 pub static NO_LAYERS: Layers = Layers { hearings: Vec::new(), hypotheses: Vec::new() };
 
 impl Layers {
+    pub fn hearing(&self, id: HearingId) -> &Hearing {
+        &self.hearings[id.0 as usize]
+    }
+
     /// Returns the hearing that a hypothesis interprets.
     pub fn hearing_of(&self, hypothesis: u32) -> &Hearing {
-        &self.hearings[self.hypotheses[hypothesis as usize].hearing as usize]
+        self.hearing(self.hypotheses[hypothesis as usize].hearing)
     }
 
     /// Returns the segment that a hypothesis ends in, as the key layer reads it.

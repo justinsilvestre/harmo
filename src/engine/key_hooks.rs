@@ -85,6 +85,19 @@ pub struct KeySliceContext<'a> {
     pub is_opening: bool,
 }
 
+impl<'a> KeySliceContext<'a> {
+    /// Returns the context for scoring slice `index` of the score against a reading.
+    pub fn at(
+        slices: &'a [Slice],
+        index: usize,
+        reading: &'a Reading,
+        is_opening: bool,
+    ) -> KeySliceContext<'a> {
+        let (slice, next_slice) = (&slices[index], slices.get(index + 1));
+        KeySliceContext { slice, next_slice, slices, index, reading, is_opening }
+    }
+}
+
 pub struct KeyTransitionContext<'a> {
     /// The segment being closed, or `None` at the start of the piece.
     pub previous: Option<&'a KeySegment>,

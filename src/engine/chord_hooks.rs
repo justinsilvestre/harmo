@@ -54,6 +54,14 @@ pub struct ChordSliceContext<'a> {
     pub is_opening: bool,
 }
 
+impl<'a> ChordSliceContext<'a> {
+    /// Returns the context for scoring slice `index` of the score against a chord.
+    pub fn at(slices: &'a [Slice], index: usize, chord: Chord, is_opening: bool) -> ChordSliceContext<'a> {
+        let (slice, next_slice) = (&slices[index], slices.get(index + 1));
+        ChordSliceContext { slice, next_slice, slices, index, chord, is_opening }
+    }
+}
+
 pub struct ChordTransitionContext<'a> {
     /// The chord segment being closed, or `None` at the start of the piece.
     pub previous: Option<&'a ChordSegment>,

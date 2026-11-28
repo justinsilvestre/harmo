@@ -8,8 +8,17 @@ use crate::theory::key::Key;
 use crate::theory::label::Label;
 use serde::Serialize;
 
-/// Marks the absence of an index into the hypotheses or the hearings.
+/// Marks the absence of an index into the hypotheses.
 pub const NONE: u32 = u32::MAX;
+
+/// The index of a hearing in the chord layer's store.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct HearingId(pub u32);
+
+impl HearingId {
+    /// Marks the absence of a hearing.
+    pub const NONE: HearingId = HearingId(u32::MAX);
+}
 
 /// How a chord relates to the key it is read in.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
@@ -74,8 +83,8 @@ impl ChordSegment {
 /// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
 pub struct Hearing {
-    /// Index in the hearings of the last hearing of the preceding segment, or `NONE`.
-    pub previous: u32,
+    /// The last hearing of the preceding segment, or `HearingId::NONE`.
+    pub previous: HearingId,
     pub slice: u32,
     /// The segment that the hearing ends in.
     pub segment: ChordSegment,
@@ -85,14 +94,17 @@ pub struct Hearing {
 
 /// A hypothesis, or complete interpretation, which reads the latest segment of one hearing of the
 /// chords in a key. Through its parents it reads every slice up to its hearing's last slice.
+///
+/// `H` is the type of the index of its hearing. The search proposes hypotheses that read hearings
+/// not yet stored, and indexes those with a type of its own.
 #[derive(Clone, Copy, Debug)]
-pub struct Hypothesis {
+pub struct Hypothesis<H = HearingId> {
     /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
     pub parent: u32,
     /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
-    /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
-    pub hearing: u32,
+    /// The hearing of the chords that this hypothesis interprets.
+    pub hearing: H,
     /// The function of the hearing's latest chord, in the key the hypothesis hears it in.
     pub function: Function,
     /// The sum of every weighted rule score along the hypothesis: its hearing's score plus the

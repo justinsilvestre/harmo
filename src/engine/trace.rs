@@ -8,7 +8,7 @@ use super::chord_hooks::{
 use super::key_hooks::{
     History, KeyCloseContext, KeyHook, KeySliceContext, KeySliceFn, KeyTransitionContext,
 };
-use super::model::NONE;
+use super::model::{HearingId, NONE};
 use super::path::SegmentReading;
 use super::rule::{Hook, Layer};
 use super::ruleset::RuleSet;
@@ -40,7 +40,7 @@ pub fn trace_segment(
     let hearing = &heard.segment;
     let previous = (previous_hypothesis != NONE).then(|| layers.segment(previous_hypothesis));
     let previous_hearing =
-        (heard.previous != NONE).then(|| &layers.hearings[heard.previous as usize].segment);
+        (heard.previous != HearingId::NONE).then(|| &layers.hearing(heard.previous).segment);
     let (first, end) = segment.slices;
     let transition = KeyTransitionContext {
         previous: previous.as_ref(),
@@ -58,25 +58,11 @@ pub fn trace_segment(
     let chord_close =
         ChordCloseContext { segment: hearing, slices: &slices[first..end], next_slice: slices.get(end) };
     let slice_sum = |f: KeySliceFn, params: &[f64]| -> f32 {
-        let context = |i: usize| KeySliceContext {
-            slice: &slices[i],
-            next_slice: slices.get(i + 1),
-            slices,
-            index: i,
-            reading: &segment.reading,
-            is_opening: i == first,
-        };
+        let context = |i: usize| KeySliceContext::at(slices, i, &segment.reading, i == first);
         (first..end).map(|i| f(&context(i), params)).sum()
     };
     let chord_slice_sum = |f: ChordSliceFn, params: &[f64]| -> f32 {
-        let context = |i: usize| ChordSliceContext {
-            slice: &slices[i],
-            next_slice: slices.get(i + 1),
-            slices,
-            index: i,
-            chord: hearing.chord,
-            is_opening: i == first,
-        };
+        let context = |i: usize| ChordSliceContext::at(slices, i, hearing.chord, i == first);
         (first..end).map(|i| f(&context(i), params)).sum()
     };
     let mut contributions = Vec::new();

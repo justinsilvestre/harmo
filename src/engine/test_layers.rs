@@ -3,8 +3,9 @@
 use super::bass::Bass;
 use super::key_hooks::History;
 use super::layers::Layers;
-use super::model::{ChordSegment, Hearing, Hypothesis, KeySegment, NONE, Reading};
-use crate::score::slicing::Slice;
+use super::model::{ChordSegment, Hearing, HearingId, Hypothesis, KeySegment, NONE, Reading};
+use crate::pitch::tpc_from_name;
+use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
 /// A chord segment that opens on slice 0, lasts one quarter note, has heard none of the chord's
@@ -26,12 +27,18 @@ pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
     let hypothesis = |i: usize| Hypothesis {
         parent: previous[i],
         previous: previous[i],
-        hearing: i as u32,
+        hearing: HearingId(i as u32),
         function: segments[i].function,
         score: 0.0,
     };
-    let hearing =
-        |i: usize| Hearing { previous: previous[i], slice: i as u32, segment: segments[i].heard, score: 0.0 };
+    let previous_hearing =
+        |i: usize| if previous[i] == NONE { HearingId::NONE } else { HearingId(previous[i]) };
+    let hearing = |i: usize| Hearing {
+        previous: previous_hearing(i),
+        slice: i as u32,
+        segment: segments[i].heard,
+        score: 0.0,
+    };
     Layers {
         hearings: (0..segments.len()).map(hearing).collect(),
         hypotheses: (0..segments.len()).map(hypothesis).collect(),
@@ -47,6 +54,32 @@ pub fn path_of(segments: &[KeySegment]) -> Layers {
     };
     let previous: Vec<u32> = (0..segments.len() as u32).map(|i| i.checked_sub(1).unwrap_or(NONE)).collect();
     layers_of(&segments.iter().enumerate().map(opened).collect::<Vec<_>>(), &previous)
+}
+
+/// A one-quarter-note slice on a downbeat, sounding the given notes, each as (spelling, MIDI number).
+pub fn slice_of(start: f64, notes: &[(&str, i32)]) -> Slice {
+    let note = |&(name, midi): &(&str, i32)| SliceNote {
+        tpc: tpc_from_name(name).unwrap(),
+        midi,
+        attacked: true,
+        onset_level: 4,
+    };
+    let notes = notes.iter().map(note).collect();
+    Slice {
+        start,
+        duration: 1.0,
+        notes,
+        measure: start as usize,
+        metric_level: 4,
+        phrase: 0,
+        key_signature: None,
+    }
+}
+
+/// The slices of I–V–I in C major, one per quarter note.
+pub fn i_v_i() -> Vec<Slice> {
+    let (tonic, dominant) = ([("C", 48), ("E", 64), ("G", 67)], [("G", 43), ("B", 62), ("D", 67)]);
+    vec![slice_of(0.0, &tonic), slice_of(1.0, &dominant), slice_of(2.0, &tonic)]
 }
 
 /// Returns the history that a transition after the last segment of a path reads.
