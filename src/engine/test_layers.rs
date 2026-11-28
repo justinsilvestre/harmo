@@ -110,5 +110,5 @@ pub fn i_v_i() -> Vec<Slice> {
 
 /// Returns the history that a transition after the last segment of a path reads.
 pub fn history_after<'a>(path: &'a Layers, slices: &'a [Slice]) -> KeyHistory<'a> {
-    KeyHistory { layers: path, slices, last: KeyHypothesisId::new(path.key.len() as u32 - 1) }
+    KeyHistory::new(path, slices, KeyHypothesisId::new(path.key.len() as u32 - 1))
 }

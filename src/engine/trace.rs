@@ -46,7 +46,7 @@ pub fn trace_segment(
         previous: previous.as_ref(),
         next: &segment.reading,
         slice: &slices[first],
-        history: KeyHistory { layers, slices, last: previous_hypothesis },
+        history: KeyHistory::new(layers, slices, previous_hypothesis),
     };
     let chord_transition = ChordTransitionContext {
         previous: previous_chord_hypothesis,

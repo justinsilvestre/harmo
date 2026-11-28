@@ -2,8 +2,8 @@
 //! never a key.
 
 use super::bass::{Bass, BassNote};
-use super::layers::{Layers, NO_LAYERS};
-use super::model::{ChordHypothesisId, ChordSegment};
+use super::layer_history::History;
+use super::model::ChordSegment;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 
@@ -81,35 +81,19 @@ pub struct ChordCloseContext<'a> {
 
 /// Read-only access to the chord segments preceding a transition, most recent first.
 /// It gives only the chord layer's state.
-#[derive(Clone, Copy)]
-pub struct ChordHistory<'a> {
-    layers: &'a Layers,
-    /// Every slice of the score, so that a past segment's slices can be read from its `start`.
-    pub slices: &'a [Slice],
-    /// The last chord hypothesis of the most recent segment, or `ChordHypothesisId::NONE`.
-    last: ChordHypothesisId,
-}
+pub type ChordHistory<'a> = History<'a, ChordSegment>;
 
 impl<'a> ChordHistory<'a> {
-    pub fn new(layers: &'a Layers, slices: &'a [Slice], last: ChordHypothesisId) -> ChordHistory<'a> {
-        ChordHistory { layers, slices, last }
-    }
-
     pub fn segments(self) -> impl Iterator<Item = ChordSegment> + 'a {
         let layers = self.layers;
         layers.chord.path_back(self.last).map(|id| layers.chord.get(id).unit)
-    }
-
-    /// A history with no segments before it.
-    pub fn empty(slices: &'a [Slice]) -> ChordHistory<'a> {
-        ChordHistory::new(&NO_LAYERS, slices, ChordHypothesisId::NONE)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Function, Reading};
+    use crate::engine::model::{ChordHypothesisId, Function, Reading};
     use crate::engine::test_layers::{key_segment, path_of};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Quality;

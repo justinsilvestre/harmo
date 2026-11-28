@@ -127,7 +127,7 @@ impl Exits {
         let exit = &self.keys[position];
         let chord_exit = &self.chords[exit.chord_exit];
         let chord_transition = chord_exit.transitions[opening.chord_index];
-        let (slice, history) = (moment.slice(), moment.key_history(exit.hypothesis));
+        let (slice, history) = (moment.slice(), moment.history(exit.hypothesis));
         let context =
             KeyTransitionContext { previous: exit.segment.as_ref(), next: &opening.reading, slice, history };
         let chord = chord_exit.score + chord_exit.close + chord_transition;
@@ -163,7 +163,7 @@ fn chord_transitions(
 ) -> Vec<f32> {
     let previous = (chord_hypothesis != ChordHypothesisId::NONE)
         .then(|| &moment.layers.chord.get(chord_hypothesis).unit);
-    let (slice, history) = (moment.slice(), moment.chord_history(chord_hypothesis));
+    let (slice, history) = (moment.slice(), moment.history(chord_hypothesis));
     let score = |next: &ProposedChord| {
         let context = ChordTransitionContext { previous, next: next.chord, slice, history };
         rules.chord.score_transition(&context)
@@ -176,7 +176,7 @@ fn key_exit(moment: &Moment, hypothesis: KeyHypothesisId, chord_exit: usize, rul
     let departure = KeyDepartureContext {
         previous: &segment,
         slice: moment.slice(),
-        history: moment.key_history(hypothesis),
+        history: moment.history(hypothesis),
     };
     let start = segment.heard.start as usize;
     let rival = RivalContext {

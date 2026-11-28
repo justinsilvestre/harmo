@@ -1,8 +1,8 @@
 //! What the hooks of the key layer receive. They may read the chord layer's state,
 //! as a later layer interprets an earlier one.
 
-use super::layers::{Layers, NO_LAYERS};
-use super::model::{KeyHypothesisId, KeySegment, Reading};
+use super::layer_history::History;
+use super::model::{Function, KeySegment, Reading};
 use crate::score::slicing::Slice;
 
 /// A segment's place among rival readings of the same music.
@@ -88,24 +88,12 @@ pub struct RivalContext<'a> {
 
 /// Read-only access to the segments preceding a transition, most recent first,
 /// as the key layer reads them.
-#[derive(Clone, Copy)]
-pub struct KeyHistory<'a> {
-    pub layers: &'a Layers,
-    /// Every slice of the score, so that a past segment's slices can be read from its `start`.
-    pub slices: &'a [Slice],
-    /// The last hypothesis of the most recent segment, or `KeyHypothesisId::NONE`.
-    pub last: KeyHypothesisId,
-}
+pub type KeyHistory<'a> = History<'a, Function>;
 
 impl<'a> KeyHistory<'a> {
     pub fn segments(self) -> impl Iterator<Item = KeySegment> + 'a {
         let layers = self.layers;
         layers.key.path_back(self.last).map(|hypothesis| layers.segment(hypothesis))
-    }
-
-    /// A history with no segments before it.
-    pub fn empty(slices: &'a [Slice]) -> KeyHistory<'a> {
-        KeyHistory { layers: &NO_LAYERS, slices, last: KeyHypothesisId::NONE }
     }
 }
 

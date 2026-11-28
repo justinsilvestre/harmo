@@ -10,6 +10,7 @@ pub mod hypothesis;
 pub mod key_contexts;
 pub mod key_hooks;
 pub mod key_rules;
+pub mod layer_history;
 pub mod layers;
 pub mod model;
 pub mod moment;
