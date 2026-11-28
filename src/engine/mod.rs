@@ -3,6 +3,7 @@
 pub mod bass;
 pub mod chord_hooks;
 pub mod chord_rules;
+pub mod chord_trace;
 pub mod continuations;
 pub mod exits;
 pub mod history;
@@ -10,6 +11,7 @@ pub mod hypothesis;
 pub mod key_contexts;
 pub mod key_hooks;
 pub mod key_rules;
+pub mod key_trace;
 pub mod layer_history;
 pub mod layers;
 pub mod model;

@@ -2,12 +2,8 @@
 //!
 //! Rules are pure, so the search stores only scores and the trace is rebuilt on demand.
 
-use super::chord_hooks::{
-    ChordCloseContext, ChordHistory, ChordHook, ChordSliceContext, ChordSliceFn, ChordTransitionContext,
-};
-use super::key_contexts::{KeyCloseContext, KeyHistory, KeySliceContext, KeyTransitionContext};
-use super::key_hooks::{KeyHook, KeySliceFn};
-use super::model::{ChordHypothesisId, KeyHypothesisId};
+use super::chord_trace::ChordTrace;
+use super::key_trace::KeyTrace;
 use super::path::SegmentReading;
 use super::rule::{Hook, Topic};
 use super::ruleset::RuleSet;
@@ -25,7 +21,8 @@ pub struct Contribution {
     pub weighted: f32,
 }
 
-/// Returns each scoring rule's contribution to one segment of a hypothesis.
+/// Returns each scoring rule's contribution to one segment of a hypothesis, in rule order.
+/// Each rule is evaluated again on the hypothesis of its own layer that the segment ends in.
 pub fn trace_segment(
     analysis: &Analysis,
     slices: &[Slice],
@@ -33,55 +30,17 @@ pub fn trace_segment(
     segment: &SegmentReading,
 ) -> Vec<Contribution> {
     let layers = &analysis.layers;
-    let state = layers.segment(segment.hypothesis);
-    let previous_hypothesis = layers.key.get(segment.hypothesis).previous;
-    let heard = layers.chord_hypothesis_of(segment.hypothesis);
-    let chord_hypothesis = &heard.unit;
-    let previous =
-        (previous_hypothesis != KeyHypothesisId::NONE).then(|| layers.segment(previous_hypothesis));
-    let previous_chord_hypothesis =
-        (heard.previous != ChordHypothesisId::NONE).then(|| &layers.chord.get(heard.previous).unit);
-    let (first, end) = segment.slices;
-    let transition = KeyTransitionContext {
-        previous: previous.as_ref(),
-        next: &segment.reading,
-        slice: &slices[first],
-        history: KeyHistory::new(layers, slices, previous_hypothesis),
-    };
-    let chord_transition = ChordTransitionContext {
-        previous: previous_chord_hypothesis,
-        next: chord_hypothesis.chord,
-        slice: &slices[first],
-        history: ChordHistory::new(layers, slices, heard.previous),
-    };
-    let close = KeyCloseContext { segment: &state, slices: &slices[first..end], next_slice: slices.get(end) };
-    let chord_close = ChordCloseContext {
-        segment: chord_hypothesis,
-        slices: &slices[first..end],
-        next_slice: slices.get(end),
-    };
-    let slice_sum = |f: KeySliceFn, params: &[f64]| -> f32 {
-        let context = |i: usize| KeySliceContext::at(slices, i, &segment.reading, i == first);
-        (first..end).map(|i| f(&context(i), params)).sum()
-    };
-    let chord_slice_sum = |f: ChordSliceFn, params: &[f64]| -> f32 {
-        let context = |i: usize| ChordSliceContext::at(slices, i, chord_hypothesis.chord, i == first);
-        (first..end).map(|i| f(&context(i), params)).sum()
-    };
+    let chord = ChordTrace::of(layers, slices, layers.key.get(segment.hypothesis).reads, segment.slices);
+    let key = KeyTrace::of(layers, slices, segment.hypothesis, segment.slices);
     let mut contributions = Vec::new();
     let rules_with_params = rules.rules.iter().zip(&rules.weights).zip(&rules.params);
     for ((rule, &weight), params) in rules_with_params.filter(|((_, w), _)| **w != 0.0) {
         let raw = match rule.hook {
-            Hook::Chord(ChordHook::Slice(f)) => chord_slice_sum(f, params),
-            Hook::Chord(ChordHook::Transition(f)) => f(&chord_transition, params),
-            Hook::Chord(ChordHook::Close(f)) => f(&chord_close, params),
-            Hook::Key(KeyHook::Slice(f)) => slice_sum(f, params),
-            Hook::Key(KeyHook::Transition(f)) => f(&transition, params),
-            Hook::Key(KeyHook::Departure(f)) => {
-                transition.departure().map_or(0.0, |context| f(&context, params))
-            }
-            Hook::Key(KeyHook::Close(f)) => f(&close, params),
-            _ => continue,
+            Hook::Chord(hook) => chord.raw(hook, params),
+            Hook::Key(hook) => key.raw(hook, params),
+        };
+        let Some(raw) = raw else {
+            continue;
         };
         contributions.push(Contribution {
             rule: rule.id,
@@ -98,6 +57,7 @@ pub fn trace_segment(
 mod tests {
     use super::*;
     use crate::engine::exits::{chord_close, key_close};
+    use crate::engine::model::KeyHypothesisId;
     use crate::engine::path::segments_of;
     use crate::engine::rule::Layer;
     use crate::engine::search::{Config, analyze};
