@@ -83,7 +83,7 @@ A hypothesis's score is the sum of every weighted rule score along its path, hig
 - **Readings offered by layer** come from that same beam too: up to four keys, and separately up to four chords, ranked by their shortfall, the best score in the beam minus the best score of a hypothesis holding the key or chord. Numerals are built from these keys and chords (see [Benchmarks](#benchmarks)). Only the bench uses them.
 - **Alternatives in `analyze`** come from the eight next-best final hypotheses. A segment is marked interpretive (`?`) when one of them reads its first slice differently and scores within 4.0 of the best.
 - **Traces** are not stored. Rules are pure, so `analyze --json` rebuilds each segment's trace by evaluating every rule again along the path.
-- **Rank histories** follow a reading through the beam after every later slice, recording each slice where its rank changes.
+- **Rank histories** follow a reading through the beam after every later slice, recording each slice where its rank changes. Each layer also has rank histories of its own part of a reading, its chord or its key and function, followed through that layer's ranking: its hypotheses stored at each slice, each ranked by the best hypothesis in the beam that reads it.
 
 ### Settings
 

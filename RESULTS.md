@@ -6,8 +6,8 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `41b9696`, with weights from the defaults
-- **Generated:** 2026-11-28 15:05 UTC
+- **Engine:** commit `d63a92e`, with weights from the defaults
+- **Generated:** 2026-11-28 15:43 UTC
 - **Search settings:** beam width 80, chord hypotheses kept (0: no limit) 40, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
 - **Runtime:** 10.6 s in all on 18 threads: 5.6 s for the benchmark and 4.9 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
