@@ -85,6 +85,43 @@ pub fn follow<U, R, T: PartialEq>(
     histories
 }
 
+/// Follows every reading of slice `at` through a layer's rankings from `at` on, like `follow`,
+/// but finds each hypothesis's reading anew in every ranking instead of taking its parent's.
+/// This suits readings that can change while the segment holding them is still open,
+/// such as a chord's bass: a reading may then first be held after `at`, and may return after it left.
+/// `reading_of` also tells whether the reading is final, its segment being closed;
+/// the histories stop once every hypothesis holds the same final reading.
+pub fn follow_each<U, R, T: PartialEq>(
+    store: &Store<U, R>,
+    at: usize,
+    reading_of: impl Fn(HypothesisId<U>) -> (T, bool),
+) -> Vec<RankHistory<T, U>> {
+    let mut histories: Vec<RankHistory<T, U>> = Vec::new();
+    for (slice, ranking) in store.rankings().enumerate().skip(at) {
+        let mut held: Vec<usize> = Vec::with_capacity(ranking.len());
+        let mut is_final = true;
+        for hypothesis in ranking.iter() {
+            let (reading, settled) = reading_of(hypothesis);
+            is_final &= settled;
+            let id = histories.iter().position(|h| h.reading == reading).unwrap_or_else(|| {
+                histories.push(RankHistory { reading, hypothesis, changes: Vec::new() });
+                histories.len() - 1
+            });
+            held.push(id);
+        }
+        let ranks = best_ranks(&held, histories.len());
+        for (history, &rank) in histories.iter_mut().zip(&ranks) {
+            if history.changes.last().map_or(rank.is_some(), |last| last.rank != rank) {
+                history.changes.push(RankChange { slice, rank, left_beam: None });
+            }
+        }
+        if is_final && ranks.iter().filter(|r| r.is_some()).count() <= 1 {
+            break;
+        }
+    }
+    histories
+}
+
 /// Starts a history for each distinct reading of the first ranking, at the rank of its best holder.
 /// Returns the histories and the history that each hypothesis of the ranking holds.
 fn first_histories<U, T: PartialEq>(

@@ -4,6 +4,7 @@ use harmo::engine::history::{
     ChordReading, chord_reading_at, layer_rank_histories, rank_histories, reading_at, segment_at,
 };
 use harmo::engine::model::{ChordSegment, Function};
+use harmo::engine::path::{SegmentReading, best_segments};
 use harmo::engine::rank_history::RankChange;
 use harmo::engine::ranking::Ranking;
 use harmo::engine::ruleset::{RuleSet, Weights};
@@ -80,13 +81,10 @@ fn walked_function_ranks(analysis: &Analysis, at: usize) -> Vec<Vec<Option<usize
     histories.iter().map(|h| later().map(|beam| rank_of(beam, h.reading)).collect()).collect()
 }
 
-/// Ranks of each chord-layer history's reading, found by walking each chord hypothesis's parents
-/// back to its ancestor at `at`, whose bass is the one heard by `at`.
+/// Ranks of each chord-layer history's reading, found by looking up each chord hypothesis's path,
+/// slice by slice.
 fn walked_chord_ranks(analysis: &Analysis, at: usize) -> Vec<Vec<Option<usize>>> {
-    let chord = &analysis.layers.chord;
-    let first = chord.ranking(at).unwrap();
-    let reading_of =
-        |n| chord.ancestor_in(n, first).and_then(|ancestor| chord_reading_at(analysis, ancestor, at));
+    let reading_of = |n| chord_reading_at(analysis, n, at);
     let rank_of = |ranking: Ranking<ChordSegment>, reading: ChordReading| {
         ranking.iter().position(|n| reading_of(n) == Some(reading)).map(|r| r + 1)
     };
@@ -127,4 +125,17 @@ fn every_span_has_a_rank_history_in_each_layer() {
     assert!(
         histories.clone().count() > 0 && histories.clone().all(|h| !h.chord.is_empty() && !h.key.is_empty())
     );
+}
+
+#[test]
+fn the_chord_layer_follows_each_span_with_the_bass_it_ends_with() {
+    let (analysis, _) = analyze_cadence(&narrow(false));
+    let slices = slice_score(&read_score(Path::new("tests/fixtures/cadence.musicxml")).unwrap());
+    let segments = best_segments(&analysis, &slices);
+    let is_followed = |segment: &SegmentReading| {
+        let heard = analysis.layers.chord_hypothesis_of(segment.hypothesis).unit;
+        let reading = ChordReading { chord: heard.chord, bass: heard.bass_tpc() };
+        layer_rank_histories(&analysis, segment.slices.0).chord.iter().any(|h| h.reading == reading)
+    };
+    assert!(!segments.is_empty() && segments.iter().all(is_followed));
 }

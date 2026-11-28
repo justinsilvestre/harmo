@@ -77,13 +77,6 @@ impl<U, R> Store<U, R> {
         (0..self.slice_starts.len()).map(|slice| self.ranking(slice).expect("the slice is stored"))
     }
 
-    /// Returns the hypothesis of `ranking` from which `hypothesis` descends by parent links (or is itself),
-    /// or `None` if there is none.
-    pub fn ancestor_in(&self, hypothesis: HypothesisId<U>, ranking: Ranking<U>) -> Option<HypothesisId<U>> {
-        let parent = |&id: &HypothesisId<U>| Some(self.get(id).parent).filter(|&p| p != HypothesisId::NONE);
-        std::iter::successors(Some(hypothesis), parent).find(|&id| ranking.position(id).is_some())
-    }
-
     /// Returns the last hypothesis of each segment on the path to `last`,
     /// from `last` back to the first segment. A `last` of `HypothesisId::NONE` gives no segments.
     pub fn path_back(&self, last: HypothesisId<U>) -> impl Iterator<Item = HypothesisId<U>> + '_ {
@@ -146,20 +139,6 @@ mod tests {
     #[test]
     fn a_slice_the_store_does_not_hold_has_no_ranking() {
         assert!(store().ranking(3).is_none());
-    }
-
-    #[test]
-    fn a_hypothesis_descends_from_its_parent_in_the_ranking_before() {
-        let mut store = store();
-        store.hypotheses[4].parent = HypothesisId::new(1);
-        let ranking = store.ranking(0).unwrap();
-        assert_eq!(store.ancestor_in(HypothesisId::new(4), ranking), Some(HypothesisId::new(1)));
-    }
-
-    #[test]
-    fn a_hypothesis_without_parents_has_no_ancestor_in_an_earlier_ranking() {
-        let store = store();
-        assert_eq!(store.ancestor_in(HypothesisId::new(4), store.ranking(0).unwrap()), None);
     }
 
     #[test]

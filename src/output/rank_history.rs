@@ -63,17 +63,15 @@ pub fn rank_history_output<T, U>(
 }
 
 /// Gives the rank histories of the span's reading of its first slice in each layer.
-/// The chord layer's reading has the bass heard by that slice, which may differ from the span's final inversion.
+/// The chord layer's reading has the span's final bass, and so its inversion.
 pub fn rank_histories_by_layer(
     segment: &SegmentReading,
     context: &HistoryContext,
 ) -> RankHistoriesByLayerOutput {
     let (analysis, at) = (context.analysis, context.at);
     let histories = layer_rank_histories(analysis, at);
-    let chord = &analysis.layers.chord;
     let last = analysis.layers.key.get(segment.hypothesis).reads;
-    let reading = chord.ranking(at).and_then(|first| chord.ancestor_in(last, first));
-    let reading = reading.and_then(|ancestor| chord_reading_at(analysis, ancestor, at));
+    let reading = chord_reading_at(analysis, last, at);
     let chord_history = histories.chord.iter().find(|h| Some(h.reading) == reading);
     let key_history = histories.key.iter().find(|h| h.reading == segment.reading.function);
     RankHistoriesByLayerOutput {

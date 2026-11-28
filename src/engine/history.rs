@@ -2,7 +2,7 @@
 
 use super::model::{ChordHypothesisId, ChordSegment, Function, KeyHypothesisId, KeySegment, Reading};
 use super::pruning::{Departure, PruneCause};
-use super::rank_history::{Holders, RankHistory, follow};
+use super::rank_history::{Holders, RankHistory, follow, follow_each};
 use super::search::Analysis;
 use crate::pitch::Tpc;
 use crate::theory::chord::Chord;
@@ -10,7 +10,8 @@ use crate::theory::chord::Chord;
 /// The rank history of one whole reading of a slice (its chord and function), followed through the beam.
 pub type ReadingHistory = RankHistory<Reading, Function>;
 
-/// The chord layer's reading of a slice: its chord, and the spelling of its bass as heard by that slice.
+/// The chord layer's reading of a slice: its chord, and the spelling of the bass that its segment ends with,
+/// or has heard so far if the segment is still open.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ChordReading {
     pub chord: Chord,
@@ -37,13 +38,15 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
 /// Follows each layer's readings of slice `at` through that layer's later rankings.
 pub fn layer_rank_histories(analysis: &Analysis, at: usize) -> LayerRankHistories {
     let chord_reading_of = |hypothesis| {
-        chord_reading_at(analysis, hypothesis, at).expect("a chord hypothesis covers its own slice")
+        let reading =
+            chord_reading_at(analysis, hypothesis, at).expect("a chord hypothesis covers the slice");
+        (reading, analysis.layers.chord.get(hypothesis).unit.start as usize > at)
     };
     let function_of = |hypothesis| {
         segment_at(analysis, hypothesis, at).expect("a hypothesis covers its own slice").function
     };
     LayerRankHistories {
-        chord: follow(&analysis.layers.chord, at, chord_reading_of, |_, _, _| None),
+        chord: follow_each(&analysis.layers.chord, at, chord_reading_of),
         key: follow(&analysis.layers.key, at, function_of, |slice, last_rank, holders| {
             departure(analysis, slice, last_rank, holders)
         }),
@@ -80,9 +83,8 @@ pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -
     segment_at(analysis, hypothesis, at).map(|s| s.reading())
 }
 
-/// Returns the chord layer's reading of slice `at` by the chord hypothesis ending at `hypothesis`.
-/// Its bass is the one heard by the slice the hypothesis ends on, so a hypothesis stored at `at` gives
-/// the reading that its descendants' rank histories follow.
+/// Returns the chord layer's reading of slice `at` by the chord hypothesis ending at `hypothesis`,
+/// with the bass of the segment holding `at` as of the slice the hypothesis ends on.
 pub fn chord_reading_at(
     analysis: &Analysis,
     hypothesis: ChordHypothesisId,
