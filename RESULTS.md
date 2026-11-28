@@ -6,10 +6,10 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `3f3f2b0`, with weights from the defaults
-- **Generated:** 2026-11-28 14:25 UTC
+- **Engine:** commit `41b9696`, with weights from the defaults
+- **Generated:** 2026-11-28 15:05 UTC
 - **Search settings:** beam width 80, chord hypotheses kept (0: no limit) 40, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
-- **Runtime:** 11.2 s in all on 18 threads: 5.9 s for the benchmark and 5.1 s for the diagnosis
+- **Runtime:** 10.6 s in all on 18 threads: 5.6 s for the benchmark and 4.9 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
 
 ## Accuracy on the test split
@@ -20,14 +20,14 @@ Each of the engine's labels is one chord in one key, so a label that is right is
 
 | corpus | key | degree | quality | inversion | root | RN | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| WiR | 80.5 (81.8) | 73.0 (69.2) | 82.1 (85.9) | 87.1 (90.3) | 90.2 (90.3) | 60.9 (56.4) | 66.7 |
-| ABC | 80.9 (83.6) | 65.0 (65.6) | 74.3 (78.0) | 71.4 (76.9) | 78.1 (78.9) | 49.1 (44.5) | 59.4 |
-| MPS | 89.9 | 77.1 | 78.5 | 78.4 | 83.1 | 63.1 | 69.6 |
+| WiR | 80.5 (81.8) | 73.0 (69.2) | 82.1 (85.9) | 87.2 (90.3) | 90.2 (90.3) | 61.1 (56.4) | 66.8 |
+| ABC | 80.9 (83.6) | 65.0 (65.6) | 74.3 (78.0) | 71.5 (76.9) | 78.1 (78.9) | 49.1 (44.5) | 59.3 |
+| MPS | 89.9 | 77.1 | 78.4 | 78.5 | 83.1 | 63.1 | 69.6 |
 | WTC | 79.0 (77.2) | 64.7 (69.7) | 68.9 (75.0) | 75.1 (74.4) | 79.2 (82.7) | 49.9 (46.2) | 56.8 |
-| HaydnSun | 73.5 (81.2) | 60.6 (62.9) | 75.4 (80.2) | 78.7 (82.7) | 82.9 (86.5) | 46.8 (48.6) | 55.4 |
+| HaydnSun | 73.5 (81.2) | 60.6 (62.9) | 75.4 (80.2) | 78.8 (82.7) | 82.9 (86.5) | 46.9 (48.6) | 55.5 |
 | TAVERN | 85.2 (88.7) | 69.7 (60.0) | 78.0 (77.4) | 77.6 (78.8) | 80.7 (81.5) | 57.5 (42.6) | 67.1 |
-| BPS | 82.8 (85.0) | 74.1 (73.4) | 81.9 (79.0) | 78.9 (73.4) | 85.7 (84.4) | 57.2 (45.4) | 64.7 |
-| all of test | 82.6 | 70.2 | 78.0 | 77.3 | 82.7 | 55.3 | 63.5 |
+| BPS | 82.7 (85.0) | 74.0 (73.4) | 81.9 (79.0) | 78.8 (73.4) | 85.7 (84.4) | 57.1 (45.4) | 64.6 |
+| all of test | 82.5 | 70.2 | 78.0 | 77.3 | 82.7 | 55.3 | 63.5 |
 
 ### Further measures on the test split
 
@@ -39,14 +39,14 @@ AugmentedNet publishes nothing comparable to these.
 
 | corpus | chord | RN given key | offered | per frame | key now | RN now | RN eq now | pieces | frames |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| WiR | 76.7 | 75.7 | 75.3 | 3.6 | 77.0 | 57.6 | 65.1 | 21 | 24746 |
-| ABC | 59.7 | 60.7 | 64.2 | 3.6 | 77.0 | 44.3 | 55.5 | 10 | 60210 |
-| MPS | 68.9 | 70.2 | 77.1 | 3.5 | 84.6 | 56.9 | 64.8 | 8 | 27798 |
-| WTC | 62.0 | 63.2 | 66.3 | 3.4 | 77.5 | 47.6 | 55.0 | 6 | 6753 |
-| HaydnSun | 64.4 | 63.7 | 58.7 | 3.2 | 70.6 | 42.0 | 50.1 | 4 | 10429 |
-| TAVERN | 67.3 | 67.5 | 67.8 | 3.1 | 82.7 | 53.7 | 63.8 | 4 | 19192 |
-| BPS | 68.6 | 69.1 | 72.0 | 3.6 | 77.1 | 51.3 | 59.9 | 7 | 49758 |
-| all of test | 66.4 | 67.0 | 69.5 | 3.5 | 78.3 | 50.4 | 59.6 | 60 | 198886 |
+| WiR | 76.8 | 75.9 | 75.3 | 3.6 | 77.0 | 57.7 | 65.2 | 21 | 24746 |
+| ABC | 59.7 | 60.7 | 64.1 | 3.6 | 77.0 | 44.3 | 55.4 | 10 | 60210 |
+| MPS | 69.0 | 70.2 | 77.1 | 3.5 | 84.6 | 56.9 | 64.8 | 8 | 27798 |
+| WTC | 62.0 | 63.2 | 66.5 | 3.4 | 77.5 | 47.5 | 55.1 | 6 | 6753 |
+| HaydnSun | 64.5 | 63.8 | 58.6 | 3.2 | 70.6 | 42.1 | 50.3 | 4 | 10429 |
+| TAVERN | 67.3 | 67.5 | 67.7 | 3.1 | 82.7 | 53.7 | 63.8 | 4 | 19192 |
+| BPS | 68.6 | 69.0 | 72.0 | 3.6 | 77.1 | 51.4 | 59.9 | 7 | 49758 |
+| all of test | 66.4 | 67.0 | 69.4 | 3.5 | 78.3 | 50.4 | 59.6 | 60 | 198886 |
 
 ## Accuracy on `tune`
 
@@ -55,36 +55,36 @@ AugmentedNet publishes nothing comparable to these.
 | corpus | key | degree | quality | inversion | root | RN | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | WiR | 81.0 | 72.7 | 81.8 | 83.7 | 87.1 | 61.5 | 67.6 |
-| ABC | 83.3 | 69.6 | 77.8 | 73.0 | 81.2 | 52.5 | 64.6 |
-| MPS | 90.0 | 75.1 | 80.3 | 79.9 | 83.0 | 63.7 | 73.5 |
-| WTC | 79.1 | 60.8 | 66.4 | 75.0 | 77.7 | 47.6 | 57.1 |
-| HaydnSun | 70.4 | 61.0 | 77.6 | 75.4 | 81.8 | 45.6 | 55.7 |
-| TAVERN | 89.2 | 72.6 | 80.1 | 80.2 | 82.6 | 60.5 | 70.4 |
-| BPS | 82.7 | 70.4 | 77.7 | 77.0 | 81.8 | 55.5 | 61.9 |
-| Early choral | 79.4 | 73.6 | 85.8 | 86.4 | 90.4 | 63.5 | 72.3 |
+| ABC | 83.3 | 69.7 | 77.8 | 73.2 | 81.2 | 52.6 | 64.6 |
+| MPS | 90.0 | 75.1 | 80.3 | 80.0 | 83.0 | 63.8 | 73.6 |
+| WTC | 79.1 | 60.8 | 66.4 | 75.0 | 77.7 | 47.6 | 57.0 |
+| HaydnSun | 70.4 | 61.0 | 77.7 | 75.4 | 81.8 | 45.6 | 55.7 |
+| TAVERN | 89.2 | 72.6 | 80.1 | 80.3 | 82.6 | 60.6 | 70.4 |
+| BPS | 82.7 | 70.4 | 77.7 | 77.0 | 81.8 | 55.6 | 61.9 |
+| Early choral | 79.5 | 73.7 | 85.8 | 86.4 | 90.4 | 63.6 | 72.3 |
 | Other keyboard | 85.2 | 71.9 | 75.8 | 81.7 | 85.0 | 58.3 | 63.1 |
-| OpenScore Lieder | 84.9 | 75.3 | 81.1 | 84.6 | 86.2 | 64.7 | 71.9 |
+| OpenScore Lieder | 85.0 | 75.3 | 81.1 | 84.7 | 86.2 | 64.9 | 72.0 |
 | Textbooks | 74.6 | 73.1 | 92.7 | 95.3 | 96.2 | 67.9 | 80.9 |
 | Variations and grounds | 96.6 | 72.1 | 65.8 | 76.4 | 78.3 | 54.5 | 60.7 |
-| all of tune | 83.0 | 71.6 | 80.3 | 79.7 | 84.4 | 58.5 | 67.7 |
+| all of tune | 83.0 | 71.6 | 80.3 | 79.8 | 84.4 | 58.5 | 67.7 |
 
 ### Further measures on `tune`
 
 | corpus | chord | RN given key | offered | per frame | key now | RN now | RN eq now | pieces | frames |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | WiR | 75.3 | 76.0 | 74.9 | 3.6 | 77.1 | 57.3 | 63.9 | 127 | 191440 |
-| ABC | 62.4 | 63.0 | 65.7 | 3.6 | 78.0 | 47.5 | 60.4 | 60 | 321505 |
-| MPS | 70.5 | 70.8 | 75.5 | 3.4 | 85.1 | 58.0 | 68.5 | 45 | 150278 |
-| WTC | 60.5 | 60.2 | 63.2 | 3.5 | 78.7 | 46.2 | 55.2 | 18 | 18589 |
-| HaydnSun | 63.3 | 64.8 | 58.7 | 3.5 | 67.6 | 41.7 | 51.9 | 20 | 62576 |
-| TAVERN | 68.7 | 67.8 | 71.4 | 3.3 | 86.1 | 56.1 | 66.6 | 23 | 145193 |
-| BPS | 65.6 | 67.1 | 69.8 | 3.6 | 77.3 | 51.1 | 58.2 | 25 | 138656 |
-| Early choral | 79.5 | 80.0 | 78.1 | 3.6 | 76.9 | 60.6 | 69.6 | 381 | 220392 |
-| Other keyboard | 69.1 | 68.5 | 73.4 | 3.6 | 82.6 | 56.5 | 61.9 | 3 | 5633 |
-| OpenScore Lieder | 75.3 | 76.2 | 77.3 | 3.5 | 79.8 | 59.1 | 67.4 | 71 | 64207 |
+| ABC | 62.6 | 63.2 | 65.7 | 3.6 | 78.0 | 47.4 | 60.3 | 60 | 321505 |
+| MPS | 70.6 | 70.8 | 75.5 | 3.4 | 85.1 | 58.0 | 68.5 | 45 | 150278 |
+| WTC | 60.5 | 60.2 | 63.2 | 3.5 | 78.7 | 46.2 | 55.1 | 18 | 18589 |
+| HaydnSun | 63.4 | 64.8 | 58.7 | 3.5 | 67.6 | 41.6 | 51.8 | 20 | 62576 |
+| TAVERN | 68.8 | 67.9 | 71.4 | 3.3 | 86.1 | 56.1 | 66.5 | 23 | 145193 |
+| BPS | 65.7 | 67.2 | 69.8 | 3.6 | 77.3 | 51.1 | 58.1 | 25 | 138656 |
+| Early choral | 79.5 | 80.1 | 78.1 | 3.6 | 76.9 | 60.6 | 69.6 | 381 | 220392 |
+| Other keyboard | 69.1 | 68.5 | 73.4 | 3.6 | 82.6 | 56.4 | 61.8 | 3 | 5633 |
+| OpenScore Lieder | 75.4 | 76.3 | 77.4 | 3.5 | 79.8 | 59.2 | 67.5 | 71 | 64207 |
 | Textbooks | 89.0 | 91.1 | 79.4 | 3.7 | 71.4 | 64.8 | 77.7 | 201 | 17637 |
 | Variations and grounds | 58.0 | 56.4 | 66.0 | 3.3 | 88.5 | 48.9 | 55.2 | 1 | 6160 |
-| all of tune | 70.0 | 70.4 | 71.6 | 3.5 | 78.9 | 54.1 | 63.8 | 975 | 1342266 |
+| all of tune | 70.0 | 70.5 | 71.6 | 3.5 | 78.9 | 54.0 | 63.8 | 975 | 1342266 |
 
 ## Equivalents RN
 
@@ -102,24 +102,24 @@ Each figure below is the percentage of the set's frames that the equivalence cre
 
 | set | RN | RN eq | seventh | inversion | applied | rootless | pedal | timing |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| WiR (test) | 60.9 | 66.7 | 0.8 | 0.8 | 1.9 | 0.1 | 0.5 | 1.8 |
-| ABC (test) | 49.1 | 59.4 | 0.6 | 3.0 | 2.7 | 0.3 | 1.7 | 1.9 |
+| WiR (test) | 61.1 | 66.8 | 0.8 | 0.8 | 1.9 | 0.1 | 0.5 | 1.8 |
+| ABC (test) | 49.1 | 59.3 | 0.6 | 3.0 | 2.7 | 0.3 | 1.7 | 1.9 |
 | MPS (test) | 63.1 | 69.6 | 0.3 | 2.1 | 1.2 | 0.6 | 0.2 | 2.2 |
 | WTC (test) | 49.9 | 56.8 | 0.5 | 0.6 | 1.8 | 0.2 | 0.1 | 3.6 |
-| HaydnSun (test) | 46.8 | 55.4 | 0.6 | 0.7 | 5.2 | 0.1 | 0.2 | 1.9 |
+| HaydnSun (test) | 46.9 | 55.5 | 0.6 | 0.7 | 5.2 | 0.1 | 0.2 | 1.9 |
 | TAVERN (test) | 57.5 | 67.1 | 0.2 | 1.1 | 4.1 | 0.4 | 0.6 | 3.2 |
-| BPS (test) | 57.2 | 64.7 | 0.3 | 0.7 | 2.3 | 0.8 | 2.5 | 0.8 |
+| BPS (test) | 57.1 | 64.6 | 0.3 | 0.8 | 2.3 | 0.8 | 2.5 | 0.8 |
 | all of test | 55.3 | 63.5 | 0.5 | 1.6 | 2.5 | 0.5 | 1.3 | 1.8 |
 | WiR (tune) | 61.5 | 67.6 | 0.3 | 1.3 | 1.7 | 0.2 | 0.7 | 1.9 |
-| ABC (tune) | 52.5 | 64.6 | 0.7 | 3.9 | 2.4 | 0.8 | 1.8 | 2.6 |
-| MPS (tune) | 63.7 | 73.5 | 0.7 | 2.4 | 1.8 | 0.7 | 0.6 | 3.7 |
-| WTC (tune) | 47.6 | 57.1 | 0.5 | 0.8 | 3.6 | 1.0 | 0.7 | 2.8 |
+| ABC (tune) | 52.6 | 64.6 | 0.7 | 3.7 | 2.4 | 0.8 | 1.8 | 2.6 |
+| MPS (tune) | 63.8 | 73.6 | 0.7 | 2.3 | 1.8 | 0.7 | 0.6 | 3.7 |
+| WTC (tune) | 47.6 | 57.0 | 0.5 | 0.8 | 3.6 | 1.0 | 0.7 | 2.8 |
 | HaydnSun (tune) | 45.6 | 55.7 | 0.3 | 1.0 | 5.7 | 0.4 | 0.7 | 2.0 |
-| TAVERN (tune) | 60.5 | 70.4 | 0.7 | 1.6 | 3.8 | 0.4 | 0.7 | 2.7 |
-| BPS (tune) | 55.5 | 61.9 | 0.2 | 1.1 | 1.9 | 0.6 | 0.9 | 1.8 |
-| Early choral (tune) | 63.5 | 72.3 | 1.9 | 2.1 | 1.9 | 0.2 | 0.1 | 2.5 |
+| TAVERN (tune) | 60.6 | 70.4 | 0.7 | 1.6 | 3.8 | 0.4 | 0.7 | 2.7 |
+| BPS (tune) | 55.6 | 61.9 | 0.2 | 1.0 | 1.9 | 0.6 | 0.9 | 1.8 |
+| Early choral (tune) | 63.6 | 72.3 | 1.9 | 2.1 | 1.9 | 0.2 | 0.1 | 2.5 |
 | Other keyboard (tune) | 58.3 | 63.1 | 0.0 | 0.0 | 2.7 | 0.0 | 1.5 | 0.6 |
-| OpenScore Lieder (tune) | 64.7 | 71.9 | 0.7 | 1.0 | 2.0 | 0.2 | 1.3 | 2.0 |
+| OpenScore Lieder (tune) | 64.9 | 72.0 | 0.7 | 1.0 | 1.9 | 0.2 | 1.3 | 2.0 |
 | Textbooks (tune) | 67.9 | 80.9 | 1.0 | 0.5 | 9.5 | 0.0 | 0.5 | 1.7 |
 | Variations and grounds (tune) | 54.5 | 60.7 | 0.3 | 0.6 | 0.4 | 0.7 | 0.1 | 4.2 |
 | all of tune | 58.5 | 67.7 | 0.8 | 2.1 | 2.5 | 0.5 | 0.9 | 2.5 |
@@ -140,9 +140,9 @@ Each row is a percentage of frames.
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 93.9 | 89.6 | 92.0 | 91.9 | 94.3 | 82.0 | 87.1 | 88.9 |
-| Where they agree, the engine's top reading matches them | 92.8 | 81.3 | 85.0 | 84.6 | 87.5 | 73.2 | 78.2 | 79.4 |
+| Where they agree, the engine's top reading matches them | 92.8 | 81.3 | 85.0 | 84.7 | 87.5 | 73.3 | 78.2 | 79.4 |
 | Target: how often a third expert would be expected to match them | 96.9 | 94.7 | 95.9 | 95.9 | 97.1 | 90.5 | 93.3 | 94.3 |
-| Where they disagree, the top reading matches one of them | 87.9 | 74.6 | 80.3 | 84.3 | 81.1 | 60.7 | 67.6 | 68.7 |
+| Where they disagree, the top reading matches one of them | 87.9 | 74.6 | 80.3 | 84.3 | 81.1 | 60.7 | 67.7 | 68.7 |
 | Where they disagree, both readings are among those offered | 51.8 | 40.6 | 41.2 | 43.9 | 36.8 | 23.2 | 21.8 | 36.3 |
 
 The engine offers 3.4 readings per frame on average here.
@@ -160,10 +160,10 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 93.9 | 89.8 | 92.3 | 92.3 | 94.4 | 82.4 | 87.5 | 89.5 |
-| Where they agree, the engine's top reading matches them | 92.6 | 81.2 | 85.3 | 85.0 | 87.7 | 73.4 | 78.6 | 79.9 |
+| Where they agree, the engine's top reading matches them | 92.6 | 81.2 | 85.3 | 85.0 | 87.7 | 73.5 | 78.6 | 80.0 |
 | Target: how often a third expert would be expected to match them | 96.9 | 94.7 | 96.1 | 96.1 | 97.2 | 90.8 | 93.5 | 94.6 |
-| Where they disagree, the top reading matches one of them | 88.6 | 74.8 | 79.0 | 84.9 | 80.4 | 61.2 | 67.6 | 69.1 |
-| Where they disagree, both readings are among those offered | 52.5 | 40.2 | 40.2 | 42.9 | 35.6 | 22.3 | 20.8 | 36.1 |
+| Where they disagree, the top reading matches one of them | 88.6 | 74.8 | 79.1 | 84.9 | 80.4 | 61.2 | 67.7 | 69.1 |
+| Where they disagree, both readings are among those offered | 52.6 | 40.2 | 40.2 | 43.0 | 35.6 | 22.3 | 20.8 | 36.1 |
 
 The engine offers 3.4 readings per frame on average here.
 
@@ -171,8 +171,8 @@ Offered by layer:
 
 | layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
 |---|---:|---:|---:|---:|
-| key | 69.3 | 2.45 | 0.6 | 1.06 |
-| chord | 22.8 | 3.14 | 0.4 | 1.05 |
+| key | 69.2 | 2.45 | 0.6 | 1.06 |
+| chord | 22.9 | 3.14 | 0.4 | 1.05 |
 | RN | 23.0 | 3.45 | 0.3 | 1.08 |
 
 ### `anet-test` (all of test)
@@ -180,10 +180,10 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 96.3 | 92.5 | 92.9 | 92.6 | 95.6 | 85.6 | 88.9 | 90.0 |
-| Where they agree, the engine's top reading matches them | 90.1 | 77.2 | 81.2 | 80.7 | 84.2 | 65.6 | 72.3 | 72.1 |
+| Where they agree, the engine's top reading matches them | 90.1 | 77.2 | 81.1 | 80.7 | 84.2 | 65.6 | 72.4 | 72.1 |
 | Target: how often a third expert would be expected to match them | 98.1 | 96.2 | 96.4 | 96.2 | 97.8 | 92.5 | 94.3 | 94.9 |
-| Where they disagree, the top reading matches one of them | 84.0 | 73.7 | 85.7 | 82.1 | 83.8 | 59.4 | 68.3 | 68.0 |
-| Where they disagree, both readings are among those offered | 47.4 | 40.9 | 45.3 | 46.3 | 40.0 | 26.7 | 25.7 | 36.2 |
+| Where they disagree, the top reading matches one of them | 84.0 | 73.7 | 85.7 | 82.0 | 83.8 | 59.4 | 68.3 | 68.0 |
+| Where they disagree, both readings are among those offered | 47.4 | 40.9 | 45.3 | 46.2 | 40.0 | 26.7 | 25.7 | 36.2 |
 
 The engine offers 3.3 readings per frame on average here.
 
@@ -220,10 +220,10 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 93.9 | 88.4 | 89.8 | 89.3 | 93.3 | 78.9 | 84.2 | 85.2 |
-| Where they agree, the engine's top reading matches them | 93.8 | 82.6 | 82.8 | 82.2 | 86.0 | 71.8 | 75.1 | 75.6 |
+| Where they agree, the engine's top reading matches them | 93.8 | 82.5 | 82.8 | 82.3 | 86.0 | 71.8 | 75.2 | 75.6 |
 | Target: how often a third expert would be expected to match them | 96.9 | 94.0 | 94.8 | 94.5 | 96.6 | 88.8 | 91.8 | 92.3 |
-| Where they disagree, the top reading matches one of them | 83.4 | 73.2 | 85.8 | 81.3 | 84.6 | 57.2 | 67.3 | 66.5 |
-| Where they disagree, both readings are among those offered | 45.4 | 42.1 | 45.5 | 48.3 | 42.9 | 27.4 | 26.9 | 36.9 |
+| Where they disagree, the top reading matches one of them | 83.4 | 73.2 | 85.8 | 81.1 | 84.6 | 57.2 | 67.3 | 66.5 |
+| Where they disagree, both readings are among those offered | 45.4 | 42.1 | 45.5 | 48.1 | 42.9 | 27.4 | 26.9 | 36.9 |
 
 The engine offers 3.5 readings per frame on average here.
 
@@ -260,9 +260,9 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 96.5 | 91.6 | 92.8 | 92.7 | 95.1 | 84.2 | 87.8 | 89.8 |
-| Where they agree, the engine's top reading matches them | 91.6 | 78.9 | 84.3 | 83.8 | 86.0 | 70.2 | 76.2 | 77.4 |
+| Where they agree, the engine's top reading matches them | 91.6 | 78.9 | 84.3 | 83.9 | 86.0 | 70.3 | 76.2 | 77.4 |
 | Target: how often a third expert would be expected to match them | 98.3 | 95.7 | 96.3 | 96.3 | 97.5 | 91.8 | 93.7 | 94.8 |
-| Where they disagree, the top reading matches one of them | 88.0 | 70.4 | 81.3 | 85.4 | 80.3 | 58.6 | 67.9 | 69.8 |
+| Where they disagree, the top reading matches one of them | 88.0 | 70.4 | 81.3 | 85.4 | 80.3 | 58.6 | 68.0 | 69.8 |
 | Where they disagree, both readings are among those offered | 52.6 | 34.4 | 41.3 | 44.2 | 35.6 | 20.0 | 21.3 | 34.2 |
 
 The engine offers 3.4 readings per frame on average here.
@@ -280,7 +280,7 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 98.4 | 98.1 | 95.5 | 97.9 | 99.2 | 92.7 | 94.1 | 97.9 |
-| Where they agree, the engine's top reading matches them | 89.6 | 82.4 | 88.9 | 89.2 | 92.6 | 76.4 | 85.0 | 82.8 |
+| Where they agree, the engine's top reading matches them | 89.6 | 82.4 | 89.0 | 89.2 | 92.6 | 76.5 | 85.1 | 82.9 |
 | Target: how often a third expert would be expected to match them | 99.2 | 99.0 | 97.7 | 98.9 | 99.6 | 96.3 | 97.0 | 98.9 |
 | Where they disagree, the top reading matches one of them | 100.0 | 85.1 | 95.0 | 97.3 | 100.0 | 80.3 | 94.2 | 89.5 |
 | Where they disagree, both readings are among those offered | 82.8 | 62.7 | 59.1 | 21.6 | 50.0 | 41.7 | 40.6 | 55.3 |
@@ -300,10 +300,10 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 92.5 | 87.4 | 91.6 | 91.0 | 93.1 | 79.8 | 86.0 | 87.1 |
-| Where they agree, the engine's top reading matches them | 94.2 | 81.2 | 84.3 | 84.0 | 86.4 | 73.1 | 76.9 | 79.2 |
+| Where they agree, the engine's top reading matches them | 94.2 | 81.2 | 84.3 | 84.1 | 86.4 | 73.1 | 76.9 | 79.2 |
 | Target: how often a third expert would be expected to match them | 96.2 | 93.5 | 95.7 | 95.4 | 96.5 | 89.3 | 92.7 | 93.4 |
 | Where they disagree, the top reading matches one of them | 88.3 | 74.7 | 76.4 | 84.2 | 80.0 | 59.4 | 64.8 | 68.5 |
-| Where they disagree, both readings are among those offered | 51.5 | 39.8 | 38.2 | 43.7 | 35.7 | 22.0 | 19.5 | 35.9 |
+| Where they disagree, both readings are among those offered | 51.6 | 39.8 | 38.2 | 43.8 | 35.7 | 22.0 | 19.5 | 35.9 |
 
 The engine offers 3.4 readings per frame on average here.
 
@@ -320,10 +320,10 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 99.8 | 93.8 | 93.4 | 93.2 | 96.0 | 86.4 | 88.3 | 90.3 |
-| Where they agree, the engine's top reading matches them | 90.3 | 76.1 | 83.0 | 82.4 | 84.0 | 66.5 | 73.2 | 74.2 |
+| Where they agree, the engine's top reading matches them | 90.3 | 76.1 | 83.0 | 82.5 | 84.0 | 66.6 | 73.3 | 74.2 |
 | Target: how often a third expert would be expected to match them | 99.9 | 96.9 | 96.6 | 96.6 | 98.0 | 93.0 | 93.9 | 95.0 |
-| Where they disagree, the top reading matches one of them | 57.9 | 61.1 | 84.5 | 86.2 | 80.1 | 54.5 | 68.2 | 70.7 |
-| Where they disagree, both readings are among those offered | 56.1 | 22.3 | 42.8 | 46.0 | 35.7 | 16.3 | 22.0 | 31.8 |
+| Where they disagree, the top reading matches one of them | 57.9 | 61.1 | 84.5 | 86.2 | 80.1 | 54.5 | 68.4 | 70.7 |
+| Where they disagree, both readings are among those offered | 56.1 | 22.3 | 42.8 | 46.1 | 35.6 | 16.3 | 22.0 | 31.8 |
 
 The engine offers 3.3 readings per frame on average here.
 
@@ -340,7 +340,7 @@ Offered by layer:
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | The two analysts give the same label | 98.5 | 97.4 | 94.5 | 96.6 | 98.7 | 91.1 | 92.2 | 97.3 |
-| Where they agree, the engine's top reading matches them | 87.4 | 80.7 | 88.4 | 87.5 | 91.5 | 74.0 | 83.6 | 82.0 |
+| Where they agree, the engine's top reading matches them | 87.4 | 80.7 | 88.4 | 87.6 | 91.5 | 74.1 | 83.6 | 82.0 |
 | Target: how often a third expert would be expected to match them | 99.2 | 98.7 | 97.2 | 98.3 | 99.3 | 95.4 | 96.0 | 98.7 |
 | Where they disagree, the top reading matches one of them | 92.1 | 74.7 | 92.8 | 91.2 | 86.4 | 74.7 | 83.8 | 76.5 |
 | Where they disagree, both readings are among those offered | 65.4 | 44.3 | 49.7 | 37.1 | 32.6 | 21.7 | 27.0 | 36.2 |
@@ -368,7 +368,7 @@ The beam after each slice is read with the usual offer count and margin, for the
 | set | labels | median delay | within a beat | within a bar | within two bars | not offered |
 |---|---:|---:|---:|---:|---:|---:|
 | all of test | 14573 | 0.00 | 76.1 | 80.6 | 81.2 | 18.8 |
-| all of tune | 122231 | 0.00 | 79.4 | 82.8 | 83.2 | 16.7 |
+| all of tune | 122231 | 0.00 | 79.4 | 82.8 | 83.3 | 16.7 |
 | agreement | 35315 | 0.00 | 85.0 | 87.7 | 88.0 | 12.0 |
 | agreement-tune | 31492 | 0.00 | 85.3 | 87.8 | 88.1 | 11.9 |
 
@@ -376,8 +376,8 @@ The beam after each slice is read with the usual offer count and margin, for the
 
 | set | labels | median delay | within a beat | within a bar | within two bars | not offered |
 |---|---:|---:|---:|---:|---:|---:|
-| all of test | 670 | 0.50 | 67.9 | 86.6 | 94.9 | 0.7 |
-| all of tune | 7682 | 0.00 | 79.0 | 91.7 | 95.5 | 2.2 |
+| all of test | 670 | 0.50 | 67.8 | 86.6 | 94.9 | 0.7 |
+| all of tune | 7682 | 0.00 | 79.0 | 91.7 | 95.5 | 2.1 |
 | agreement | 2014 | 0.00 | 84.2 | 95.2 | 98.1 | 0.6 |
 | agreement-tune | 1847 | 0.00 | 85.5 | 95.7 | 98.2 | 0.6 |
 
@@ -386,7 +386,7 @@ The beam after each slice is read with the usual offer count and margin, for the
 | set | labels | median delay | within a beat | within a bar | within two bars | not offered |
 |---|---:|---:|---:|---:|---:|---:|
 | all of test | 14550 | 0.00 | 85.8 | 89.1 | 89.5 | 10.5 |
-| all of tune | 121892 | 0.00 | 88.7 | 90.8 | 91.1 | 8.9 |
+| all of tune | 121892 | 0.00 | 88.6 | 90.8 | 91.1 | 8.9 |
 | agreement | 35261 | 0.00 | 90.7 | 92.4 | 92.5 | 7.5 |
 | agreement-tune | 31444 | 0.00 | 91.0 | 92.5 | 92.7 | 7.3 |
 
@@ -404,19 +404,19 @@ Each figure is the percentage of the set's frames lost to that group of errors. 
 | set | frames | RN | RN eq | key | root | quality | inversion | function | unproducible | timing | disagreement | no reading |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | WiR | 191440 | 61.5 | 67.6 | 17.6 | 7.6 | 3.8 | 3.9 | 0.7 | 3.1 | 1.6 | 0.2 | 0.0 |
-| ABC | 321505 | 52.5 | 64.6 | 15.0 | 11.9 | 3.8 | 10.5 | 0.7 | 3.2 | 2.4 | 0.0 | 0.0 |
-| MPS | 150278 | 63.7 | 73.5 | 5.2 | 8.3 | 2.5 | 4.3 | 0.4 | 0.5 | 2.1 | 13.0 | 0.0 |
-| WTC | 18589 | 47.6 | 57.1 | 18.4 | 13.3 | 7.6 | 3.8 | 1.2 | 6.1 | 1.9 | 0.0 | 0.0 |
+| ABC | 321505 | 52.6 | 64.6 | 15.0 | 11.9 | 3.8 | 10.4 | 0.7 | 3.2 | 2.4 | 0.0 | 0.0 |
+| MPS | 150278 | 63.8 | 73.6 | 5.2 | 8.3 | 2.5 | 4.3 | 0.4 | 0.5 | 2.1 | 12.9 | 0.0 |
+| WTC | 18589 | 47.6 | 57.0 | 18.4 | 13.3 | 7.6 | 3.8 | 1.2 | 6.1 | 1.9 | 0.0 | 0.0 |
 | HaydnSun | 62576 | 45.6 | 55.7 | 25.0 | 9.7 | 3.1 | 7.7 | 0.7 | 6.3 | 2.0 | 0.0 | 0.0 |
-| TAVERN | 145193 | 60.5 | 70.4 | 5.3 | 9.0 | 2.9 | 4.2 | 0.4 | 4.5 | 3.3 | 9.8 | 0.0 |
-| BPS | 138656 | 55.5 | 61.9 | 16.6 | 11.4 | 3.9 | 8.1 | 0.9 | 1.3 | 2.4 | 0.0 | 0.0 |
-| Early choral | 220392 | 63.5 | 72.3 | 19.3 | 5.3 | 3.5 | 3.8 | 0.7 | 1.5 | 1.5 | 0.8 | 0.0 |
+| TAVERN | 145193 | 60.6 | 70.4 | 5.3 | 9.0 | 2.9 | 4.1 | 0.4 | 4.5 | 3.3 | 9.8 | 0.0 |
+| BPS | 138656 | 55.6 | 61.9 | 16.6 | 11.4 | 3.8 | 8.0 | 0.9 | 1.3 | 2.4 | 0.0 | 0.0 |
+| Early choral | 220392 | 63.6 | 72.3 | 19.3 | 5.3 | 3.5 | 3.8 | 0.7 | 1.5 | 1.5 | 0.8 | 0.0 |
 | Other keyboard | 5633 | 58.3 | 63.1 | 13.7 | 8.0 | 6.3 | 3.8 | 1.6 | 7.8 | 0.4 | 0.0 | 0.0 |
-| OpenScore Lieder | 64207 | 64.7 | 71.9 | 13.7 | 8.3 | 4.0 | 3.5 | 0.4 | 3.0 | 2.4 | 0.0 | 0.0 |
+| OpenScore Lieder | 64207 | 64.9 | 72.0 | 13.6 | 8.3 | 4.0 | 3.4 | 0.4 | 3.0 | 2.4 | 0.0 | 0.0 |
 | Textbooks | 17637 | 67.9 | 80.9 | 18.9 | 1.5 | 2.5 | 1.2 | 0.4 | 7.2 | 0.4 | 0.0 | 0.1 |
 | Variations and grounds | 6160 | 54.5 | 60.7 | 3.1 | 14.8 | 9.9 | 5.1 | 1.9 | 8.4 | 2.3 | 0.0 | 0.0 |
-| all of tune | 1342266 | 58.5 | 67.7 | 14.5 | 9.0 | 3.6 | 6.1 | 0.6 | 2.8 | 2.1 | 2.7 | 0.0 |
-| agreement-tune | 173883 | 65.6 | 75.5 | 5.7 | 7.2 | 2.3 | 4.0 | 0.4 | 0.4 | 2.0 | 12.4 | 0.0 |
+| all of tune | 1342266 | 58.5 | 67.7 | 14.5 | 9.0 | 3.6 | 6.0 | 0.6 | 2.8 | 2.1 | 2.7 | 0.0 |
+| agreement-tune | 173883 | 65.7 | 75.5 | 5.7 | 7.2 | 2.3 | 3.9 | 0.4 | 0.4 | 2.0 | 12.4 | 0.0 |
 
 ### Error kinds on `tune`, by frames lost
 
@@ -424,35 +424,35 @@ The share is of all the set's frames. **RN eq** is the percentage of the kind's 
 
 | kind | % of frames | frames | RN eq | most common (expert vs engine) |
 |---|---:|---:|---:|---|
-| inversion | 6.1 | 81949 | 41.3 | I6 vs I (10966), I vs I6 (5684), I vs I64 (4847) |
-| root: third | 4.3 | 57450 | 19.4 | viio vs V7 (3364), V7 vs viio (2906), vi vs I (2606) |
-| root: fifth | 3.1 | 41023 | 19.3 | I vs V7 (5047), V7 vs I (4254), V vs I (4150) |
-| disagreement | 2.7 | 35895 | 26.1 |  |
-| timing | 2.1 | 28689 | 23.1 |  |
-| key: subdominant, sustained | 1.9 | 26113 | 1.1 | M:I vs M:V (5034), M:IV vs M:I (3533), m:iv vs m:i (1900) |
-| quality: extra seventh | 1.9 | 25031 | 32.2 | V vs V7 (19734), I vs I7 (905), ii vs ii7 (765) |
-| key: expert tonicizes, engine modulates, sustained | 1.7 | 22878 | 59.6 | M:V7/V vs M:V7 (2420), M:V7/IV vs M:V7 (1806), M:V/vi vs m:V (1560) |
-| key: relative, sustained | 1.6 | 21218 | 0.7 | m:III vs M:I (2608), m:i vs M:vi (2254), M:vi vs m:i (2150) |
-| key: parallel, sustained | 1.6 | 20889 | 0.3 | m:I vs M:I (2811), m:V7 vs M:V7 (2454), M:i vs m:i (1611) |
-| key: dominant, sustained | 1.5 | 20144 | 1.0 | M:V vs M:I (5202), m:i vs m:iv (2092), M:I vs M:IV (1745) |
-| key: other, sustained | 1.5 | 19581 | 0.7 | M:ii vs m:i (2310), m:i vs M:ii (1546), m:VII vs M:I (1144) |
-| quality: missing seventh | 1.4 | 18939 | 13.5 | V7 vs V (11680), ii7 vs ii (1602), vi7 vs vi (726) |
-| root: step | 1.3 | 17365 | 17.7 | V7 vs IV (1032), I vs viio (940), IV vs V7 (904) |
-| key: relative, brief | 0.9 | 12064 | 2.4 | m:i vs M:vi (1752), M:I vs m:III (1476), M:vi vs m:i (1076) |
-| unproducible: chord not in the key's vocabulary | 0.9 | 11828 | 8.5 | viø7 (520), I+ (436), ii7 (424) |
-| key: other, brief | 0.8 | 10879 | 5.6 | m:i vs M:ii (1078), M:ii vs m:i (694), M:I vs m:VI (464) |
-| unproducible: applied chord read in the key | 0.8 | 10461 | 41.3 | V/III (838), I/V (762), I64/V (574) |
-| key: engine tonicizes, expert modulates, sustained | 0.7 | 9907 | 63.4 | M:V7 vs M:V7/V (1182), m:V vs m:V/iv (752), m:V7 vs M:V7/ii (710) |
-| key: subdominant, brief | 0.6 | 8680 | 4.5 | M:I vs M:V (2372), M:IV vs M:I (1182), m:iv vs m:i (624) |
-| function | 0.6 | 8615 | 17.7 | V7/IV vs I (2081), I vs V7/IV (1386), I vs V/iv (1068) |
+| inversion | 6.0 | 81087 | 40.9 | I6 vs I (10742), I vs I6 (5508), I vs I64 (4801) |
+| root: third | 4.3 | 57350 | 19.3 | viio vs V7 (3364), V7 vs viio (2842), vi vs I (2606) |
+| root: fifth | 3.1 | 41006 | 19.3 | I vs V7 (5031), V7 vs I (4261), V vs I (4146) |
+| disagreement | 2.7 | 35887 | 26.1 |  |
+| timing | 2.1 | 28809 | 23.0 |  |
+| key: subdominant, sustained | 1.9 | 25869 | 1.1 | M:I vs M:V (5016), M:IV vs M:I (3487), m:iv vs m:i (1900) |
+| quality: extra seventh | 1.9 | 24983 | 32.2 | V vs V7 (19710), I vs I7 (905), ii vs ii7 (765) |
+| key: expert tonicizes, engine modulates, sustained | 1.7 | 22794 | 59.7 | M:V7/V vs M:V7 (2420), M:V7/IV vs M:V7 (1758), M:V/vi vs m:V (1544) |
+| key: parallel, sustained | 1.6 | 21189 | 0.3 | m:I vs M:I (2811), m:V7 vs M:V7 (2526), M:i vs m:i (1611) |
+| key: relative, sustained | 1.6 | 21138 | 0.7 | m:III vs M:I (2608), m:i vs M:vi (2260), M:vi vs m:i (2150) |
+| key: dominant, sustained | 1.5 | 20204 | 1.0 | M:V vs M:I (5202), m:i vs m:iv (2092), M:I vs M:IV (1773) |
+| key: other, sustained | 1.4 | 19437 | 0.7 | M:ii vs m:i (2310), m:i vs M:ii (1530), m:VII vs M:I (1192) |
+| quality: missing seventh | 1.4 | 18932 | 13.5 | V7 vs V (11665), ii7 vs ii (1602), vi7 vs vi (726) |
+| root: step | 1.3 | 17385 | 17.5 | V7 vs IV (1032), I vs viio (940), IV vs V7 (904) |
+| key: relative, brief | 0.9 | 12086 | 2.4 | m:i vs M:vi (1760), M:I vs m:III (1476), M:vi vs m:i (1086) |
+| unproducible: chord not in the key's vocabulary | 0.9 | 11828 | 8.4 | viø7 (520), I+ (436), ii7 (424) |
+| key: other, brief | 0.8 | 10887 | 5.6 | m:i vs M:ii (1078), M:ii vs m:i (698), M:I vs m:VI (464) |
+| unproducible: applied chord read in the key | 0.8 | 10461 | 41.2 | V/III (838), I/V (762), I64/V (574) |
+| key: engine tonicizes, expert modulates, sustained | 0.7 | 9895 | 63.5 | M:V7 vs M:V7/V (1182), m:V vs m:V/iv (752), m:V7 vs M:V7/ii (710) |
+| key: subdominant, brief | 0.6 | 8676 | 4.5 | M:I vs M:V (2372), M:IV vs M:I (1182), m:iv vs m:i (624) |
+| function | 0.6 | 8615 | 17.8 | V7/IV vs I (2081), I vs V7/IV (1386), I vs V/iv (1068) |
 | key: dominant, brief | 0.6 | 8246 | 3.0 | M:V vs M:I (1336), M:I vs M:IV (1232), m:i vs m:iv (1168) |
-| unproducible: target cannot be tonicized | 0.5 | 6456 | 23.7 | viio7/v (680), viio65/v (452), viio7/II (226) |
+| unproducible: target cannot be tonicized | 0.5 | 6456 | 23.8 | viio7/v (680), viio65/v (452), viio7/II (226) |
 | key: engine tonicizes, expert modulates, brief | 0.4 | 5856 | 67.7 | m:V vs M:V/vi (666), M:V7 vs M:V7/V (526), m:V7 vs M:V7/vi (368) |
 | root: other | 0.4 | 5597 | 20.2 | viio7/V vs i (1074), viio7 vs iv (780), viio/V vs I (318) |
 | unproducible: chord not proposed from the notes | 0.4 | 5121 | 13.4 | V (804), I (402), V7 (232) |
-| key: expert tonicizes, engine modulates, brief | 0.4 | 5008 | 61.0 | M:V7/V vs M:V7 (368), M:V7/IV vs M:V7 (362), m:viio7/V vs m:viio7 (255) |
-| quality: other | 0.3 | 4014 | 12.0 | i vs I (710), I vs i (704), ii vs iio (499) |
-| key: parallel, brief | 0.3 | 3642 | 3.8 | m:V vs M:V (712), m:I vs M:I (496), m:V7 vs M:V7 (328) |
+| key: expert tonicizes, engine modulates, brief | 0.4 | 5014 | 61.0 | M:V7/V vs M:V7 (368), M:V7/IV vs M:V7 (362), m:viio7/V vs m:viio7 (255) |
+| quality: other | 0.3 | 4018 | 12.0 | i vs I (710), I vs i (704), ii vs iio (499) |
+| key: parallel, brief | 0.3 | 3630 | 3.8 | m:V vs M:V (712), m:I vs M:I (496), m:V7 vs M:V7 (328) |
 | unproducible: non-dominant applied function | 0.2 | 2396 | 26.9 | III+64/i (128), iv/iv (128), Ger65/iv (125) |
 | unproducible: quality outside the chord templates | 0.1 | 1644 | 14.6 | V? (836), III? (162), IV? (118) |
 | no reading | 0.0 | 124 | 0.0 |  |
@@ -463,12 +463,12 @@ The share is of all the set's frames. **RN eq** is the percentage of the kind's 
 
 | kind | % of frames | frames | RN eq | most common (expert vs engine) |
 |---|---:|---:|---:|---|
-| disagreement | 12.4 | 21639 | 30.2 |  |
-| inversion | 4.0 | 6876 | 49.0 | I6 vs I (1184), I vs I6 (808), I vs I64 (446) |
-| root: third | 3.7 | 6363 | 21.2 | vi vs I (450), I vs vi (424), ii vs IV (406) |
-| root: fifth | 2.2 | 3816 | 25.9 | I vs V7 (616), I vs V (448), ii vs V7 (428) |
-| timing | 2.0 | 3400 | 27.2 |  |
-| quality: extra seventh | 1.4 | 2432 | 33.1 | V vs V7 (2088), I vs I7 (192), ii vs ii7 (44) |
+| disagreement | 12.4 | 21615 | 30.2 |  |
+| inversion | 3.9 | 6792 | 48.7 | I6 vs I (1184), I vs I6 (812), I vs I64 (414) |
+| root: third | 3.7 | 6359 | 21.2 | vi vs I (450), I vs vi (424), ii vs IV (406) |
+| root: fifth | 2.2 | 3816 | 25.8 | I vs V7 (624), I vs V (448), ii vs V7 (428) |
+| timing | 2.0 | 3412 | 27.0 |  |
+| quality: extra seventh | 1.4 | 2412 | 33.3 | V vs V7 (2084), I vs I7 (192), ii vs ii7 (44) |
 | key: subdominant, sustained | 1.2 | 2148 | 2.6 | M:I vs M:V (1018), M:IV vs M:I (304), M:ii vs M:vi (150) |
 | root: step | 1.0 | 1803 | 19.3 | V7 vs IV (170), Ger7 vs VI (144), I vs ii7 (128) |
 | quality: missing seventh | 0.8 | 1446 | 25.8 | V7 vs V (822), ii7 vs ii (224), vi7 vs vi (88) |
@@ -502,18 +502,18 @@ Each cell gives a kind and, in brackets, the percentage of the corpus's frames i
 | corpus | first | second | third | fourth | fifth |
 |---|---|---|---|---|---|
 | WiR | root: third (4.0) | inversion (3.9) | key: relative, sustained (2.5) | key: other, sustained (2.3) | root: fifth (2.2) |
-| ABC | inversion (10.5) | root: third (5.5) | root: fifth (3.8) | key: expert tonicizes, engine modulates, sustained (3.1) | timing (2.4) |
-| MPS | disagreement (13.0) | inversion (4.3) | root: third (3.6) | root: fifth (2.8) | timing (2.1) |
+| ABC | inversion (10.4) | root: third (5.5) | root: fifth (3.8) | key: expert tonicizes, engine modulates, sustained (3.1) | timing (2.4) |
+| MPS | disagreement (12.9) | inversion (4.3) | root: third (3.6) | root: fifth (2.8) | timing (2.1) |
 | WTC | root: third (9.3) | quality: missing seventh (6.1) | inversion (3.8) | unproducible: target cannot be tonicized (3.4) | root: fifth (2.8) |
 | HaydnSun | inversion (7.7) | key: expert tonicizes, engine modulates, sustained (6.4) | key: dominant, sustained (4.6) | root: third (4.5) | key: relative, sustained (3.8) |
-| TAVERN | disagreement (9.8) | root: fifth (4.6) | inversion (4.2) | timing (3.3) | unproducible: applied chord read in the key (3.2) |
-| BPS | inversion (8.1) | root: third (4.8) | root: fifth (4.5) | key: subdominant, sustained (2.7) | key: parallel, sustained (2.5) |
+| TAVERN | disagreement (9.8) | root: fifth (4.6) | inversion (4.1) | timing (3.3) | unproducible: applied chord read in the key (3.2) |
+| BPS | inversion (8.0) | root: third (4.8) | root: fifth (4.5) | key: subdominant, sustained (2.7) | key: parallel, sustained (2.5) |
 | Early choral | inversion (3.8) | root: third (3.6) | key: relative, brief (3.1) | key: subdominant, sustained (2.5) | quality: extra seventh (2.1) |
 | Other keyboard | quality: missing seventh (5.1) | root: third (5.1) | inversion (3.8) | key: other, brief (2.7) | unproducible: chord not in the key's vocabulary (2.7) |
-| OpenScore Lieder | root: third (3.9) | inversion (3.5) | root: fifth (2.6) | timing (2.4) | quality: missing seventh (2.3) |
+| OpenScore Lieder | root: third (3.9) | inversion (3.4) | root: fifth (2.6) | timing (2.4) | quality: missing seventh (2.3) |
 | Textbooks | key: other, brief (5.0) | unproducible: applied chord read in the key (4.0) | key: expert tonicizes, engine modulates, brief (3.0) | key: subdominant, brief (2.5) | quality: extra seventh (1.4) |
 | Variations and grounds | root: third (9.2) | quality: missing seventh (6.6) | inversion (5.1) | root: fifth (4.0) | unproducible: chord not in the key's vocabulary (3.5) |
-| all of tune | inversion (6.1) | root: third (4.3) | root: fifth (3.1) | disagreement (2.7) | timing (2.1) |
+| all of tune | inversion (6.0) | root: third (4.3) | root: fifth (3.1) | disagreement (2.7) | timing (2.1) |
 
 ### Labels the engine cannot produce, on `tune`
 
@@ -539,29 +539,29 @@ Frames where two analysts differ are classed by what they differ on. **Frames** 
 
 | class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the chord hypothesis limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| same chord, different inversion | 6085 | 65.0 | 11.2 | 96 | 714 | 45.8 | 2.5 | 1079 | 649 | 0 | 1.2 | 4185 |
-| different key, same chord | 5976 | 68.1 | 35.5 | 336 | 1662 | 37.3 | 1.9 | 1667 | 430 | 0 | 1.2 | 687 |
-| other | 5281 | 58.2 | 15.1 | 612 | 846 | 34.9 | 1.9 | 1374 | 1121 | 0 | 1.0 | 1894 |
-| seventh vs triad | 4902 | 63.9 | 27.8 | 272 | 1109 | 48.9 | 4.3 | 1396 | 882 | 0 | 1.2 | 956 |
-| roots a third apart | 4556 | 52.5 | 14.1 | 430 | 860 | 36.6 | 2.1 | 1420 | 1152 | 0 | 1.1 | 1562 |
+| same chord, different inversion | 6085 | 65.1 | 11.2 | 96 | 712 | 46.0 | 2.5 | 1083 | 645 | 0 | 1.2 | 4185 |
+| different key, same chord | 5976 | 67.8 | 35.5 | 336 | 1664 | 37.4 | 1.9 | 1663 | 428 | 0 | 1.2 | 691 |
+| other | 5281 | 58.1 | 15.1 | 612 | 844 | 34.8 | 1.9 | 1358 | 1139 | 0 | 1.0 | 1894 |
+| seventh vs triad | 4902 | 64.1 | 27.8 | 272 | 1109 | 48.8 | 4.3 | 1400 | 878 | 0 | 1.2 | 956 |
+| roots a third apart | 4556 | 52.6 | 14.2 | 430 | 850 | 36.1 | 2.1 | 1412 | 1156 | 0 | 1.1 | 1574 |
 | tonicization vs modulation | 2728 | 57.3 | 37.0 | 560 | 531 | 31.4 | 2.0 | 441 | 355 | 0 | 1.0 | 418 |
 | applied vs diatonic | 512 | 28.9 | 0.0 | 608 | 80 | 42.2 | 2.4 | 68 | 64 | 0 | 0.9 | 24 |
 | I64 vs V (cadential six-four) | 501 | 71.7 | 39.7 | 16 | 85 | 36.4 | 2.2 | 74 | 71 | 0 | 1.1 | 88 |
-| all | 30541 | 61.2 | 22.3 | 2930 | 5887 | 39.6 | 2.5 | 7519 | 4724 | 0 | 1.1 | 9814 |
+| all | 30541 | 61.2 | 22.3 | 2930 | 5875 | 39.5 | 2.5 | 7499 | 4736 | 0 | 1.1 | 9830 |
 
 **`tune`**
 
 | class | frames | top matches either | both offered | missing: cannot produce | missing: in the beam, not offered | its mean rank | its mean score gap | missing: cut by beam width | missing: cut by the chord hypothesis limit | missing: merged by distinct depth | their mean time to pruning | missing: never held |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| same chord, different inversion | 11577 | 64.8 | 14.5 | 604 | 1204 | 41.7 | 2.4 | 2028 | 1121 | 0 | 1.2 | 7418 |
-| seventh vs triad | 9901 | 62.7 | 26.5 | 432 | 1654 | 47.2 | 3.9 | 3241 | 1781 | 0 | 1.2 | 2393 |
-| other | 9155 | 56.8 | 14.6 | 1428 | 1419 | 35.7 | 2.0 | 2244 | 1865 | 0 | 1.0 | 3330 |
-| roots a third apart | 6174 | 48.5 | 12.5 | 926 | 1074 | 36.9 | 2.1 | 1936 | 1381 | 0 | 1.1 | 2354 |
-| different key, same chord | 6168 | 67.2 | 35.1 | 440 | 1714 | 37.7 | 1.9 | 1715 | 438 | 0 | 1.2 | 699 |
+| same chord, different inversion | 11577 | 64.9 | 14.6 | 604 | 1202 | 41.8 | 2.4 | 2032 | 1115 | 0 | 1.2 | 7420 |
+| seventh vs triad | 9901 | 62.8 | 26.5 | 432 | 1652 | 47.2 | 3.9 | 3245 | 1779 | 0 | 1.2 | 2393 |
+| other | 9155 | 56.8 | 14.6 | 1428 | 1417 | 35.7 | 2.0 | 2228 | 1881 | 0 | 1.0 | 3332 |
+| roots a third apart | 6174 | 48.6 | 12.5 | 926 | 1062 | 36.5 | 2.1 | 1928 | 1385 | 0 | 1.1 | 2366 |
+| different key, same chord | 6168 | 66.9 | 35.1 | 440 | 1716 | 37.8 | 1.9 | 1711 | 436 | 0 | 1.2 | 703 |
 | applied vs diatonic | 2832 | 26.0 | 0.0 | 2932 | 344 | 39.6 | 2.2 | 615 | 148 | 0 | 1.2 | 269 |
 | tonicization vs modulation | 2736 | 57.5 | 37.2 | 560 | 531 | 31.4 | 2.0 | 441 | 355 | 0 | 1.0 | 418 |
-| I64 vs V (cadential six-four) | 913 | 70.0 | 33.6 | 28 | 165 | 37.6 | 2.2 | 179 | 144 | 0 | 1.1 | 204 |
-| all | 49456 | 58.6 | 20.0 | 7350 | 8105 | 39.4 | 2.5 | 12399 | 7233 | 0 | 1.1 | 17085 |
+| I64 vs V (cadential six-four) | 913 | 70.0 | 33.6 | 28 | 169 | 37.7 | 2.2 | 179 | 144 | 0 | 1.1 | 204 |
+| all | 49456 | 58.6 | 20.0 | 7350 | 8093 | 39.4 | 2.5 | 12379 | 7243 | 0 | 1.1 | 17105 |
 
 ### Chord accuracy with the key right and wrong
 
@@ -570,19 +570,19 @@ The frames of each set are split by whether the top reading's key is right. Each
 | set | key right: frames | quality | inversion | root | chord | key wrong: frames | quality | inversion | root | chord | chord errors with the key right |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | WiR | 155021 | 83.1 | 84.5 | 88.2 | 76.6 | 36407 | 76.3 | 80.1 | 82.2 | 69.6 | 76.6 |
-| ABC | 267679 | 79.0 | 73.2 | 82.4 | 63.4 | 53794 | 71.5 | 72.1 | 75.5 | 57.7 | 81.1 |
-| MPS | 135278 | 80.9 | 80.2 | 83.5 | 71.1 | 15000 | 75.0 | 77.4 | 79.2 | 65.4 | 88.3 |
+| ABC | 267697 | 79.0 | 73.4 | 82.4 | 63.6 | 53776 | 71.4 | 72.2 | 75.5 | 57.7 | 81.1 |
+| MPS | 135278 | 80.9 | 80.3 | 83.5 | 71.1 | 15000 | 75.0 | 77.3 | 79.2 | 65.3 | 88.2 |
 | WTC | 14713 | 67.4 | 75.1 | 78.5 | 61.4 | 3876 | 62.4 | 74.6 | 74.3 | 57.1 | 77.3 |
-| HaydnSun | 44070 | 79.1 | 76.1 | 83.0 | 65.0 | 18502 | 74.1 | 73.8 | 78.8 | 59.2 | 67.1 |
-| TAVERN | 129563 | 80.4 | 80.1 | 82.6 | 69.2 | 15630 | 77.9 | 81.0 | 82.1 | 64.9 | 87.9 |
-| BPS | 114666 | 79.2 | 77.7 | 83.3 | 67.1 | 23990 | 70.6 | 73.2 | 74.5 | 58.4 | 79.1 |
-| Early choral | 174960 | 86.9 | 87.1 | 91.6 | 80.7 | 45384 | 81.5 | 83.7 | 85.9 | 74.9 | 74.8 |
+| HaydnSun | 44070 | 79.1 | 76.1 | 83.0 | 65.0 | 18502 | 74.3 | 73.9 | 78.8 | 59.4 | 67.2 |
+| TAVERN | 129563 | 80.4 | 80.2 | 82.6 | 69.3 | 15630 | 78.0 | 81.0 | 82.1 | 64.8 | 87.9 |
+| BPS | 114658 | 79.2 | 77.8 | 83.3 | 67.2 | 23998 | 70.6 | 73.2 | 74.5 | 58.4 | 79.0 |
+| Early choral | 175104 | 87.0 | 87.2 | 91.6 | 80.8 | 45240 | 81.4 | 83.6 | 85.9 | 74.8 | 74.7 |
 | Other keyboard | 4798 | 77.6 | 83.5 | 86.4 | 71.0 | 835 | 65.3 | 71.3 | 76.8 | 58.6 | 80.1 |
-| OpenScore Lieder | 54539 | 82.8 | 85.3 | 87.1 | 76.8 | 9664 | 72.0 | 80.6 | 81.3 | 66.6 | 79.7 |
+| OpenScore Lieder | 54571 | 82.8 | 85.4 | 87.1 | 76.9 | 9632 | 71.9 | 80.6 | 81.3 | 66.5 | 79.6 |
 | Textbooks | 13149 | 93.9 | 96.5 | 97.4 | 91.7 | 4464 | 89.5 | 92.3 | 93.1 | 81.6 | 57.2 |
 | Variations and grounds | 5952 | 66.5 | 77.0 | 79.0 | 58.6 | 208 | 48.1 | 59.6 | 57.7 | 42.3 | 95.4 |
-| all of tune | 1114388 | 81.4 | 80.2 | 85.3 | 71.0 | 227754 | 75.2 | 77.7 | 80.1 | 65.0 | 80.2 |
-| agreement-tune | 156119 | 82.4 | 81.9 | 85.5 | 73.4 | 17764 | 76.6 | 79.6 | 82.1 | 68.4 | 88.1 |
+| all of tune | 1114574 | 81.4 | 80.2 | 85.3 | 71.1 | 227568 | 75.2 | 77.7 | 80.1 | 65.0 | 80.2 |
+| agreement-tune | 156119 | 82.4 | 81.9 | 85.5 | 73.5 | 17764 | 76.6 | 79.5 | 82.1 | 68.3 | 88.0 |
 
 ### The longest wrong spans where the analysts agree
 
@@ -629,15 +629,15 @@ The first two columns give how often the expert's and the engine's labels change
 | MPS | 1.90 | 1.64 | 79.5 | 52.8 | 47.0 | 3.2 |
 | WTC | 2.71 | 2.31 | 79.1 | 48.3 | 42.8 | 3.1 |
 | HaydnSun | 1.55 | 1.63 | 79.4 | 48.2 | 44.3 | 3.0 |
-| TAVERN | 1.34 | 1.39 | 79.7 | 49.1 | 43.7 | 3.0 |
+| TAVERN | 1.34 | 1.40 | 79.7 | 49.0 | 43.7 | 3.0 |
 | BPS | 1.26 | 1.35 | 79.4 | 47.2 | 42.1 | 2.9 |
 | Early choral | 3.01 | 2.59 | 79.5 | 58.9 | 54.1 | 3.4 |
-| Other keyboard | 1.10 | 1.15 | 79.5 | 40.7 | 36.1 | 2.8 |
+| Other keyboard | 1.10 | 1.15 | 79.4 | 40.7 | 36.1 | 2.8 |
 | OpenScore Lieder | 1.53 | 1.52 | 79.5 | 46.1 | 42.3 | 2.8 |
 | Textbooks | 2.17 | 1.91 | 76.4 | 61.1 | 57.0 | 3.5 |
-| Variations and grounds | 2.02 | 1.71 | 78.5 | 52.0 | 44.8 | 3.4 |
+| Variations and grounds | 2.02 | 1.71 | 78.5 | 51.9 | 44.8 | 3.4 |
 | all of tune | 1.80 | 1.66 | 79.5 | 49.9 | 45.0 | 3.0 |
-| agreement-tune | 2.20 | 1.87 | 79.5 | 54.1 | 48.3 | 3.2 |
+| agreement-tune | 2.20 | 1.88 | 79.5 | 54.1 | 48.2 | 3.2 |
 
 ### Examples of the largest kinds and classes
 
@@ -657,21 +657,21 @@ The longest spans of each of the largest error kinds and disagreement classes. F
 | root: fifth | quartets-beethoven-ludwig-van-op059-no2-4 | 97 | 36.0 | C: V6 | C: ii |
 | root: fifth | piano-sonatas-beethoven-ludwig-van-op031-no3-1 | 177 | 14.0 | Eb: I | Eb: IV2 |
 | root: fifth | early-choral-monteverdi-claudio-madrigals-book-4-01 | 1 | 12.0 | a: i | a: V |
+| timing | early-choral-bach-johann-sebastian-chorales-007 | 2 | 1.0 | A: IV | A: IV7 |
 | timing | early-choral-bach-johann-sebastian-chorales-007 | 10 | 1.0 | A: IV | A: viio64 |
 | timing | early-choral-bach-johann-sebastian-chorales-007 | 11 | 1.0 | f#: viio6 | f#: i |
-| timing | early-choral-bach-johann-sebastian-chorales-008 | 13 | 1.0 | f: i | c: iv |
 | key: subdominant, sustained | piano-sonatas-mozart-wolfgang-amadeus-k457-1 | 149 | 18.0 | c: iv | f: i |
 | key: subdominant, sustained | quartets-beethoven-ludwig-van-op018-no6-1 | 102 | 16.0 | D: I | g: V |
 | key: subdominant, sustained | early-choral-monteverdi-claudio-madrigals-book-5-06 | 38 | 11.0 | d: I | g: V |
 | quality: extra seventh | piano-sonatas-beethoven-ludwig-van-op022-1 | 153 | 15.0 | Bb: I | Bb: I7 |
+| quality: extra seventh | quartets-beethoven-ludwig-van-op059-no3-4 | 60 | 14.0 | G: V | G: V65 |
 | quality: extra seventh | quartets-beethoven-ludwig-van-op018-no3-1 | 184 | 12.0 | D: V | D: V7 |
-| quality: extra seventh | quartets-beethoven-ludwig-van-op059-no3-4 | 60 | 12.0 | G: V | G: V65 |
 | key: expert tonicizes, engine modulates, sustained | openscore-liedercorpus-schubert-franz-schwanengesang-d-957-11-die-stadt | 19 | 23.0 | c: viio43/V | g: viio43 |
 | key: expert tonicizes, engine modulates, sustained | quartets-beethoven-ludwig-van-op131-5 | 16 | 16.0 | E: V/vi | c#: V |
 | key: expert tonicizes, engine modulates, sustained | quartets-beethoven-ludwig-van-op131-5 | 184 | 16.0 | E: V/vi | c#: V |
-| key: relative, sustained | piano-sonatas-beethoven-ludwig-van-op054-1 | 62 | 22.0 | f: V | Ab: IV2 |
-| key: relative, sustained | piano-sonatas-beethoven-ludwig-van-op081a-les-adieux-1 | 106 | 19.0 | Eb: IV6 | c: VI6 |
-| key: relative, sustained | early-choral-monteverdi-claudio-madrigals-book-3-10 | 14 | 11.0 | a: III | C: I |
+| key: parallel, sustained | quartets-beethoven-ludwig-van-op018-no4-4 | 209 | 33.1 | c: I | C: I |
+| key: parallel, sustained | piano-sonatas-beethoven-ludwig-van-op031-no1-1 | 166 | 32.0 | g: V7 | G: V7 |
+| key: parallel, sustained | quartets-beethoven-ludwig-van-op059-no3-1 | 22 | 21.0 | C: viio7 | c: viio7 |
 | disagreement: same chord, different inversion | piano-sonatas-mozart-wolfgang-amadeus-k457-1 | 52 | 16.0 | Eb: ii \| Eb: ii6 | f: i |
 | disagreement: same chord, different inversion | variations-and-grounds-beethoven-ludwig-van-woo-73 | 349 | 12.0 | Bb: V7 \| Bb: V2 | Bb: V65 |
 | disagreement: same chord, different inversion | piano-sonatas-mozart-wolfgang-amadeus-k283-3 | 111 | 6.0 | D: v6 \| a: i | a: i6 |
@@ -713,9 +713,9 @@ The longest spans of each of the largest error kinds and disagreement classes. F
 | root: fifth | piano-sonatas-mozart-wolfgang-amadeus-k279-1 | 72 | 4.0 | C: ii | C: V7 |
 | root: fifth | piano-sonatas-mozart-wolfgang-amadeus-k333-3 | 111 | 4.0 | Bb: V7 | Bb: I |
 | root: fifth | piano-sonatas-mozart-wolfgang-amadeus-k333-3 | X3 | 4.0 | Bb: V7 | Bb: ii |
+| timing | early-choral-bach-johann-sebastian-chorales-007 | 2 | 1.0 | A: IV | A: IV7 |
 | timing | early-choral-bach-johann-sebastian-chorales-007 | 10 | 1.0 | A: IV | A: viio64 |
 | timing | early-choral-bach-johann-sebastian-chorales-007 | 11 | 1.0 | f#: viio6 | f#: i |
-| timing | early-choral-bach-johann-sebastian-chorales-008 | 13 | 1.0 | f: i | c: iv |
 | quality: extra seventh | piano-sonatas-mozart-wolfgang-amadeus-k284-3 | 182 | 7.0 | D: V | D: V2 |
 | quality: extra seventh | piano-sonatas-mozart-wolfgang-amadeus-k333-1 | 30 | 4.0 | F: V | F: V7 |
 | quality: extra seventh | piano-sonatas-mozart-wolfgang-amadeus-k333-1 | 126 | 4.0 | Bb: V | Bb: V7 |
