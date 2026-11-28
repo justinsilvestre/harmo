@@ -69,7 +69,7 @@ fn propose_cadential_dominant(slice: &Slice) -> Vec<Chord> {
 /// triad for that dominant. The tonic triad's quality follows the key's mode.
 fn cadential_rival(reading: &Reading, slice: &Slice, _: &[f64]) -> Option<Reading> {
     let bass = six_four_bass(slice)?;
-    let key = reading.key;
+    let key = reading.function.key;
     if reading.function.tonicized.is_some() || bass != key.tonic + 1 {
         return None;
     }
@@ -142,7 +142,7 @@ mod tests {
     fn in_c(root: &str, quality: Quality) -> Reading {
         let key = Key::parse("C", "major").unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        Reading { key, chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(key) }
     }
 
     #[test]

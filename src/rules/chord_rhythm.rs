@@ -119,7 +119,7 @@ mod tests {
     fn reading(root: &str) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
-        Reading { key, chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(key) }
     }
 
     /// Scores a change from C to G on a slice sounding the named notes at the given metric level.

@@ -96,7 +96,7 @@ pub struct KeyTransitionContext<'a> {
 impl<'a> KeyTransitionContext<'a> {
     /// Returns the context for departure hooks if the transition leaves the previous segment's key.
     pub fn departure(&self) -> Option<KeyDepartureContext<'a>> {
-        let previous = self.previous.filter(|p| p.key != self.next.key)?;
+        let previous = self.previous.filter(|p| p.function.key != self.next.function.key)?;
         Some(KeyDepartureContext { previous, slice: self.slice, history: self.history })
     }
 }
@@ -160,7 +160,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(Key::new(tpc, Mode::Major)) }
     }
 
     fn slice() -> Slice {

@@ -33,8 +33,9 @@ const STRONG_BEAT: Param = Param {
 fn cadential_confirmation(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let tonic = context.next;
-    let key = tonic.key;
-    let is_tonic = tonic.function.tonicized.is_none() && tonic.chord.root == key.tonic && previous.key == key;
+    let key = tonic.function.key;
+    let is_tonic =
+        tonic.function.tonicized.is_none() && tonic.chord.root == key.tonic && previous.function.key == key;
     let bass_is_tonic = context.slice.bass().is_some_and(|note| note.tpc == key.tonic);
     let is_strong = f64::from(context.slice.metric_level) >= STRONG_BEAT.read(params);
     if is_tonic && bass_is_tonic && is_strong && is_root_position_dominant(previous) { 1.0 } else { 0.0 }
@@ -43,7 +44,7 @@ fn cadential_confirmation(context: &KeyTransitionContext, params: &[f64]) -> f32
 fn is_root_position_dominant(segment: &KeySegment) -> bool {
     let reading = segment.reading();
     let is_dominant = reading.function.tonicized.is_none()
-        && reading.chord.root == reading.key.tonic + 1
+        && reading.chord.root == reading.function.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
     is_dominant && segment.chord.bass_tpc() == reading.chord.root
 }
@@ -66,7 +67,7 @@ mod tests {
 
     fn reading(root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc("C"), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
+        Reading { chord: Chord::new(tpc(root), quality), function: Function::diatonic(key) }
     }
 
     /// Scores G7, with the given bass, moving to C major on a slice with the given bass and metric level.

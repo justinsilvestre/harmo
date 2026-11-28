@@ -22,23 +22,26 @@ pub enum Category {
     Applied,
 }
 
-/// How a chord functions in the key it is read in: the key it tonicizes, if any, and its category.
+/// How a chord functions: the key it is heard in, the key it tonicizes there, if any, and its
+/// category. This is what the key layer hears in a chord.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
 pub struct Function {
+    pub key: Key,
     pub tonicized: Option<Key>,
     pub category: Category,
 }
 
 impl Function {
-    /// A diatonic chord that tonicizes nothing.
-    pub const DIATONIC: Function = Function { tonicized: None, category: Category::Diatonic };
+    /// A diatonic chord in a key, tonicizing nothing.
+    pub fn diatonic(key: Key) -> Function {
+        Function { key, tonicized: None, category: Category::Diatonic }
+    }
 }
 
-/// A reading of a span of music: the chord that the chord layer hears, and the key that the key
-/// layer hears it in, with its function there.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize)]
+/// A reading of a span of music: the chord that the chord layer hears, and its function as the key
+/// layer hears it.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
 pub struct Reading {
-    pub key: Key,
     pub chord: Chord,
     #[serde(flatten)]
     pub function: Function,
@@ -96,9 +99,7 @@ pub struct Hypothesis {
     pub slice: u32,
     /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
     pub hearing: u32,
-    /// The key that the hypothesis reads the hearing's latest segment in.
-    pub key: Key,
-    /// The function of the segment's chord in that key.
+    /// The function of the hearing's latest chord, in the key the hypothesis hears it in.
     pub function: Function,
     /// The sum of every weighted rule score along the hypothesis: its hearing's score plus the
     /// key layer's rule scores.
@@ -110,7 +111,6 @@ pub struct Hypothesis {
 #[derive(Clone, Copy, Debug)]
 pub struct KeySegment {
     pub chord: ChordSegment,
-    pub key: Key,
     pub function: Function,
     /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
     pub previous: u32,
@@ -119,11 +119,10 @@ pub struct KeySegment {
 impl KeySegment {
     /// Returns a hypothesis's reading of a chord segment.
     pub fn of(chord: ChordSegment, hypothesis: &Hypothesis) -> KeySegment {
-        let (key, function, previous) = (hypothesis.key, hypothesis.function, hypothesis.previous);
-        KeySegment { chord, key, function, previous }
+        KeySegment { chord, function: hypothesis.function, previous: hypothesis.previous }
     }
 
     pub fn reading(&self) -> Reading {
-        Reading { key: self.key, chord: self.chord.chord, function: self.function }
+        Reading { chord: self.chord.chord, function: self.function }
     }
 }

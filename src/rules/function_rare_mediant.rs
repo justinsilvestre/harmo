@@ -42,8 +42,8 @@ fn rare_mediant(context: &KeyCloseContext, _: &[f64]) -> f32 {
     if reading.function.category != Category::Diatonic || reading.function.tonicized.is_some() {
         return 0.0;
     }
-    let degree = reading.chord.root - reading.key.tonic;
-    let is_rare = match reading.key.mode {
+    let degree = reading.chord.root - reading.function.key.tonic;
+    let is_rare = match reading.function.key.mode {
         Mode::Major => reading.chord.quality == Quality::Minor && degree == MEDIANT,
         Mode::Minor => reading.chord.quality == Quality::Augmented && degree == MINOR_MEDIANT,
     };
@@ -64,7 +64,7 @@ mod tests {
     fn score(tonic: &str, mode: &str, root: &str, quality: Quality) -> f32 {
         let key = Key::parse(tonic, mode).unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let reading = Reading { key, chord, function: Function::DIATONIC };
+        let reading = Reading { chord, function: Function::diatonic(key) };
         let segment = key_segment(reading);
         rare_mediant(&KeyCloseContext { segment: &segment, slices: &[], next_slice: None }, &[])
     }

@@ -190,7 +190,6 @@ fn step(moment: &Moment, beam: &[u32], rules: &RuleSet, config: &Config) -> Pend
             previous: parent,
             slice: moment.index as u32,
             hearing,
-            key: opening.reading.key,
             function: opening.reading.function,
             score: predecessor.score + opening.fit.total(),
         });
@@ -225,7 +224,7 @@ fn continuations(moment: &Moment, beam: &[u32], rules: &RuleSet) -> Pending {
             });
             hearings.len() as u32 - 1
         });
-        let reading = Reading { key: hypothesis.key, chord, function: hypothesis.function };
+        let reading = Reading { chord, function: hypothesis.function };
         let key_fit = *key_fits.entry(reading).or_insert_with(|| {
             let context =
                 KeySliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
@@ -253,15 +252,13 @@ fn openings(moment: &Moment, rules: &RuleSet, config: &Config) -> (Vec<Chord>, V
     for &chord in &chords {
         for &key in &keys {
             for interpret in &rules.key.interpreters {
-                readings.extend(interpret(key, chord).into_iter().map(|function| Reading {
-                    key,
-                    chord,
-                    function,
-                }));
+                readings
+                    .extend(interpret(key, chord).into_iter().map(|function| Reading { chord, function }));
             }
         }
     }
-    readings.sort();
+    // Listing readings by key first decides the order of readings that fit the slice equally well.
+    readings.sort_by_key(|r| (r.function.key, r.chord, r.function.tonicized, r.function.category));
     readings.dedup();
     let chord_fits: Vec<f32> = chords
         .iter()
@@ -287,9 +284,11 @@ fn openings(moment: &Moment, rules: &RuleSet, config: &Config) -> (Vec<Chord>, V
         }
     }
     let is_rival = |r: &Reading| {
-        rivals
-            .iter()
-            .any(|v| v.key == r.key && v.chord == r.chord && v.function.tonicized == r.function.tonicized)
+        rivals.iter().any(|v| {
+            v.function.key == r.function.key
+                && v.chord == r.chord
+                && v.function.tonicized == r.function.tonicized
+        })
     };
     scored.extend(rest.into_iter().filter(|opening| is_rival(&opening.reading)));
     (chords, scored)

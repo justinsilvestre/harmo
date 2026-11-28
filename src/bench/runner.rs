@@ -377,5 +377,10 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
 pub(super) fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Label> {
     let segment = segment_at(analysis, hypothesis, at)?;
     let reading = segment.reading();
-    Some(Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc()))
+    Some(Label::new(
+        reading.function.key,
+        reading.function.tonicized,
+        reading.chord,
+        segment.chord.bass_tpc(),
+    ))
 }

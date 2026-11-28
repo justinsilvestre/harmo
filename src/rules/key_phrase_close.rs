@@ -43,9 +43,9 @@ fn phrase_close(context: &KeyCloseContext, params: &[f64]) -> f32 {
     }
     let root = reading.chord.root;
     let is_major = matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
-    if root == reading.key.tonic {
+    if root == reading.function.key.tonic {
         1.0
-    } else if root == reading.key.tonic + 1 && is_major {
+    } else if root == reading.function.key.tonic + 1 && is_major {
         HALF_CADENCE.read(params) as f32
     } else {
         0.0
@@ -85,7 +85,7 @@ mod tests {
     fn close(root: &str, next_phrase: Option<usize>) -> f32 {
         let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let reading = Reading { key, chord, function: Function::DIATONIC };
+        let reading = Reading { chord, function: Function::diatonic(key) };
         let segment = key_segment(reading);
         let next = next_phrase.map(slice);
         phrase_close(

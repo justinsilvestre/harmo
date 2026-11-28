@@ -39,7 +39,8 @@ pub const RULES: &[Rule] = &[Rule {
 fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
     let reading = context.segment.reading();
     let chord = reading.chord;
-    let is_dominant = reading.function.tonicized.unwrap_or(reading.key).degree_of(chord.root).number == 5;
+    let is_dominant =
+        reading.function.tonicized.unwrap_or(reading.function.key).degree_of(chord.root).number == 5;
     if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
         return None;
     }
@@ -54,7 +55,7 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
         return None;
     }
     let mut hasher = DefaultHasher::new();
-    (reading.key, reading.function.tonicized, chord.root).hash(&mut hasher);
+    (reading.function.key, reading.function.tonicized, chord.root).hash(&mut hasher);
     Some(hasher.finish())
 }
 
@@ -97,7 +98,7 @@ mod tests {
     fn group(root: &str, quality: Quality, before: &Slice, slices: &[Slice]) -> Option<u64> {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
-        let segment = key_segment(Reading { key, chord, function: Function::DIATONIC });
+        let segment = key_segment(Reading { chord, function: Function::diatonic(key) });
         let segment =
             KeySegment { chord: ChordSegment { start: 1, duration: 2.0, ..segment.chord }, ..segment };
         let context = RivalContext { segment: &segment, slices, previous_slice: Some(before) };

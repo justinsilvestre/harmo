@@ -16,8 +16,7 @@ pub fn chord_segment(chord: Chord) -> ChordSegment {
 /// A segment that reads the reading's chord, as `chord_segment` gives it, in the reading's key,
 /// and follows no other segment.
 pub fn key_segment(reading: Reading) -> KeySegment {
-    let (key, function) = (reading.key, reading.function);
-    KeySegment { chord: chord_segment(reading.chord), key, function, previous: NONE }
+    KeySegment { chord: chord_segment(reading.chord), function: reading.function, previous: NONE }
 }
 
 /// Holds segments in layers: segment i becomes the last segment of hypothesis i, which interprets
@@ -29,7 +28,6 @@ pub fn layers_of(segments: &[KeySegment]) -> Layers {
         previous: s.previous,
         slice: i as u32,
         hearing: i as u32,
-        key: s.key,
         function: s.function,
         score: 0.0,
     };

@@ -34,8 +34,8 @@ fn picardy_third(context: &KeyCloseContext, _: &[f64]) -> f32 {
 }
 
 fn is_major_tonic_in_minor(reading: &Reading) -> bool {
-    let is_tonic = reading.chord.root == reading.key.tonic && reading.function.tonicized.is_none();
-    reading.key.mode == Mode::Minor && is_tonic && reading.chord.quality == Quality::Major
+    let is_tonic = reading.chord.root == reading.function.key.tonic && reading.function.tonicized.is_none();
+    reading.function.key.mode == Mode::Minor && is_tonic && reading.chord.quality == Quality::Major
 }
 
 #[cfg(test)]
@@ -65,11 +65,8 @@ mod tests {
     /// the given phrase.
     fn close(mode: Mode, quality: Quality, next_phrase: Option<usize>) -> f32 {
         let g = tpc_from_name("G").unwrap();
-        let reading = Reading {
-            key: Key::new(g, mode),
-            chord: Chord::new(g, quality),
-            function: Function { tonicized: None, category: Category::Mixture },
-        };
+        let function = Function { key: Key::new(g, mode), tonicized: None, category: Category::Mixture };
+        let reading = Reading { chord: Chord::new(g, quality), function };
         let segment = key_segment(reading);
         let next = next_phrase.map(slice);
         picardy_third(

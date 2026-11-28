@@ -30,7 +30,7 @@ fn opening_tonic(context: &KeyTransitionContext, _: &[f64]) -> f32 {
 }
 
 fn is_tonic(reading: &Reading) -> bool {
-    reading.function.tonicized.is_none() && reading.chord.root == reading.key.tonic
+    reading.function.tonicized.is_none() && reading.chord.root == reading.function.key.tonic
 }
 
 #[cfg(test)]
@@ -48,7 +48,7 @@ mod tests {
     fn reading(root: &str) -> Reading {
         let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        Reading { key, chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(key) }
     }
 
     /// Scores opening a C major segment read in C major, after the given segment if any.

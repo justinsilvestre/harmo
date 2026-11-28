@@ -87,7 +87,7 @@ fn segment_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     let chord = context.reading.chord;
     let allowance = DOMINANT_ALLOWANCE.read(params) as f32;
     let fit_in = |key| key_score(&scores, key) + allowance * dominant_allowance(&present, key, chord);
-    let home = fit_in(context.reading.key);
+    let home = fit_in(context.reading.function.key);
     let share = TONICIZED_SHARE.read(params) as f32;
     let fit = match context.reading.function.tonicized {
         Some(local) => share * fit_in(local) + (1.0 - share) * home,
@@ -264,11 +264,8 @@ mod tests {
     fn secondary_dominant_fit(tonicized: Option<Key>) -> f32 {
         let slices = [slice(0.0, 4.0, &["D", "F#", "A", "C"])];
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let reading = Reading {
-            key: Key::new(tpc("C"), Mode::Major),
-            chord,
-            function: Function { tonicized, category: Category::Applied },
-        };
+        let key = Key::new(tpc("C"), Mode::Major);
+        let reading = Reading { chord, function: Function { key, tonicized, category: Category::Applied } };
         let context = KeySliceContext {
             slice: &slices[0],
             next_slice: None,
@@ -284,7 +281,7 @@ mod tests {
     fn bar_fit(names: &[&str], key: Key, root: &str, quality: Quality) -> f32 {
         let slices = [slice(0.0, 4.0, names)];
         let chord = Chord::new(tpc(root), quality);
-        let reading = Reading { key, chord, function: Function::DIATONIC };
+        let reading = Reading { chord, function: Function::diatonic(key) };
         let context = KeySliceContext {
             slice: &slices[0],
             next_slice: None,

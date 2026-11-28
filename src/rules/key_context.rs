@@ -121,7 +121,7 @@ fn context_fit(context: &KeySliceContext, params: &[f64]) -> f32 {
     if total == 0.0 {
         return 0.0;
     }
-    let key = context.reading.key;
+    let key = context.reading.function.key;
     let tonic = pitch_class(key.tonic) as usize;
     let look_back = MODAL_LOOK_BACK.read(params);
     let is_modal =
@@ -235,7 +235,7 @@ mod tests {
 
     fn fit_in(slices: &[Slice], index: usize, key: Key) -> f32 {
         let chord = Chord::new(tpc_from_name("F").unwrap(), Quality::Major);
-        let reading = Reading { key, chord, function: Function::DIATONIC };
+        let reading = Reading { chord, function: Function::diatonic(key) };
         let context = KeySliceContext {
             slice: &slices[index],
             next_slice: slices.get(index + 1),

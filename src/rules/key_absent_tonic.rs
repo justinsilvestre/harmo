@@ -32,8 +32,8 @@ pub const RULES: &[Rule] = &[Rule {
 }];
 
 fn absent_tonic(context: &KeyDepartureContext, _: &[f64]) -> f32 {
-    let key = context.previous.key;
-    let mut area = context.history.segments().take_while(|s| s.key == key);
+    let key = context.previous.function.key;
+    let mut area = context.history.segments().take_while(|s| s.function.key == key);
     if area.any(|s| is_tonic(&s)) { 0.0 } else { -1.0 }
 }
 
@@ -51,7 +51,7 @@ mod tests {
     fn segment(&(key, root): &(&str, &str)) -> KeySegment {
         let key = Key::new(tpc_from_name(key).unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        key_segment(Reading { key, chord, function: Function::DIATONIC })
+        key_segment(Reading { chord, function: Function::diatonic(key) })
     }
 
     /// Scores leaving the key of the last of a path of segments, each given as (key, chord root).

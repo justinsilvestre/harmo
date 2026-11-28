@@ -52,7 +52,7 @@ const DORIAN_TONIC: i32 = 2;
 
 fn signature_key(context: &KeySliceContext, _: &[f64]) -> f32 {
     let Some(signature) = context.slice.key_signature else { return 0.0 };
-    let key = context.reading.key;
+    let key = context.reading.function.key;
     let is_named = if opens_on_dorian_tonic(context.slices, signature) {
         key.mode == Mode::Minor && pitch_class(key.tonic) == pitch_class(signature.fifths + DORIAN_TONIC)
     } else {
@@ -114,7 +114,7 @@ mod tests {
         let slices = [slice(0.0, bass.map(note).into_iter().collect(), opening), slice(2.0, vec![], fifths)];
         let key = Key::new(tpc_from_name(key.0).unwrap(), key.1);
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::Major);
-        let reading = Reading { key, chord, function: Function::DIATONIC };
+        let reading = Reading { chord, function: Function::diatonic(key) };
         signature_key(
             &KeySliceContext {
                 slice: &slices[1],

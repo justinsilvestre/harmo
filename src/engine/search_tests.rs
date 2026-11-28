@@ -11,7 +11,7 @@ use crate::theory::key::{Key, Mode};
 fn reading(root: &str) -> Reading {
     let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
     let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-    Reading { key, chord, function: Function::DIATONIC }
+    Reading { chord, function: Function::diatonic(key) }
 }
 
 fn segment(root: &str, start: u32, previous: u32) -> KeySegment {
@@ -177,7 +177,10 @@ fn a_rival_needs_another_reading() {
 
 #[test]
 fn the_same_chord_in_another_key_is_no_rival() {
-    let in_g = Reading { key: Key::new(tpc_from_name("G").unwrap(), Mode::Major), ..reading("G") };
+    let in_g = Reading {
+        function: Function::diatonic(Key::new(tpc_from_name("G").unwrap(), Mode::Major)),
+        ..reading("G")
+    };
     assert_eq!(parents(true, [reading("G"), in_g], [0.0, -1.0]), [0]);
 }
 

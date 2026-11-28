@@ -37,7 +37,7 @@ pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
     for beam in &analysis.snapshots {
         let segments: Vec<KeySegment> = beam.iter().map(|&hypothesis| analysis.segment(hypothesis)).collect();
         let readings: HashSet<Label> = segments.iter().map(segment_label).collect();
-        let chord_keys: HashSet<_> = segments.iter().map(|s| (s.reading().chord, s.key)).collect();
+        let chord_keys: HashSet<_> = segments.iter().map(|s| (s.reading().chord, s.function.key)).collect();
         let leading_readings: HashSet<Label> = segments.iter().take(leading).map(segment_label).collect();
         tally.slices += 1;
         tally.hypotheses += beam.len() as u64;
@@ -51,5 +51,5 @@ pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
 /// Returns the label of a segment, with the inversion given by the lowest chord tone heard so far.
 pub fn segment_label(segment: &KeySegment) -> Label {
     let reading = segment.reading();
-    Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc())
+    Label::new(reading.function.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc())
 }

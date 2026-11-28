@@ -45,13 +45,13 @@ const ESTABLISHED_AREA: Param = Param {
 
 fn modulation(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     match context.previous {
-        Some(previous) if previous.key != context.next.key => -1.0,
+        Some(previous) if previous.function.key != context.next.function.key => -1.0,
         _ => 0.0,
     }
 }
 
 fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
-    let key = context.previous.key;
+    let key = context.previous.function.key;
     let established = ESTABLISHED_AREA.read(params);
     -((1.0 - area_heard(context.history, key, established) / established).max(0.0) as f32)
 }
@@ -60,7 +60,7 @@ fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
 /// established, since a longer area costs no more.
 fn area_heard(history: History, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
-    for segment in history.segments().take_while(|s| s.key == key) {
+    for segment in history.segments().take_while(|s| s.function.key == key) {
         area += segment.chord.duration;
         if area >= established {
             break;
@@ -83,7 +83,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(Key::new(tpc, Mode::Major)) }
     }
 
     /// Returns the path of one tonic triad segment per (tonic, duration).
@@ -96,7 +96,7 @@ mod tests {
     }
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
-        area_heard(history_after(&path(segments), &[]), reading("C").key, 16.0)
+        area_heard(history_after(&path(segments), &[]), reading("C").function.key, 16.0)
     }
 
     /// Scores leaving the key of the given segments.

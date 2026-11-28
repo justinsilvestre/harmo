@@ -46,7 +46,7 @@ const EPSILON: f64 = 1e-6;
 
 fn raised_fourth(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
-    let key = previous.key;
+    let key = previous.function.key;
     if !is_dominant_triad_to_tonic(&previous.reading(), context.next) {
         return 0.0;
     }
@@ -63,11 +63,14 @@ fn raised_fourth(context: &KeyTransitionContext, params: &[f64]) -> f32 {
 
 /// Reports whether a reading is the major dominant triad of its key and the next is that key's tonic.
 fn is_dominant_triad_to_tonic(dominant: &Reading, next: &Reading) -> bool {
-    let key = dominant.key;
+    let key = dominant.function.key;
     let is_dominant = dominant.function.tonicized.is_none()
         && dominant.chord.root == key.tonic + 1
         && dominant.chord.quality == Quality::Major;
-    is_dominant && next.key == key && next.function.tonicized.is_none() && next.chord.root == key.tonic
+    is_dominant
+        && next.function.key == key
+        && next.function.tonicized.is_none()
+        && next.chord.root == key.tonic
 }
 
 /// Reports whether, of a fourth degree and its raised form, the raised form sounded last.
@@ -98,7 +101,7 @@ mod tests {
 
     fn reading(root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc("C"), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
+        Reading { chord: Chord::new(tpc(root), quality), function: Function::diatonic(key) }
     }
 
     /// A one-beat slice starting at `start` that sounds the named pitches.

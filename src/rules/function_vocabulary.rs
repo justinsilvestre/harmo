@@ -130,7 +130,7 @@ fn interpret(key: Key, chord: Chord) -> Vec<Function> {
     let local = entries
         .iter()
         .filter(|(r, q, _)| *r == root && *q == chord.quality)
-        .map(|&(_, _, category)| Function { tonicized: None, category });
+        .map(|&(_, _, category)| Function { key, tonicized: None, category });
     let mut readings: Vec<Function> = local.collect();
     if readings.iter().any(|function| function.category == Diatonic) {
         return readings;
@@ -139,7 +139,7 @@ fn interpret(key: Key, chord: Chord) -> Vec<Function> {
         let is_applied = APPLIED.iter().any(|&(r, q)| r == root - offset && q == chord.quality);
         if is_applied {
             let tonicized = Some(Key::new(key.tonic + offset, mode));
-            readings.push(Function { tonicized, category: Category::Applied });
+            readings.push(Function { key, tonicized, category: Category::Applied });
         }
     }
     readings
@@ -160,14 +160,14 @@ mod tests {
         let g = Key::parse("G", "major").unwrap();
         assert_eq!(
             interpret(c, chord("D", DominantSeventh)),
-            vec![Function { tonicized: Some(g), category: Category::Applied }]
+            vec![Function { key: c, tonicized: Some(g), category: Category::Applied }]
         );
     }
 
     #[test]
     fn diatonic_chords_are_not_also_read_as_applied() {
         let c = Key::parse("C", "major").unwrap();
-        assert_eq!(interpret(c, chord("C", Major)), vec![Function { tonicized: None, category: Diatonic }]);
+        assert_eq!(interpret(c, chord("C", Major)), vec![Function::diatonic(c)]);
     }
 
     #[test]
@@ -182,14 +182,14 @@ mod tests {
         let e_flat = Key::parse("Eb", "major").unwrap();
         assert_eq!(
             interpret(c, chord("Bb", DominantSeventh)),
-            vec![Function { tonicized: Some(e_flat), category: Category::Applied }]
+            vec![Function { key: c, tonicized: Some(e_flat), category: Category::Applied }]
         );
     }
 
     #[test]
     fn subtonic_triad_in_minor_stays_diatonic() {
         let c = Key::parse("C", "minor").unwrap();
-        assert_eq!(interpret(c, chord("Bb", Major)), vec![Function { tonicized: None, category: Diatonic }]);
+        assert_eq!(interpret(c, chord("Bb", Major)), vec![Function::diatonic(c)]);
     }
 
     #[test]
@@ -197,7 +197,7 @@ mod tests {
         let c = Key::parse("C", "minor").unwrap();
         assert_eq!(
             interpret(c, chord("F#", GermanSixth)),
-            vec![Function { tonicized: None, category: Chromatic }]
+            vec![Function { key: c, tonicized: None, category: Chromatic }]
         );
     }
 }

@@ -30,11 +30,11 @@ fn rare_seventh(context: &KeyTransitionContext, _: &[f64]) -> f32 {
         reading.chord.quality,
         Quality::MajorSeventh | Quality::MinorSeventh | Quality::MinorMajorSeventh
     );
-    let rare_roots = match reading.key.mode {
+    let rare_roots = match reading.function.key.mode {
         Mode::Major => MAJOR_RARE_ROOTS,
         Mode::Minor => MINOR_RARE_ROOTS,
     };
-    let is_rare_root = rare_roots.contains(&(reading.chord.root - reading.key.tonic));
+    let is_rare_root = rare_roots.contains(&(reading.chord.root - reading.function.key.tonic));
     let is_rare = is_nondominant_seventh && is_rare_root && reading.function.tonicized.is_none();
     if is_rare { -1.0 } else { 0.0 }
 }
@@ -52,7 +52,7 @@ mod tests {
     fn score(root: &str, quality: Quality) -> f32 {
         let key = Key::parse("C", "major").unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let next = Reading { key, chord, function: Function::DIATONIC };
+        let next = Reading { chord, function: Function::diatonic(key) };
         let slice = Slice {
             start: 0.0,
             duration: 1.0,

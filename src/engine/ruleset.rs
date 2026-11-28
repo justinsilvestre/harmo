@@ -115,7 +115,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
+        Reading { chord, function: Function::diatonic(Key::new(tpc, Mode::Major)) }
     }
 
     fn slice() -> Slice {

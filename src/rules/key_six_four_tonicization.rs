@@ -110,14 +110,14 @@ mod tests {
     fn score(setting: &Setting, tonicized: Option<&str>) -> f32 {
         let c_major = Key::new(tpc("C"), Mode::Major);
         let chord = Chord::new(tpc("G"), Quality::Major);
-        let six_four = Reading { key: c_major, chord, function: Function::DIATONIC };
+        let six_four = Reading { chord, function: Function::diatonic(c_major) };
         let bass = Bass { note: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
         let segment = key_segment(six_four);
         let previous = KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment };
         let tonicized = tonicized.map(|t| Key::new(tpc(t), Mode::Major));
         let category = if tonicized.is_some() { Category::Applied } else { Category::Diatonic };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let next = Reading { key: c_major, chord, function: Function { tonicized, category } };
+        let next = Reading { chord, function: Function { key: c_major, tonicized, category } };
         let slices = [
             slice(setting.six_four_level, setting.six_four_bass),
             slice(setting.dominant_level, setting.dominant_bass),

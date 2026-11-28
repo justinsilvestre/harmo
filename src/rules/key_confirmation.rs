@@ -57,10 +57,10 @@ enum Confirmation {
 /// event that confirms it. A cadential tonic must arrive at `strong_beat` or a stronger metric level.
 fn find_confirmation(context: &KeyDepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
-    let key = context.previous.key;
+    let key = context.previous.function.key;
     let mut later: Option<KeySegment> = None;
     for segment in context.history.segments() {
-        if segment.key != key {
+        if segment.function.key != key {
             return Confirmation::Unconfirmed;
         }
         let is_confirming = |later: &KeySegment| {
@@ -98,20 +98,20 @@ fn is_cadential_tonic(segment: &KeySegment, slices: &[Slice], strong_beat: u8) -
 }
 
 fn is_tonic_six_four(segment: &KeySegment) -> bool {
-    let key = segment.key;
+    let key = segment.function.key;
     is_tonic(segment) && segment.chord.bass_tpc() == key.tonic + 1
 }
 
 /// Reports whether the segment is the tonic chord of its key, in any inversion.
 pub fn is_tonic(segment: &KeySegment) -> bool {
     let reading = segment.reading();
-    reading.function.tonicized.is_none() && reading.chord.root == reading.key.tonic
+    reading.function.tonicized.is_none() && reading.chord.root == reading.function.key.tonic
 }
 
 fn is_dominant(segment: &KeySegment) -> bool {
     let reading = segment.reading();
     reading.function.tonicized.is_none()
-        && reading.chord.root == reading.key.tonic + 1
+        && reading.chord.root == reading.function.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh)
 }
 
@@ -135,7 +135,7 @@ mod tests {
 
     fn reading(key: &str, root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc(key), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
+        Reading { chord: Chord::new(tpc(root), quality), function: Function::diatonic(key) }
     }
 
     fn slice(metric_level: u8, phrase: usize) -> Slice {

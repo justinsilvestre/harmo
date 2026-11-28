@@ -119,7 +119,7 @@ fn diatonic_preference(context: &KeyTransitionContext, params: &[f64]) -> f32 {
 fn continues_tonicization(context: &KeyTransitionContext) -> bool {
     let next = context.next;
     let Some(target) = next.function.tonicized else { return false };
-    let mut recent = context.history.segments().take_while(|s| s.key == next.key);
+    let mut recent = context.history.segments().take_while(|s| s.function.key == next.function.key);
     let tonicizes = |segment: &KeySegment| segment.function.tonicized == Some(target);
     match recent.next() {
         Some(previous) if tonicizes(&previous) => true,
@@ -135,8 +135,8 @@ fn continues_tonicization(context: &KeyTransitionContext) -> bool {
 /// Reports whether the only chord tone foreign to the key is the lowered sixth degree,
 /// as in ii°, iiø7, iv and vii°7 borrowed into major.
 fn borrows_only_lowered_sixth(reading: &Reading) -> bool {
-    let is_altered = |&tpc: &Tpc| reading.key.degree_of(tpc).alteration != 0;
-    reading.chord.members().filter(is_altered).all(|tpc| reading.key.degree_of(tpc).number == 6)
+    let is_altered = |&tpc: &Tpc| reading.function.key.degree_of(tpc).alteration != 0;
+    reading.chord.members().filter(is_altered).all(|tpc| reading.function.key.degree_of(tpc).number == 6)
 }
 
 fn applied_resolution(context: &KeyTransitionContext, params: &[f64]) -> f32 {
@@ -156,7 +156,7 @@ fn dominant_resolution(context: &KeyTransitionContext, _: &[f64]) -> f32 {
     };
     let reading = previous.reading();
     let next = context.next;
-    let resolves = next.key == reading.key && next.chord.root == reading.key.tonic;
+    let resolves = next.function.key == reading.function.key && next.chord.root == reading.function.key.tonic;
     let is_tonic_six_four = context.slice.bass().is_some_and(|n| next.chord.member_index(n.tpc) == Some(2));
     let rewarded = reading.function.tonicized.is_none() && has_dominant_function(reading) && resolves;
     if rewarded && !is_tonic_six_four { 1.0 } else { 0.0 }
@@ -164,7 +164,7 @@ fn dominant_resolution(context: &KeyTransitionContext, _: &[f64]) -> f32 {
 
 /// Reports whether a chord is V, V7, or a leading-tone triad or seventh chord of its key.
 fn has_dominant_function(reading: Reading) -> bool {
-    let root = reading.chord.root - reading.key.tonic;
+    let root = reading.chord.root - reading.function.key.tonic;
     match reading.chord.quality {
         Quality::Major | Quality::DominantSeventh => root == 1,
         Quality::Diminished | Quality::DiminishedSeventh | Quality::HalfDiminishedSeventh => root == 5,
@@ -184,11 +184,8 @@ mod tests {
 
     fn reading(key: &str, root: &str, quality: Quality, category: Category) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        Reading {
-            key: Key::parse(key, "major").unwrap(),
-            chord,
-            function: Function { tonicized: None, category },
-        }
+        let key = Key::parse(key, "major").unwrap();
+        Reading { chord, function: Function { key, tonicized: None, category } }
     }
 
     /// Returns a segment in C major given as (root, quality, tonicized key).

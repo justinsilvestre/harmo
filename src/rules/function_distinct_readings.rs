@@ -31,7 +31,7 @@ fn reading_identity(segment: &KeySegment, _: &[f64]) -> u64 {
     let reading = segment.reading();
     let tonicized = reading.function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
     let fields = [
-        (pack_key(reading.key), 17),
+        (pack_key(reading.function.key), 17),
         (pack_tpc(reading.chord.root), 16),
         (quality_index(reading.chord.quality), 4),
         (tonicized, 18),
@@ -68,11 +68,9 @@ mod tests {
     fn segment(key: &str, root: &str, tonicized: Option<&str>, start: u32) -> KeySegment {
         let major = |name: &str| Key::new(tpc_from_name(name).unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let reading = Reading {
-            key: major(key),
-            chord,
-            function: Function { tonicized: tonicized.map(major), category: Category::Diatonic },
-        };
+        let function =
+            Function { key: major(key), tonicized: tonicized.map(major), category: Category::Diatonic };
+        let reading = Reading { chord, function };
         let segment = key_segment(reading);
         KeySegment { chord: ChordSegment { start, ..segment.chord }, ..segment }
     }

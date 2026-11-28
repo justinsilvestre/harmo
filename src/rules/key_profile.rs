@@ -70,7 +70,7 @@ pub fn natural_minor_logs() -> &'static [f32; 12] {
 }
 
 fn profile_fit(context: &KeySliceContext, _: &[f64]) -> f32 {
-    let home = key_fit(context.reading.key, context);
+    let home = key_fit(context.reading.function.key, context);
     match context.reading.function.tonicized {
         Some(local) => TONICIZED_SHARE * key_fit(local, context) + (1.0 - TONICIZED_SHARE) * home,
         None => home,
@@ -121,11 +121,8 @@ mod tests {
             key_signature: None,
         };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let reading = Reading {
-            key: Key::new(tpc("C"), Mode::Major),
-            chord,
-            function: Function { tonicized, category: Category::Applied },
-        };
+        let key = Key::new(tpc("C"), Mode::Major);
+        let reading = Reading { chord, function: Function { key, tonicized, category: Category::Applied } };
         let slices = [slice];
         let context = KeySliceContext {
             slice: &slices[0],
