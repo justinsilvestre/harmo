@@ -5,8 +5,9 @@ use super::pruning::{Departure, PruneCause};
 use super::search::Analysis;
 use serde::Serialize;
 
-/// The rank (1 = best) at which a reading was held after a given slice, or `None` once no
-/// hypothesis in the beam holds it. Only slices where the rank changed are listed.
+/// The rank (1 = best) at which a reading was held after a given slice,
+/// or `None` once no hypothesis in the beam holds it.
+/// Only slices where the rank changed are listed.
 /// A reading that has left the beam never returns, so a `None` rank ends the history.
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct RankChange {
@@ -28,8 +29,8 @@ pub struct ReadingHistory {
 /// Follows every reading that the beam holds for slice `at` through the later beam snapshots,
 /// in order of their rank at `at`. Requires an analysis run with `Config::record_snapshots`.
 ///
-/// Every hypothesis in a later beam descends from one in the previous beam and keeps its reading of
-/// `at`, so each beam's readings are found from its parents' and no path is walked.
+/// Every hypothesis in a later beam descends from one in the previous beam and keeps its reading
+/// of `at`, so each beam's readings are found from its parents' and no path is walked.
 pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
     let Some(first_beam) = analysis.snapshots.get(at) else {
         return Vec::new();
@@ -76,8 +77,9 @@ pub fn rank_histories(analysis: &Analysis, at: usize) -> Vec<ReadingHistory> {
     histories
 }
 
-/// Explains why a reading left the beam at `slice`, from the best pruned hypothesis that held it
-/// (`holds` tests a pruned hypothesis's parent). Returns `None` unless the analysis recorded pruning.
+/// Explains why a reading left the beam at `slice`,
+/// from the best pruned hypothesis that held it (`holds` tests a pruned hypothesis's parent).
+/// Returns `None` unless the analysis recorded pruning.
 fn departure(
     analysis: &Analysis,
     slice: usize,
@@ -86,7 +88,7 @@ fn departure(
 ) -> Option<Departure> {
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
     let beam = &analysis.snapshots[slice];
-    let best = beam.first().map_or(pruned.score, |&b| analysis.layers.hypotheses[b as usize].score);
+    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.hypotheses[first as usize].score);
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
         PruneCause::Width | PruneCause::HearingWidth => None,

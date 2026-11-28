@@ -5,11 +5,12 @@
 use crate::engine::model::NONE;
 use crate::engine::search::Analysis;
 
-/// Returns, for every hypothesis, the best final score among the final hypotheses that
-/// descend from it (itself included), or negative infinity when none survived to the end.
+/// Returns, for every hypothesis,
+/// the best final score among the final hypotheses that descend from it (itself included),
+/// or negative infinity when none survived to the end.
 ///
-/// A hypothesis is added after its parent, so one sweep from the last hypothesis to the first
-/// carries every final score back to all of its ancestors.
+/// A hypothesis is added after its parent, so one sweep from the last hypothesis
+/// to the first carries every final score back to all of its ancestors.
 pub fn descendant_bests(analysis: &Analysis) -> Vec<f32> {
     let mut bests = vec![f32::NEG_INFINITY; analysis.layers.hypotheses.len()];
     for &(hypothesis, score) in &analysis.ranking {
@@ -42,7 +43,7 @@ mod tests {
     }
 
     #[test]
-    fn every_first_beam_node_leading_to_the_best_final_hypothesis_carries_its_score() {
+    fn every_first_beam_hypothesis_leading_to_the_best_final_hypothesis_carries_its_score() {
         let analysis = analysis();
         let bests = descendant_bests(&analysis);
         let first =
@@ -66,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn a_node_without_surviving_descendants_has_no_best() {
+    fn a_hypothesis_without_surviving_descendants_has_no_best() {
         let analysis = analysis();
         let bests = descendant_bests(&analysis);
         let pruned_away = analysis
