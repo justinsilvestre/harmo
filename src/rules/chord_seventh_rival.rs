@@ -27,10 +27,7 @@ pub const RULES: &[Rule] = &[Rule {
                       figure, or else an appoggiatura figure)",
         },
     ],
-    // Off by default: with four readings offered,
-    // its rival readings take the places of readings in other keys,
-    // so both keys are offered less often where analysts disagree on the key.
-    default_weight: 0.0,
+    default_weight: 1.0,
     params: &[],
     hook: Hook::Chord(ChordHook::Rival(seventh_rival)),
 }];
