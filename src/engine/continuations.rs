@@ -65,6 +65,7 @@ impl Extension<'_> {
         let segment = extend_segment(chord_hypothesis.segment, self.moment.slice(), self.rules);
         let slice = self.moment.index as u32;
         let next = ChordHypothesis {
+            parent: id,
             previous: chord_hypothesis.previous,
             slice,
             segment,

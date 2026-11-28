@@ -40,6 +40,7 @@ struct Fixture {
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
     let layers = layers_of(&[segment(first_root, 0), segment(second_root, 0)], &[KeyHypothesisId::NONE; 2]);
     let chord_hypothesis = |previous: u32, start: u32| ChordHypothesis {
+        parent: ChordHypothesisId(previous),
         previous: ChordHypothesisId(previous),
         slice: start,
         segment: segment("G", start).heard,

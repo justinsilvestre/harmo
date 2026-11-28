@@ -37,6 +37,37 @@ fn without_key_scores_a_hypothesis_scores_exactly_its_chord_hypothesis() {
     assert!(!layers.key_hypotheses.iter().any(differs));
 }
 
+/// Returns the chord hypothesis that a key hypothesis reads, or `ChordHypothesisId::NONE` for none.
+fn chord_hypothesis_read(layers: &Layers, hypothesis: KeyHypothesisId) -> ChordHypothesisId {
+    if hypothesis == KeyHypothesisId::NONE {
+        return ChordHypothesisId::NONE;
+    }
+    layers.key_hypothesis(hypothesis).chord_hypothesis
+}
+
+/// Reports whether, for every key hypothesis, the chord hypothesis it reads links to the chord hypothesis
+/// that its own link of the given kind reads.
+fn links_agree(
+    link: fn(&KeyHypothesis) -> KeyHypothesisId,
+    chord_link: fn(&ChordHypothesis) -> ChordHypothesisId,
+) -> bool {
+    let layers = analyze_i_v_i(&[]).layers;
+    let agrees = |h: &KeyHypothesis| {
+        chord_link(layers.chord_hypothesis(h.chord_hypothesis)) == chord_hypothesis_read(&layers, link(h))
+    };
+    layers.key_hypotheses.iter().all(agrees)
+}
+
+#[test]
+fn a_chord_hypothesis_extends_the_chord_hypothesis_of_its_key_hypothesis_s_parent() {
+    assert!(links_agree(|h| h.parent, |c| c.parent));
+}
+
+#[test]
+fn a_chord_hypothesis_follows_the_chord_hypothesis_of_its_key_hypothesis_s_previous_segment() {
+    assert!(links_agree(|h| h.previous, |c| c.previous));
+}
+
 /// Puts every segment in one rival group, as a member named by its chord.
 fn same_group(context: &RivalContext, _: &[f64]) -> Option<Rival> {
     let chord = context.segment.heard.chord;

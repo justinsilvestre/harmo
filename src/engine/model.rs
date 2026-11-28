@@ -89,6 +89,8 @@ impl ChordSegment {
 /// A chord hypothesis: the chord layer's reading of every slice up to and including `slice`.
 #[derive(Clone, Copy, Debug)]
 pub struct ChordHypothesis {
+    /// The chord hypothesis up to the slice before, or `ChordHypothesisId::NONE`.
+    pub parent: ChordHypothesisId,
     /// The last chord hypothesis of the preceding segment, or `ChordHypothesisId::NONE`.
     pub previous: ChordHypothesisId,
     pub slice: u32,

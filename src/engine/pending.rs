@@ -80,7 +80,8 @@ mod tests {
     fn chord_hypotheses() -> Vec<ChordHypothesis> {
         let chord_hypothesis = |root: &str| {
             let segment = chord_segment(Chord::new(tpc_from_name(root).unwrap(), Quality::Major));
-            ChordHypothesis { previous: ChordHypothesisId::NONE, slice: 1, segment, score: 0.0 }
+            let none = ChordHypothesisId::NONE;
+            ChordHypothesis { parent: none, previous: none, slice: 1, segment, score: 0.0 }
         };
         vec![chord_hypothesis("C"), chord_hypothesis("F"), chord_hypothesis("G")]
     }

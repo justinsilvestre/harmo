@@ -150,6 +150,7 @@ impl Opened<'_> {
                 let transition = chord_exit.transitions[opening.chord_index];
                 let score = chord_exit.score + chord_exit.close + transition + opening.fit.chord;
                 pending.add_chord_hypothesis(ChordHypothesis {
+                    parent: chord_exit.chord_hypothesis,
                     previous: chord_exit.chord_hypothesis,
                     slice,
                     segment,

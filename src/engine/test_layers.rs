@@ -41,6 +41,7 @@ pub fn layers_of(segments: &[KeySegment], previous: &[KeyHypothesisId]) -> Layer
         }
     };
     let chord_hypothesis = |i: usize| ChordHypothesis {
+        parent: previous_chord_hypothesis(i),
         previous: previous_chord_hypothesis(i),
         slice: i as u32,
         segment: segments[i].heard,
