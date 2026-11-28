@@ -24,7 +24,7 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<Segm
     let mut current = node;
     while current != NONE {
         let last = &analysis.arena[current as usize];
-        let segment = &last.segment;
+        let segment = analysis.segment(current);
         let (first, end) = (segment.start as usize, last.slice as usize + 1);
         let reading = segment.reading;
         let label = Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc());

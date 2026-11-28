@@ -33,51 +33,50 @@ pub const RULES: &[Rule] = &[Rule {
 fn absent_tonic(context: &DepartureContext, _: &[f64]) -> f32 {
     let key = context.previous.reading.key;
     let mut area = context.history.segments().take_while(|s| s.reading.key == key);
-    if area.any(is_tonic) { 0.0 } else { -1.0 }
+    if area.any(|s| is_tonic(&s)) { 0.0 } else { -1.0 }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Node, Reading, Segment};
+    use crate::engine::model::{Category, NONE, Reading, Segment};
     use crate::engine::rule::History;
+    use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
     use crate::theory::key::{Key, Mode};
 
     /// Builds a path of one-slice segments, each given as (key, chord root), read in major.
-    fn path(chords: &[(&str, &str)]) -> Vec<Node> {
+    fn path(chords: &[(&str, &str)]) -> Vec<Segment> {
         let node = |(i, &(key, root)): (usize, &(&str, &str))| {
             let key = Key::new(tpc_from_name(key).unwrap(), Mode::Major);
             let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
             let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
             let previous = if i == 0 { NONE } else { i as u32 - 1 };
-            let segment = Segment {
+
+            Segment {
                 reading,
                 start: i as u32,
                 previous,
                 duration: 1.0,
                 members_heard: 0b111,
                 bass: Bass::default(),
-            };
-            Node { parent: previous, slice: i as u32, segment, score: 0.0 }
+            }
         };
         chords.iter().enumerate().map(node).collect()
     }
 
     /// Scores leaving the key of the path's last segment.
     fn depart(chords: &[(&str, &str)]) -> f32 {
-        let arena = path(chords);
+        let segments = path(chords);
+        let (arena, chords) = arenas_of(&segments);
         let last = arena.len() as u32 - 1;
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         let slice = Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None };
-        let history = History { arena: &arena, slices: &[], last };
-        absent_tonic(
-            &DepartureContext { previous: &arena[last as usize].segment, slice: &slice, history },
-            &[],
-        )
+        let history = History { arena: &arena, chords: &chords, slices: &[], last };
+        absent_tonic(&DepartureContext { previous: &segments[last as usize], slice: &slice, history }, &[])
     }
 
     #[test]

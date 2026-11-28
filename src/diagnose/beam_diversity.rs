@@ -35,12 +35,10 @@ impl BeamTally {
 pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
     let mut tally = BeamTally::default();
     for beam in &analysis.snapshots {
-        let segments: Vec<&Segment> =
-            beam.iter().map(|&node| &analysis.arena[node as usize].segment).collect();
-        let readings: HashSet<Label> = segments.iter().map(|s| segment_label(s)).collect();
+        let segments: Vec<Segment> = beam.iter().map(|&node| analysis.segment(node)).collect();
+        let readings: HashSet<Label> = segments.iter().map(segment_label).collect();
         let chord_keys: HashSet<_> = segments.iter().map(|s| (s.reading.chord, s.reading.key)).collect();
-        let leading_readings: HashSet<Label> =
-            segments.iter().take(leading).map(|s| segment_label(s)).collect();
+        let leading_readings: HashSet<Label> = segments.iter().take(leading).map(segment_label).collect();
         tally.slices += 1;
         tally.hypotheses += beam.len() as u64;
         tally.readings += readings.len() as u64;

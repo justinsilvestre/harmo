@@ -1,7 +1,7 @@
 //! Rules about the bass line within a chord segment.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
+use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Chord;
 
@@ -23,7 +23,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[BEAT_LEVEL, BASS_REGISTER],
-    hook: Hook::Close(bass_change),
+    hook: Hook::ChordClose(bass_change),
 }];
 
 /// The weakest metric level at which a bass change counts, and to which the new bass must be held
@@ -48,10 +48,10 @@ const BASS_REGISTER: Param = Param {
 ///
 /// The bass is established by the segment's first bass note and by every later bass note that is
 /// attacked on a beat and held until the next beat. A change is an established bass on another chord member than the one before it.
-fn bass_change(context: &CloseContext, params: &[f64]) -> f32 {
+fn bass_change(context: &ChordCloseContext, params: &[f64]) -> f32 {
     let beat = BEAT_LEVEL.read(params) as u8;
     let register = BASS_REGISTER.read(params) as i32;
-    let chord = context.segment.reading.chord;
+    let chord = context.segment.chord;
     let slices = context.slices;
     let mut established: Option<(usize, i32)> = None;
     let mut changes = 0;
@@ -124,7 +124,10 @@ mod tests {
             members_heard: 0,
             bass: Bass::default(),
         };
-        bass_change(&CloseContext { segment: &segment, slices, next_slice: None }, &RULES[0].default_params())
+        bass_change(
+            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
+            &RULES[0].default_params(),
+        )
     }
 
     #[test]

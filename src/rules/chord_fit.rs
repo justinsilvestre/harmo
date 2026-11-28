@@ -1,7 +1,7 @@
 //! Scores how well the notes of a slice fit the chord of a reading.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, SliceContext};
+use crate::engine::rule::{ChordSliceContext, Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::{Slice, SliceNote};
 
 pub const RULES: &[Rule] = &[
@@ -16,7 +16,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 1.0,
         params: &[THIRD_VALUE, FIFTH_VALUE, SEVENTH_VALUE, ENHARMONIC_SHARE],
-        hook: Hook::Slice(compatibility),
+        hook: Hook::ChordSlice(compatibility),
     },
     Rule {
         id: "chord.ornamental_dissonance",
@@ -34,7 +34,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 2.625,
         params: &[STEP_RESOLUTION, ACCENT],
-        hook: Hook::Slice(ornamental_dissonance),
+        hook: Hook::ChordSlice(ornamental_dissonance),
     },
 ];
 
@@ -71,12 +71,12 @@ const ENHARMONIC_SHARE: Param = Param {
     provenance: "chosen: 4e0fbe2, round 1 (Temperley 2001, p. 149, scores spelled pitches); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.75 / 1: tune RN +0.01 / +0.02 / -0.02 / -0.03; kept)",
 };
 
-fn compatibility(context: &SliceContext, params: &[f64]) -> f32 {
+fn compatibility(context: &ChordSliceContext, params: &[f64]) -> f32 {
     let notes = &context.slice.notes;
     if notes.is_empty() {
         return 0.0;
     }
-    let chord = context.reading.chord;
+    let chord = context.chord;
     let (third, fifth, seventh) =
         (THIRD_VALUE.read(params), FIFTH_VALUE.read(params), SEVENTH_VALUE.read(params));
     let member_values = [1.0, third as f32, fifth as f32, seventh as f32];
@@ -91,12 +91,12 @@ fn compatibility(context: &SliceContext, params: &[f64]) -> f32 {
 }
 
 /// Returns minus the mean cost of the slice's non-chord tones, times the slice's duration.
-fn ornamental_dissonance(context: &SliceContext, params: &[f64]) -> f32 {
+fn ornamental_dissonance(context: &ChordSliceContext, params: &[f64]) -> f32 {
     let notes = &context.slice.notes;
     if notes.is_empty() {
         return 0.0;
     }
-    let chord = context.reading.chord;
+    let chord = context.chord;
     let is_ornamental = |note: &&SliceNote| chord.member_index_enharmonic(note.tpc).is_none();
     let cost: f32 = notes
         .iter()

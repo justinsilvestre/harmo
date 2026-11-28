@@ -106,10 +106,10 @@ pub fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Reading> 
 }
 
 /// Returns the segment that the hypothesis ending at `node` assigns to slice `at`.
-pub fn segment_at(analysis: &Analysis, node: u32, at: usize) -> Option<&Segment> {
+pub fn segment_at(analysis: &Analysis, node: u32, at: usize) -> Option<Segment> {
     let mut current = node;
     while current != NONE {
-        let segment = &analysis.arena[current as usize].segment;
+        let segment = analysis.segment(current);
         if segment.start as usize <= at {
             return Some(segment);
         }

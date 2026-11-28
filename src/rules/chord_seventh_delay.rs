@@ -1,7 +1,7 @@
 //! Rules about a dominant seventh chord whose seventh is first heard only in a later bar.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
+use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
 
@@ -26,7 +26,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.0,
     params: &[MIN_DELAY],
-    hook: Hook::Close(seventh_delay),
+    hook: Hook::ChordClose(seventh_delay),
 }];
 
 /// The least time, from the start of the chord, after which a seventh first heard in a later bar costs.
@@ -40,8 +40,8 @@ const MIN_DELAY: Param = Param {
 
 /// Returns -1 for a dominant seventh chord whose seventh first sounds in a later bar than the chord's
 /// first slice, at least the least delay after the chord begins, and 0 otherwise.
-fn seventh_delay(context: &CloseContext, params: &[f64]) -> f32 {
-    let chord = context.segment.reading.chord;
+fn seventh_delay(context: &ChordCloseContext, params: &[f64]) -> f32 {
+    let chord = context.segment.chord;
     let Some(seventh) = chord.members().nth(3).filter(|_| chord.quality == Quality::DominantSeventh) else {
         return 0.0;
     };
@@ -85,7 +85,7 @@ mod tests {
         let (start, previous, members_heard) = (0, NONE, 0b1111);
         let segment = Segment { reading, start, previous, duration, members_heard, bass: Bass::default() };
         seventh_delay(
-            &CloseContext { segment: &segment, slices, next_slice: None },
+            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
             &RULES[0].default_params(),
         )
     }

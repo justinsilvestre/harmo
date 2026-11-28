@@ -1,15 +1,15 @@
 //! Rules about triads in second inversion (six-four chords).
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Segment;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Rule};
+use crate::engine::model::ChordSegment;
+use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::{Slice, SliceNote};
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[Rule {
-    id: "function.six_four",
-    layer: Layer::Function,
+    id: "chord.six_four",
+    layer: Layer::Chord,
     summary: "Avoid second-inversion triads, in proportion to how long the fifth is the lowest note. \
               A six-four chord costs nothing when its bass is held or repeated into the next chord \
               (cadential and pedal six-fours) or moves on by step (passing six-fours).",
@@ -22,13 +22,13 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.5,
     params: &[],
-    hook: Hook::Close(six_four),
+    hook: Hook::ChordClose(six_four),
 }];
 
 /// The largest bass motion, in semitones, that counts as a step.
 const STEP: i32 = 2;
 
-fn six_four(context: &CloseContext, _: &[f64]) -> f32 {
+fn six_four(context: &ChordCloseContext, _: &[f64]) -> f32 {
     let segment = context.segment;
     let Some((midi, tpc)) = segment.bass_note().filter(|_| is_six_four(segment)) else {
         return 0.0;
@@ -45,8 +45,8 @@ fn six_four(context: &CloseContext, _: &[f64]) -> f32 {
     -(heard / segment.duration.max(1e-9)) as f32
 }
 
-fn is_six_four(segment: &Segment) -> bool {
-    let chord = segment.reading.chord;
+fn is_six_four(segment: &ChordSegment) -> bool {
+    let chord = segment.chord;
     let is_triad =
         matches!(chord.quality, Quality::Major | Quality::Minor | Quality::Diminished | Quality::Augmented);
     is_triad && chord.member_index(segment.bass_tpc()) == Some(2)
@@ -56,6 +56,7 @@ fn is_six_four(segment: &Segment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
+    use crate::engine::model::Segment;
     use crate::engine::model::{Category, NONE, Reading};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
@@ -88,7 +89,14 @@ mod tests {
         let segment =
             Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass };
         let slices = [slice(&[(55, "G"), (60, "C"), (64, "E")])];
-        six_four(&CloseContext { segment: &segment, slices: &slices, next_slice: Some(next) }, &[])
+        six_four(
+            &ChordCloseContext {
+                segment: &segment.chord_segment(NONE),
+                slices: &slices,
+                next_slice: Some(next),
+            },
+            &[],
+        )
     }
 
     #[test]

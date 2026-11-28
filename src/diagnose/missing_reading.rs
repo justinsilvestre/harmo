@@ -33,8 +33,9 @@ pub fn missing_reason(
     let at = context.frame_slices[frame];
     let beam = lagged_beam(analysis, slices, at, config.offer_lag).unwrap_or(&[]);
     let best = beam.first().map_or(0.0, |&node| analysis.arena[node as usize].score);
-    let holds =
-        |node: &&u32| segment_at(analysis, **node, at).is_some_and(|s| is_rn_match(&segment_label(s), label));
+    let holds = |node: &&u32| {
+        segment_at(analysis, **node, at).is_some_and(|s| is_rn_match(&segment_label(&s), label))
+    };
     match beam.iter().position(|node| holds(&node)) {
         Some(rank) => MissingReason::BelowCutoff {
             rank: rank + 1,

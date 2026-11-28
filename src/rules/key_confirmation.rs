@@ -57,15 +57,16 @@ enum Confirmation {
 fn find_confirmation(context: &DepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
     let key = context.previous.reading.key;
-    let mut later: Option<&Segment> = None;
+    let mut later: Option<Segment> = None;
     for segment in context.history.segments() {
         if segment.reading.key != key {
             return Confirmation::Unconfirmed;
         }
         let is_confirming = |later: &Segment| {
-            is_authentic_cadence(later, segment, slices, strong_beat) || is_cadential_six_four(later, segment)
+            is_authentic_cadence(later, &segment, slices, strong_beat)
+                || is_cadential_six_four(later, &segment)
         };
-        if crosses_phrase_end(segment, slices, context.slice) || later.is_some_and(is_confirming) {
+        if crosses_phrase_end(&segment, slices, context.slice) || later.as_ref().is_some_and(is_confirming) {
             return Confirmation::Confirmed;
         }
         later = Some(segment);
@@ -121,8 +122,9 @@ fn is_in_root_position(segment: &Segment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Node, Reading};
+    use crate::engine::model::{Category, NONE, Reading};
     use crate::engine::rule::History;
+    use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
     use crate::theory::key::{Key, Mode};
@@ -149,17 +151,14 @@ mod tests {
     }
 
     /// Builds a path of one-slice segments, each given as (key, root, quality, bass), one per slice.
-    fn path(chords: &[(&str, &str, Quality, &str)]) -> Vec<Node> {
-        let node = |(i, &(key, root, quality, bass)): (usize, &(&str, &str, Quality, &str))| {
-            let segment = Segment {
-                reading: reading(key, root, quality),
-                start: i as u32,
-                previous: if i == 0 { NONE } else { i as u32 - 1 },
-                duration: 1.0,
-                members_heard: 0b111,
-                bass: Bass { note: Some((40, tpc(bass))), ..Bass::default() },
-            };
-            Node { parent: segment.previous, slice: i as u32, segment, score: 0.0 }
+    fn path(chords: &[(&str, &str, Quality, &str)]) -> Vec<Segment> {
+        let node = |(i, &(key, root, quality, bass)): (usize, &(&str, &str, Quality, &str))| Segment {
+            reading: reading(key, root, quality),
+            start: i as u32,
+            previous: if i == 0 { NONE } else { i as u32 - 1 },
+            duration: 1.0,
+            members_heard: 0b111,
+            bass: Bass { note: Some((40, tpc(bass))), ..Bass::default() },
         };
         chords.iter().enumerate().map(node).collect()
     }
@@ -167,11 +166,12 @@ mod tests {
     /// Scores leaving the key of the path's last segment, with slices at the given metric levels and
     /// phrases (one more slice than the path, for the new segment).
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
-        let arena = path(chords);
-        let history = History { arena: &arena, slices, last: arena.len() as u32 - 1 };
+        let segments = path(chords);
+        let (arena, chords) = arenas_of(&segments);
+        let history = History { arena: &arena, chords: &chords, slices, last: arena.len() as u32 - 1 };
         unconfirmed_departure(
             &DepartureContext {
-                previous: &arena[arena.len() - 1].segment,
+                previous: &segments[segments.len() - 1],
                 slice: &slices[chords.len()],
                 history,
             },

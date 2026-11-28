@@ -41,7 +41,7 @@ fn rare_seventh(context: &TransitionContext, _: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, NONE, Reading};
+    use crate::engine::model::{Category, Reading};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -61,7 +61,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History { arena: &[], slices: &[], last: NONE };
+        let history = History::empty(&[]);
         rare_seventh(&TransitionContext { previous: None, next: &next, slice: &slice, history }, &[])
     }
 

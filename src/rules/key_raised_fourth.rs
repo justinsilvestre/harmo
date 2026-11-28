@@ -124,7 +124,7 @@ mod tests {
             bass: Bass::default(),
         };
         let next = reading("C", Quality::Major);
-        let history = History { arena: &[], slices: &slices, last: NONE };
+        let history = History::empty(&slices);
         raised_fourth(
             &TransitionContext { previous: Some(&previous), next: &next, slice: &slices[opening], history },
             &RULES[0].default_params(),

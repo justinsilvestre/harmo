@@ -1,7 +1,7 @@
 //! Rules about which chord members a segment must contain.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, SCHULTZ_ET_AL_2018};
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
+use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::{Slice, SliceNote};
 
@@ -23,7 +23,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.5,
         params: &[MISSING_THIRD],
-        hook: Hook::Close(completeness),
+        hook: Hook::ChordClose(completeness),
     },
     Rule {
         id: "chord.seventh_evidence",
@@ -49,7 +49,7 @@ pub const RULES: &[Rule] = &[
         ],
         default_weight: 1.0,
         params: &[SEVENTH_SHARE_TARGET, LEAPING_SEVENTH_FACTOR],
-        hook: Hook::Close(seventh_evidence),
+        hook: Hook::ChordClose(seventh_evidence),
     },
 ];
 
@@ -79,8 +79,8 @@ const LEAPING_SEVENTH_FACTOR: Param = Param {
     provenance: "measured: a3b7bff, round 3 (0: tune RN +0.10 but both offered -0.14; 0.5: +0.06, both offered +0.01); measured: sweeps/round7-constants.json, round 7 (0 / 0.25 / 0.375 / 0.75 / 1: tune RN -0.03 / +0.01 / +0.01 / -0.03 / -0.07; kept)",
 };
 
-fn seventh_evidence(context: &CloseContext, params: &[f64]) -> f32 {
-    let chord = context.segment.reading.chord;
+fn seventh_evidence(context: &ChordCloseContext, params: &[f64]) -> f32 {
+    let chord = context.segment.chord;
     if !chord.quality.is_seventh() {
         return 0.0;
     }
@@ -100,7 +100,7 @@ fn seventh_evidence(context: &CloseContext, params: &[f64]) -> f32 {
 
 /// Reports whether a note of the given spelling is attacked and then left by leap: neither held into
 /// the next slice nor followed there by a note a step away.
-fn is_left_by_leap(context: &CloseContext, tpc: Tpc) -> bool {
+fn is_left_by_leap(context: &ChordCloseContext, tpc: Tpc) -> bool {
     let slices = context.slices;
     (0..slices.len()).any(|i| {
         let next = slices.get(i + 1).or(context.next_slice.filter(|_| i + 1 == slices.len()));
@@ -122,7 +122,7 @@ fn attacks(slice: &Slice, tpc: Tpc) -> bool {
     slice.notes.iter().any(|n| n.attacked && n.tpc == tpc)
 }
 
-fn completeness(context: &CloseContext, params: &[f64]) -> f32 {
+fn completeness(context: &ChordCloseContext, params: &[f64]) -> f32 {
     let segment = context.segment;
     let missing_root = if segment.has_heard_member(0) { 0.0 } else { 1.0 };
     let missing_third = if segment.has_heard_member(1) { 0.0 } else { MISSING_THIRD.read(params) as f32 };
@@ -164,7 +164,7 @@ mod tests {
             bass: Bass::default(),
         };
         seventh_evidence(
-            &CloseContext { segment: &segment, slices: &slices, next_slice: None },
+            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices: &slices, next_slice: None },
             &RULES[1].default_params(),
         )
     }
@@ -200,7 +200,11 @@ mod tests {
             bass: Bass::default(),
         };
         seventh_evidence(
-            &CloseContext { segment: &segment, slices: &slices, next_slice: Some(&next) },
+            &ChordCloseContext {
+                segment: &segment.chord_segment(NONE),
+                slices: &slices,
+                next_slice: Some(&next),
+            },
             &RULES[1].default_params(),
         )
     }

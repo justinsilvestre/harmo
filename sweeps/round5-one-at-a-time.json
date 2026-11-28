@@ -100,7 +100,7 @@
    0.5625,
    0.9375
   ],
-  "function.augmented_sixth_bass": [
+  "chord.augmented_sixth_bass": [
    0.75,
    1.25
   ],
@@ -116,7 +116,7 @@
    0.75,
    1.25
   ],
-  "function.six_four": [
+  "chord.six_four": [
    0.375,
    0.625
   ]

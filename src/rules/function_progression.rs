@@ -3,7 +3,7 @@
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
 use crate::engine::model::{Category, Reading, Segment};
 use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
-use crate::pitch::{Tpc, pitch_class};
+use crate::pitch::Tpc;
 use crate::theory::chord::Quality;
 
 pub const RULES: &[Rule] = &[
@@ -73,18 +73,6 @@ pub const RULES: &[Rule] = &[
         params: &[],
         hook: Hook::Transition(dominant_resolution),
     },
-    Rule {
-        id: "function.augmented_sixth_bass",
-        layer: Layer::Function,
-        summary: "Prefer augmented sixth chords with the lowered sixth degree in the bass.",
-        citations: &[Citation {
-            source: KOSTKA_PAYNE_ALMEN_2023,
-            locator: "pp. 383–386, 391 (augmented sixths and other bass positions)",
-        }],
-        default_weight: 1.0,
-        params: &[],
-        hook: Hook::Transition(augmented_sixth_bass),
-    },
 ];
 
 /// The cost of a mixture chord whose only borrowed tone is the lowered sixth degree, against 1 for
@@ -133,11 +121,11 @@ fn continues_tonicization(context: &TransitionContext) -> bool {
     let mut recent = context.history.segments().take_while(|s| s.reading.key == next.key);
     let tonicizes = |segment: &Segment| segment.reading.tonicized == Some(target);
     match recent.next() {
-        Some(previous) if tonicizes(previous) => true,
+        Some(previous) if tonicizes(&previous) => true,
         Some(previous)
             if previous.reading.chord.root == target.tonic && previous.reading.tonicized.is_none() =>
         {
-            recent.next().is_some_and(tonicizes)
+            recent.next().is_some_and(|s| tonicizes(&s))
         }
         _ => false,
     }
@@ -183,23 +171,13 @@ fn has_dominant_function(reading: Reading) -> bool {
     }
 }
 
-fn augmented_sixth_bass(context: &TransitionContext, _: &[f64]) -> f32 {
-    let chord = context.next.chord;
-    let lowered_sixth = match chord.quality {
-        Quality::ItalianSixth | Quality::GermanSixth => chord.root - 10,
-        Quality::FrenchSixth => chord.root - 6,
-        _ => return 0.0,
-    };
-    let bass = context.slice.bass().map(|n| pitch_class(n.tpc));
-    if bass == Some(pitch_class(lowered_sixth)) { 0.0 } else { -1.0 }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{NONE, Node};
+    use crate::engine::model::NONE;
     use crate::engine::rule::History;
+    use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -211,27 +189,28 @@ mod tests {
     }
 
     /// Builds a path of one-slice segments in C major, each given as (root, quality, tonicized key).
-    fn path(chords: &[(&str, Quality, Option<&str>)]) -> Vec<Node> {
+    fn path(chords: &[(&str, Quality, Option<&str>)]) -> Vec<Segment> {
         let node = |(i, &(root, quality, target)): (usize, &(&str, Quality, Option<&str>))| {
             let mut reading = reading("C", root, quality, Category::Diatonic);
             reading.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
             let previous = if i == 0 { NONE } else { i as u32 - 1 };
-            let segment = Segment {
+
+            Segment {
                 reading,
                 start: i as u32,
                 previous,
                 duration: 1.0,
                 members_heard: 0,
                 bass: Bass::default(),
-            };
-            Node { parent: previous, slice: i as u32, segment, score: 0.0 }
+            }
         };
         chords.iter().enumerate().map(node).collect()
     }
 
     /// Scores reading D major as V/V in C major after the given chords.
     fn secondary_dominant_after(chords: &[(&str, Quality, Option<&str>)]) -> f32 {
-        let arena = path(chords);
+        let segments = path(chords);
+        let (arena, chords) = arenas_of(&segments);
         let mut next = reading("C", "D", Quality::Major, Category::Applied);
         next.tonicized = Key::parse("G", "major");
         let slice = Slice {
@@ -244,8 +223,8 @@ mod tests {
             key_signature: None,
         };
         let last = arena.len() as u32 - 1;
-        let history = History { arena: &arena, slices: &[], last };
-        let previous = Some(&arena[last as usize].segment);
+        let history = History { arena: &arena, chords: &chords, slices: &[], last };
+        let previous = Some(&segments[last as usize]);
         diatonic_preference(
             &TransitionContext { previous, next: &next, slice: &slice, history },
             &RULES[0].default_params(),

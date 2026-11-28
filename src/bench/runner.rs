@@ -109,7 +109,7 @@ pub struct PieceResult {
     pub timing: Timing,
 }
 
-/// Seconds spent on one piece in each part of its evaluation.
+/// Seconds spent on one piece in each part of its evaluation, and the size of its search.
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 pub struct Timing {
     pub search: f64,
@@ -117,6 +117,8 @@ pub struct Timing {
     pub layers: f64,
     /// The backward pass and the readings offered in hindsight.
     pub hindsight: f64,
+    /// The hypotheses and the chord hearings that the search kept, over all slices.
+    pub arena: (usize, usize),
 }
 
 /// Loads pieces in parallel, returning the loaded pieces and (piece id, error) pairs for failures.
@@ -184,7 +186,7 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
         }
     }
     let (layers, hindsight, timing) = layered_frames(&analysis, piece, top.len(), config);
-    let timing = Timing { search, ..timing };
+    let timing = Timing { search, arena: (analysis.arena.len(), analysis.chords.len()), ..timing };
     let layered = (layers.as_slice(), hindsight.as_deref());
     let agreement = (piece.analyses.len() >= 2)
         .then(|| agreement(piece, (&top, &offered), layered, config.timing_tolerance));
@@ -217,7 +219,7 @@ fn layered_frames(
         hindsight_frames(analysis, piece, (count, &bests), config)
     });
     let hindsight_seconds = started.elapsed().as_secs_f64() - layers_seconds;
-    (layers, hindsight, Timing { search: 0.0, layers: layers_seconds, hindsight: hindsight_seconds })
+    (layers, hindsight, Timing { layers: layers_seconds, hindsight: hindsight_seconds, ..Timing::default() })
 }
 
 /// Returns the label of the best final hypothesis at each frame of the piece.

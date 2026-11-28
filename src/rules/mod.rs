@@ -1,5 +1,6 @@
 //! The rule catalog. Each file holds the rules of one layer and topic, prefixed by layer.
 
+pub mod chord_augmented_sixth;
 pub mod chord_bass;
 pub mod chord_bass_note;
 pub mod chord_cadential_dominant;
@@ -11,12 +12,12 @@ pub mod chord_rhythm;
 pub mod chord_seventh_delay;
 pub mod chord_seventh_rival;
 pub mod chord_seventh_sonority;
+pub mod chord_six_four;
 pub mod function_distinct_readings;
 pub mod function_picardy_third;
 pub mod function_progression;
 pub mod function_rare_mediant;
 pub mod function_seventh_style;
-pub mod function_six_four;
 pub mod function_vocabulary;
 pub mod key_absent_tonic;
 pub mod key_cadence;
@@ -65,10 +66,11 @@ pub fn default_rules() -> Vec<Rule> {
         key_opening_tonic::RULES,
         function_vocabulary::RULES,
         function_progression::RULES,
+        chord_augmented_sixth::RULES,
         function_picardy_third::RULES,
         function_seventh_style::RULES,
         function_rare_mediant::RULES,
-        function_six_four::RULES,
+        chord_six_four::RULES,
         function_distinct_readings::RULES,
     ]
     .concat()

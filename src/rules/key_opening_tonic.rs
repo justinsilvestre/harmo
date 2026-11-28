@@ -60,7 +60,7 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let history = History { arena: &[], slices: &[], last: NONE };
+        let history = History::empty(&[]);
         opening_tonic(&TransitionContext { previous, next: &reading(root), slice: &slice, history }, &[])
     }
 

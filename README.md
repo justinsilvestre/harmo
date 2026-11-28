@@ -16,7 +16,7 @@ The engine represents the music and the readings (slices, chords, keys, function
 | `Slice` | scores one slice against a reading | `chord.compatibility`, `key.profile` |
 | `Transition` | scores opening a new segment after the previous one | `key.modulation`, `function.applied_resolution` |
 | `Departure` | scores leaving the previous segment's key, from the hypothesis alone (scored once per hypothesis, not per new reading) | `key.area_duration`, `key.unconfirmed_departure` |
-| `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `function.six_four` |
+| `Close` | scores a segment once its extent is known | `chord.seventh_evidence`, `chord.six_four` |
 | `Admit` | rejects transitions outright | (none yet) |
 | `Distinguish` | gives a segment an opaque value; pruning counts hypotheses whose recent segments get equal values as the same interpretation | `function.distinct_readings` |
 | `Bass` | decides a segment's bass note, and so its inversion, as the segment hears each chord tone (with no bass rule, every chord is in root position) | `chord.bass_note` |

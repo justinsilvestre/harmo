@@ -72,7 +72,8 @@ fn area_heard(history: History, key: Key, established: f64) -> f64 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Node, Reading, Segment};
+    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
@@ -85,26 +86,27 @@ mod tests {
     }
 
     /// Chains one tonic triad segment per (tonic, duration), each following the one before.
-    fn arena(segments: &[(&str, f64)]) -> Vec<Node> {
+    fn arena(segments: &[(&str, f64)]) -> Vec<Segment> {
         let node = |(index, &(tonic, duration)): (usize, &(&str, f64))| {
             let previous = if index == 0 { NONE } else { index as u32 - 1 };
-            let segment = Segment {
+
+            Segment {
                 reading: reading(tonic),
                 start: index as u32,
                 previous,
                 duration,
                 members_heard: 0b111,
                 bass: Bass::default(),
-            };
-            Node { parent: previous, slice: index as u32, segment, score: 0.0 }
+            }
         };
         segments.iter().enumerate().map(node).collect()
     }
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
-        let arena = arena(segments);
+        let segments = arena(segments);
+        let (arena, chords) = arenas_of(&segments);
         area_heard(
-            History { arena: &arena, slices: &[], last: arena.len() as u32 - 1 },
+            History { arena: &arena, chords: &chords, slices: &[], last: arena.len() as u32 - 1 },
             reading("C").key,
             16.0,
         )
@@ -112,7 +114,8 @@ mod tests {
 
     /// Scores leaving the key of the given segments.
     fn leaving(segments: &[(&str, f64)]) -> f32 {
-        let arena = arena(segments);
+        let segments = arena(segments);
+        let (arena, chords) = arenas_of(&segments);
         let last = arena.len() as u32 - 1;
         let slice = Slice {
             start: 0.0,
@@ -124,9 +127,9 @@ mod tests {
             key_signature: None,
         };
         let context = DepartureContext {
-            previous: &arena[last as usize].segment,
+            previous: &segments[last as usize],
             slice: &slice,
-            history: History { arena: &arena, slices: &[], last },
+            history: History { arena: &arena, chords: &chords, slices: &[], last },
         };
         area_duration(&context, &RULES[1].default_params())
     }

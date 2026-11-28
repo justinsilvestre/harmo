@@ -1,7 +1,7 @@
 //! Rules about when a seventh chord other than the dominant seventh is heard as one sonority.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::rule::{Citation, CloseContext, Hook, Layer, Param, Rule};
+use crate::engine::rule::{ChordCloseContext, Citation, Hook, Layer, Param, Rule};
 use crate::pitch::Tpc;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -24,7 +24,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 1.25,
     params: &[SHARE_TARGET],
-    hook: Hook::Close(seventh_sonority),
+    hook: Hook::ChordClose(seventh_sonority),
 }];
 
 /// Share of the segment's duration, with root and seventh sounding together, at which the rule costs nothing.
@@ -36,8 +36,8 @@ const SHARE_TARGET: Param = Param {
     provenance: "measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0.25 / 0.375 / 0.5 / 0.5625 / 0.625 / 0.6875 / 0.75 / 0.875 / 1: tune RN -0.16 / -0.04 / 0 / +0.06 / +0.15 / +0.15 / +0.14 / +0.13 / +0.13; 0.625: +0.15 [+0.09, +0.22], agreement-tune both offered +0.03 [-0.05, +0.11]; taken); 34a3f45, round 2, had found 0.75 and 1.0 costing WTC and keyboard_other up to 2 points",
 };
 
-fn seventh_sonority(context: &CloseContext, params: &[f64]) -> f32 {
-    let chord = context.segment.reading.chord;
+fn seventh_sonority(context: &ChordCloseContext, params: &[f64]) -> f32 {
+    let chord = context.segment.chord;
     let Some(seventh) = chord.members().nth(3).filter(|_| is_judged(chord.quality)) else {
         return 0.0;
     };
@@ -104,7 +104,7 @@ mod tests {
             bass: Bass::default(),
         };
         seventh_sonority(
-            &CloseContext { segment: &segment, slices, next_slice: None },
+            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
             &RULES[0].default_params(),
         )
     }

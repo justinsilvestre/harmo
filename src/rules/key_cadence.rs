@@ -90,7 +90,7 @@ mod tests {
             key_signature: None,
         };
         let next = reading("C", Quality::Major);
-        let history = History { arena: &[], slices: &[], last: NONE };
+        let history = History::empty(&[]);
         let params = RULES[0].default_params();
         cadential_confirmation(
             &TransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },

@@ -1,7 +1,7 @@
 //! Rules about where chord changes happen.
 
 use super::sources::TEMPERLEY_2001;
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{ChordTransitionContext, Citation, Hook, Layer, Param, Rule};
 use crate::pitch::pitch_class;
 use crate::score::slicing::Slice;
 
@@ -14,7 +14,7 @@ pub const RULES: &[Rule] = &[
         citations: &[Citation { source: TEMPERLEY_2001, locator: "pp. 151, 157 (HPR 2, Strong Beat Rule)" }],
         default_weight: 0.5,
         params: &[],
-        hook: Hook::Transition(strong_beat),
+        hook: Hook::ChordTransition(strong_beat),
     },
     Rule {
         id: "chord.harmonic_variance",
@@ -26,7 +26,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.1875,
         params: &[MAX_DISTANCE],
-        hook: Hook::Transition(harmonic_variance),
+        hook: Hook::ChordTransition(harmonic_variance),
     },
     Rule {
         id: "chord.thin_texture_rhythm",
@@ -42,7 +42,7 @@ pub const RULES: &[Rule] = &[
         }],
         default_weight: 0.5,
         params: &[THIN_PITCH_CLASSES, SUBDIVISION_LEVEL],
-        hook: Hook::Transition(thin_texture_rhythm),
+        hook: Hook::ChordTransition(thin_texture_rhythm),
     },
 ];
 
@@ -72,23 +72,23 @@ const SUBDIVISION_LEVEL: Param = Param {
     provenance: "measured: 222f9f0, round 4 (the strong-beat curve on every level instead: tune RN +0.1 with wir -0.2 to -0.4); measured: sweeps/round7-constants.json and round7-constants-refine.json, round 7 (0 / 2 / 3: tune RN -0.12 / +0.10 / +0.11; 2 gives +0.10 [+0.01, +0.20] but agreement-tune both offered -0.35 [-0.76, +0.04] while offering 0.014 more readings; kept)",
 };
 
-fn strong_beat(context: &TransitionContext, _: &[f64]) -> f32 {
+fn strong_beat(context: &ChordTransitionContext, _: &[f64]) -> f32 {
     match context.previous {
         Some(_) => (context.slice.metric_level as f32 - 4.0) / 4.0,
         None => 0.0,
     }
 }
 
-fn harmonic_variance(context: &TransitionContext, params: &[f64]) -> f32 {
+fn harmonic_variance(context: &ChordTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
     let cap = MAX_DISTANCE.read(params) as i32;
-    let distance = (previous.reading.chord.root - context.next.chord.root).abs();
+    let distance = (previous.chord.root - context.next.root).abs();
     -(distance.min(cap) as f32) / cap as f32
 }
 
-fn thin_texture_rhythm(context: &TransitionContext, params: &[f64]) -> f32 {
+fn thin_texture_rhythm(context: &ChordTransitionContext, params: &[f64]) -> f32 {
     let level = context.slice.metric_level;
     let strongest = SUBDIVISION_LEVEL.read(params) as u8;
     let most_pitch_classes = THIN_PITCH_CLASSES.read(params) as usize;
@@ -110,7 +110,6 @@ mod tests {
     use super::*;
     use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
-    use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
@@ -147,11 +146,11 @@ mod tests {
             members_heard: 0b111,
             bass: Bass::default(),
         };
-        let context = TransitionContext {
-            previous: Some(&previous),
-            next: &reading("G"),
+        let context = ChordTransitionContext {
+            previous: Some(&previous.chord_segment(NONE)),
+            next: reading("G").chord,
             slice: &slice,
-            history: History { arena: &[], slices: &[], last: NONE },
+            slices: &[],
         };
         thin_texture_rhythm(&context, &RULES[2].default_params())
     }

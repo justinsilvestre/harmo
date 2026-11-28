@@ -1,7 +1,7 @@
 //! Scores chord changes in a single melodic line by the harmony that the line's coming notes imply.
 
 use super::sources::{KOSTKA_PAYNE_ALMEN_2023, TEMPERLEY_2001};
-use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
+use crate::engine::rule::{ChordTransitionContext, Citation, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 
@@ -30,7 +30,7 @@ pub const RULES: &[Rule] = &[Rule {
     ],
     default_weight: 0.25,
     params: &[LOOKAHEAD],
-    hook: Hook::Transition(implied_harmony),
+    hook: Hook::ChordTransition(implied_harmony),
 }];
 
 /// How far past the start of the slice the line is read. A listener may look ahead about two
@@ -45,20 +45,20 @@ const LOOKAHEAD: Param = Param {
 
 const EPSILON: f64 = 1e-6;
 
-fn implied_harmony(context: &TransitionContext, params: &[f64]) -> f32 {
+fn implied_harmony(context: &ChordTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
     if !context.slice.is_single_line() {
         return 0.0;
     }
-    let slices = context.history.slices;
+    let slices = context.slices;
     let index = slices.partition_point(|s| s.start < context.slice.start - EPSILON);
     if slices.get(index).is_none_or(|s| (s.start - context.slice.start).abs() > EPSILON) {
         return 0.0;
     }
     let line = line_ahead(slices, index, LOOKAHEAD.read(params));
-    let support = line_fit(line.clone(), context.next.chord) - line_fit(line, previous.reading.chord);
+    let support = line_fit(line.clone(), context.next) - line_fit(line, previous.chord);
     support.clamp(0.0, 1.0) as f32 - 1.0
 }
 
@@ -92,7 +92,6 @@ mod tests {
     use super::*;
     use crate::engine::bass::Bass;
     use crate::engine::model::{Category, NONE, Reading, Segment};
-    use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Quality;
@@ -135,11 +134,11 @@ mod tests {
             members_heard: 0b111,
             bass: Bass::default(),
         };
-        let context = TransitionContext {
-            previous: Some(&previous),
-            next: &reading("G"),
+        let context = ChordTransitionContext {
+            previous: Some(&previous.chord_segment(NONE)),
+            next: reading("G").chord,
             slice: &slices[1],
-            history: History { arena: &[], slices: &slices, last: NONE },
+            slices: &slices,
         };
         implied_harmony(&context, &RULES[0].default_params())
     }

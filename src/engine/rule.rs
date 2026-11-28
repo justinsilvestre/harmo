@@ -1,7 +1,7 @@
 //! The interface between the engine and the rules it hooks into.
 
 use super::bass::{Bass, BassNote};
-use super::model::{Category, NONE, Node, Reading, Segment};
+use super::model::{Category, ChordNode, ChordSegment, NONE, Node, Reading, Segment, segment_of};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -74,6 +74,10 @@ pub type ProposeFn = fn(&Slice) -> Vec<Chord>;
 pub type ProposeKeysFn = fn(&Slice) -> Vec<Key>;
 pub type InterpretFn = fn(Key, Chord) -> Vec<Interpretation>;
 /// Scoring hooks receive the context and the values of their rule's parameters.
+/// Hooks of the chord layer receive only the chord layer's state, never a key.
+pub type ChordSliceFn = fn(&ChordSliceContext, &[f64]) -> f32;
+pub type ChordTransitionFn = fn(&ChordTransitionContext, &[f64]) -> f32;
+pub type ChordCloseFn = fn(&ChordCloseContext, &[f64]) -> f32;
 pub type SliceFn = fn(&SliceContext, &[f64]) -> f32;
 pub type TransitionFn = fn(&TransitionContext, &[f64]) -> f32;
 pub type DepartureFn = fn(&DepartureContext, &[f64]) -> f32;
@@ -96,7 +100,13 @@ pub enum Hook {
     ProposeKeys(ProposeKeysFn),
     /// Lists the ways a chord can function in a key, as (tonicized key, category) pairs.
     Interpret(InterpretFn),
-    /// Scores how well one slice fits a reading.
+    /// Scores how well one slice fits a chord, in the chord layer.
+    ChordSlice(ChordSliceFn),
+    /// Scores opening a new chord segment after the previous one, in the chord layer.
+    ChordTransition(ChordTransitionFn),
+    /// Scores a chord segment once its extent is known, in the chord layer.
+    ChordClose(ChordCloseFn),
+    /// Scores how well one slice fits a reading, in the key layer.
     Slice(SliceFn),
     /// Scores opening a new segment after the previous one.
     Transition(TransitionFn),
@@ -132,6 +142,9 @@ impl Hook {
             Hook::ProposeChords(_) => "propose_chords",
             Hook::ProposeKeys(_) => "propose_keys",
             Hook::Interpret(_) => "interpret",
+            Hook::ChordSlice(_) => "chord_slice",
+            Hook::ChordTransition(_) => "chord_transition",
+            Hook::ChordClose(_) => "chord_close",
             Hook::Slice(_) => "slice",
             Hook::Transition(_) => "transition",
             Hook::Departure(_) => "departure",
@@ -143,6 +156,36 @@ impl Hook {
             Hook::RivalCandidate(_) => "rival_candidate",
         }
     }
+}
+
+pub struct ChordSliceContext<'a> {
+    pub slice: &'a Slice,
+    /// The slice after this one in the score, if any.
+    pub next_slice: Option<&'a Slice>,
+    /// Every slice of the score, for rules that weigh the musical context around this slice.
+    pub slices: &'a [Slice],
+    /// The index of this slice in `slices`.
+    pub index: usize,
+    pub chord: Chord,
+    /// True when the slice opens the segment.
+    pub is_opening: bool,
+}
+
+pub struct ChordTransitionContext<'a> {
+    /// The chord segment being closed, or `None` at the start of the piece.
+    pub previous: Option<&'a ChordSegment>,
+    pub next: Chord,
+    pub slice: &'a Slice,
+    /// Every slice of the score, so that the previous segment's slices can be read from its `start`.
+    pub slices: &'a [Slice],
+}
+
+pub struct ChordCloseContext<'a> {
+    pub segment: &'a ChordSegment,
+    /// The slices covered by the segment.
+    pub slices: &'a [Slice],
+    /// The slice that opens the following segment, if any.
+    pub next_slice: Option<&'a Slice>,
 }
 
 pub struct SliceContext<'a> {
@@ -198,10 +241,12 @@ pub struct RivalContext<'a> {
     pub previous_slice: Option<&'a Slice>,
 }
 
-/// Read-only access to the segments preceding a transition, most recent first.
+/// Read-only access to the segments preceding a transition, most recent first, as both layers
+/// read them.
 #[derive(Clone, Copy)]
 pub struct History<'a> {
     pub arena: &'a [Node],
+    pub chords: &'a [ChordNode],
     /// Every slice of the score, so that a past segment's slices can be read from its `start`.
     pub slices: &'a [Slice],
     /// Arena index of the last node of the most recent segment, or `NONE`.
@@ -209,12 +254,37 @@ pub struct History<'a> {
 }
 
 impl<'a> History<'a> {
-    pub fn segments(self) -> impl Iterator<Item = &'a Segment> {
-        let arena = self.arena;
-        std::iter::successors((self.last != NONE).then(|| &arena[self.last as usize].segment), move |s| {
-            (s.previous != NONE).then(|| &arena[s.previous as usize].segment)
-        })
+    pub fn segments(self) -> impl Iterator<Item = Segment> + 'a {
+        let (arena, chords) = (self.arena, self.chords);
+        let at = move |node: u32| (node != NONE).then(|| segment_of(arena, chords, node));
+        std::iter::successors(at(self.last), move |s| at(s.previous))
     }
+
+    /// A history with no segments before it.
+    pub fn empty(slices: &'a [Slice]) -> History<'a> {
+        History { arena: &[], chords: &[], slices, last: NONE }
+    }
+}
+
+/// Builds the arenas of a chain of segments, for tests: segment i becomes node i, whose `previous`
+/// is taken from the segment.
+#[cfg(test)]
+pub fn arenas_of(segments: &[Segment]) -> (Vec<Node>, Vec<ChordNode>) {
+    let node = |(i, s): (usize, &Segment)| Node {
+        parent: s.previous,
+        slice: i as u32,
+        chord: i as u32,
+        reading: s.reading.key_reading(),
+        previous: s.previous,
+        score: 0.0,
+    };
+    let chord = |(i, s): (usize, &Segment)| ChordNode {
+        parent: s.previous,
+        slice: i as u32,
+        segment: s.chord_segment(s.previous),
+        score: 0.0,
+    };
+    (segments.iter().enumerate().map(node).collect(), segments.iter().enumerate().map(chord).collect())
 }
 
 #[cfg(test)]
@@ -244,7 +314,7 @@ mod tests {
     /// Reports whether a transition from the given previous key to C major is a departure.
     fn is_departure(previous: Option<&str>) -> bool {
         let (previous, next, slice) = (previous.map(segment), reading("C"), slice());
-        let history = History { arena: &[], slices: &[], last: NONE };
+        let history = History::empty(&[]);
         TransitionContext { previous: previous.as_ref(), next: &next, slice: &slice, history }
             .departure()
             .is_some()

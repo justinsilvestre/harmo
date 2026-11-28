@@ -125,7 +125,7 @@ mod tests {
             slice(setting.six_four_level, setting.six_four_bass),
             slice(setting.dominant_level, setting.dominant_bass),
         ];
-        let history = History { arena: &[], slices: &slices, last: NONE };
+        let history = History::empty(&slices);
         let context =
             TransitionContext { previous: Some(&previous), next: &next, slice: &slices[1], history };
         six_four_tonicization(&context, &RULES[0].default_params())

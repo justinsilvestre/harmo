@@ -3,9 +3,10 @@
 use super::bass::{Bass, BassNote};
 use super::model::Segment;
 use super::rule::{
-    AdmitFn, BassFn, CloseContext, CloseFn, DepartureContext, DepartureFn, DistinguishFn, Hook, InterpretFn,
-    ProposeFn, ProposeKeysFn, RivalCandidateFn, RivalContext, RivalFn, Rule, SliceContext, SliceFn,
-    TransitionContext, TransitionFn,
+    AdmitFn, BassFn, ChordCloseContext, ChordCloseFn, ChordSliceContext, ChordSliceFn,
+    ChordTransitionContext, ChordTransitionFn, CloseContext, CloseFn, DepartureContext, DepartureFn,
+    DistinguishFn, Hook, InterpretFn, ProposeFn, ProposeKeysFn, RivalCandidateFn, RivalContext, RivalFn,
+    Rule, SliceContext, SliceFn, TransitionContext, TransitionFn,
 };
 use crate::score::slicing::Slice;
 use crate::theory::key::Key;
@@ -34,6 +35,9 @@ pub struct RuleSet {
     pub proposers: Vec<ProposeFn>,
     pub key_proposers: Vec<ProposeKeysFn>,
     pub interpreters: Vec<InterpretFn>,
+    pub chord_slice_rules: Vec<Scorer<ChordSliceFn>>,
+    pub chord_transition_rules: Vec<Scorer<ChordTransitionFn>>,
+    pub chord_close_rules: Vec<Scorer<ChordCloseFn>>,
     pub slice_rules: Vec<Scorer<SliceFn>>,
     pub transition_rules: Vec<Scorer<TransitionScorer>>,
     pub close_rules: Vec<Scorer<CloseFn>>,
@@ -67,6 +71,9 @@ impl RuleSet {
             proposers: vec![],
             key_proposers: vec![],
             interpreters: vec![],
+            chord_slice_rules: vec![],
+            chord_transition_rules: vec![],
+            chord_close_rules: vec![],
             slice_rules: vec![],
             transition_rules: vec![],
             close_rules: vec![],
@@ -90,6 +97,9 @@ impl RuleSet {
                 Hook::ProposeChords(f) => self.proposers.push(f),
                 Hook::ProposeKeys(f) => self.key_proposers.push(f),
                 Hook::Interpret(f) => self.interpreters.push(f),
+                Hook::ChordSlice(f) => self.chord_slice_rules.push((f, weight, params)),
+                Hook::ChordTransition(f) => self.chord_transition_rules.push((f, weight, params)),
+                Hook::ChordClose(f) => self.chord_close_rules.push((f, weight, params)),
                 Hook::Slice(f) => self.slice_rules.push((f, weight, params)),
                 Hook::Transition(f) => {
                     self.transition_rules.push((TransitionScorer::Each(f), weight, params))
@@ -131,6 +141,18 @@ impl RuleSet {
         keys.sort();
         keys.dedup();
         keys
+    }
+
+    pub fn score_chord_slice(&self, context: &ChordSliceContext) -> f32 {
+        self.chord_slice_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
+    }
+
+    pub fn score_chord_transition(&self, context: &ChordTransitionContext) -> f32 {
+        self.chord_transition_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
+    }
+
+    pub fn score_chord_close(&self, context: &ChordCloseContext) -> f32 {
+        self.chord_close_rules.iter().map(|(f, w, params)| w * f(context, params)).sum()
     }
 
     pub fn score_slice(&self, context: &SliceContext) -> f32 {
@@ -247,7 +269,7 @@ mod tests {
 
     fn transition_with(rules: &RuleSet, tonic: &str) -> f32 {
         let (previous, slice) = (segment("C"), slice());
-        let history = History { arena: &[], slices: &[], last: NONE };
+        let history = History::empty(&[]);
         let departures =
             rules.score_departures(&DepartureContext { previous: &previous, slice: &slice, history });
         let context =

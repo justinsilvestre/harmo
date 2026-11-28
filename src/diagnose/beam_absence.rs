@@ -33,7 +33,7 @@ pub fn find_pruning(
     label: &Label,
 ) -> Option<Absence> {
     let holds = |pruned: &Pruned| {
-        pruned_segment_at(analysis, pruned, at).is_some_and(|s| is_rn_match(&segment_label(s), label))
+        pruned_segment_at(analysis, pruned, at).is_some_and(|s| is_rn_match(&segment_label(&s), label))
     };
     let last = (at..=until).rev().find_map(|slice| {
         let dropped = analysis.pruned.get(slice)?;
@@ -47,7 +47,7 @@ pub fn find_pruning(
     })
 }
 
-fn pruned_segment_at<'a>(analysis: &'a Analysis, pruned: &'a Pruned, at: usize) -> Option<&'a Segment> {
-    let segment = &pruned.node.segment;
+fn pruned_segment_at(analysis: &Analysis, pruned: &Pruned, at: usize) -> Option<Segment> {
+    let segment = pruned.segment;
     if segment.start as usize <= at { Some(segment) } else { segment_at(analysis, segment.previous, at) }
 }

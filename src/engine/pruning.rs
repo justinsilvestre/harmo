@@ -4,7 +4,7 @@
 //! the search by being pruned. A reading that the beam holds for some slice therefore leaves it
 //! exactly when pruning drops the last hypotheses that hold it.
 
-use super::model::Node;
+use super::model::{Node, Segment};
 use serde::Serialize;
 
 /// Why pruning dropped a hypothesis.
@@ -29,7 +29,11 @@ impl PruneCause {
 /// A hypothesis dropped by pruning at the slice it reached.
 #[derive(Clone, Copy, Debug)]
 pub struct Pruned {
+    /// The hypothesis. Its `chord` index is not meaningful, since the hearing it interpreted may
+    /// have been dropped with it.
     pub node: Node,
+    /// Its last segment, as both layers read it.
+    pub segment: Segment,
     /// Its rank (1 = best) among all the hypotheses that competed for the beam at that slice.
     pub rank: usize,
     pub cause: PruneCause,
