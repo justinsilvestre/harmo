@@ -27,7 +27,7 @@ pub fn segments_of(
 ) -> Vec<SegmentReading> {
     let layers = &analysis.layers;
     let mut segments: Vec<SegmentReading> =
-        layers.path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
+        layers.key_path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
     segments.reverse();
     segments
 }

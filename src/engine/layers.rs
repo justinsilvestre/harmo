@@ -4,7 +4,7 @@ use super::model::{ChordHypothesis, ChordHypothesisId, KeyHypothesis, KeyHypothe
 
 /// What the search keeps of both layers: the chord layer's hypotheses,
 /// and the key layer's hypotheses, each of which interprets one chord hypothesis.
-/// Each links to the one before it by index.
+/// Each hypothesis links by index to its own layer's past.
 #[derive(Clone, Debug, Default)]
 pub struct Layers {
     pub chord_hypotheses: Vec<ChordHypothesis>,
@@ -34,9 +34,16 @@ impl Layers {
         KeySegment { heard: self.chord_hypothesis_of(hypothesis).segment, function }
     }
 
+    /// Returns the last chord hypothesis of each chord segment on the path to `last`,
+    /// from `last` back to the first segment. A `last` of `ChordHypothesisId::NONE` gives no segments.
+    pub fn chord_path_back(&self, last: ChordHypothesisId) -> impl Iterator<Item = ChordHypothesisId> + '_ {
+        let linked = |id: ChordHypothesisId| (id != ChordHypothesisId::NONE).then_some(id);
+        std::iter::successors(linked(last), move |&id| linked(self.chord_hypothesis(id).previous))
+    }
+
     /// Returns the last hypothesis of each segment on the path to `last`,
     /// from `last` back to the first segment. A `last` of `KeyHypothesisId::NONE` gives no segments.
-    pub fn path_back(&self, last: KeyHypothesisId) -> impl Iterator<Item = KeyHypothesisId> + '_ {
+    pub fn key_path_back(&self, last: KeyHypothesisId) -> impl Iterator<Item = KeyHypothesisId> + '_ {
         let linked =
             |hypothesis: KeyHypothesisId| (hypothesis != KeyHypothesisId::NONE).then_some(hypothesis);
         std::iter::successors(linked(last), move |&h| linked(self.key_hypothesis(h).previous))

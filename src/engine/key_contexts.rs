@@ -100,7 +100,7 @@ pub struct History<'a> {
 impl<'a> History<'a> {
     pub fn segments(self) -> impl Iterator<Item = KeySegment> + 'a {
         let layers = self.layers;
-        layers.path_back(self.last).map(|hypothesis| layers.segment(hypothesis))
+        layers.key_path_back(self.last).map(|hypothesis| layers.segment(hypothesis))
     }
 
     /// A history with no segments before it.

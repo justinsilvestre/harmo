@@ -1,7 +1,7 @@
 use super::*;
 use crate::engine::key_contexts::{Rival, RivalContext};
 use crate::engine::key_hooks::KeyHook;
-use crate::engine::model::{Function, KeyHypothesisId, Reading};
+use crate::engine::model::{ChordSegment, Function, KeyHypothesisId, Reading};
 use crate::engine::pending::PendingKeyHypothesis;
 use crate::engine::rule::{Hook, Rule, Topic};
 use crate::engine::test_layers::{i_v_i, key_segment, layers_of, slice_of};
@@ -66,6 +66,22 @@ fn a_chord_hypothesis_extends_the_chord_hypothesis_of_its_key_hypothesis_s_paren
 #[test]
 fn a_chord_hypothesis_follows_the_chord_hypothesis_of_its_key_hypothesis_s_previous_segment() {
     assert!(links_agree(|h| h.previous, |c| c.previous));
+}
+
+#[test]
+fn the_chord_path_of_a_final_hypothesis_holds_the_chords_of_its_key_path() {
+    let analysis = analyze_i_v_i(&[]);
+    let layers = &analysis.layers;
+    let chords_of = |hypothesis: KeyHypothesisId| {
+        let along_keys = layers.key_path_back(hypothesis).map(|h| layers.chord_hypothesis_of(h).segment);
+        let chord_hypothesis = layers.key_hypothesis(hypothesis).chord_hypothesis;
+        let along_chords =
+            layers.chord_path_back(chord_hypothesis).map(|c| layers.chord_hypothesis(c).segment);
+        let starts =
+            |segments: Vec<ChordSegment>| segments.iter().map(|s| (s.start, s.chord)).collect::<Vec<_>>();
+        starts(along_keys.collect()) == starts(along_chords.collect())
+    };
+    assert!(analysis.ranking.iter().all(|&(hypothesis, _)| chords_of(hypothesis)));
 }
 
 /// Puts every segment in one rival group, as a member named by its chord.

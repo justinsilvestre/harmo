@@ -151,7 +151,7 @@ impl Pruner<'_> {
         let depth = self.config.distinct_depth;
         let mut values = Vec::with_capacity(depth * key_rules.distinguish.len());
         key_rules.distinguish(&self.pending.segment(hypothesis), &mut values);
-        for earlier in layers.path_back(hypothesis.previous).take(depth - 1) {
+        for earlier in layers.key_path_back(hypothesis.previous).take(depth - 1) {
             key_rules.distinguish(&layers.segment(earlier), &mut values);
         }
         values

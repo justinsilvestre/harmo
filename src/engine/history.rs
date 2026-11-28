@@ -111,5 +111,5 @@ pub fn reading_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -
 /// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.
 pub fn segment_at(analysis: &Analysis, hypothesis: KeyHypothesisId, at: usize) -> Option<KeySegment> {
     let layers = &analysis.layers;
-    layers.path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
+    layers.key_path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
 }
