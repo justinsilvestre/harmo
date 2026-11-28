@@ -109,17 +109,15 @@ fn is_thin(slice: &Slice, most_pitch_classes: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::model::ChordSegment;
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
-    use crate::theory::key::Key;
 
-    fn reading(root: &str) -> Reading {
-        let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let key = Key::parse("C", "major").unwrap();
-        Reading { chord, function: Function::diatonic(key) }
+    /// The major triad on a root.
+    fn major(root: &str) -> Chord {
+        Chord::new(tpc_from_name(root).unwrap(), Quality::Major)
     }
 
     /// Scores a change from C to G on a slice sounding the named notes at the given metric level.
@@ -139,10 +137,10 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(reading("C").chord) };
+        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(major("C")) };
         let context = ChordTransitionContext {
             previous: Some(&previous),
-            next: reading("G").chord,
+            next: major("G"),
             slice: &slice,
             slices: &[],
         };

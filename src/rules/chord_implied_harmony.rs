@@ -91,17 +91,15 @@ fn line_fit<'a>(line: impl Iterator<Item = (&'a Slice, f64)>, chord: Chord) -> f
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::model::ChordSegment;
     use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Quality;
-    use crate::theory::key::Key;
 
-    fn reading(root: &str) -> Reading {
-        let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let key = Key::parse("C", "major").unwrap();
-        Reading { chord, function: Function::diatonic(key) }
+    /// The major triad on a root.
+    fn major(root: &str) -> Chord {
+        Chord::new(tpc_from_name(root).unwrap(), Quality::Major)
     }
 
     /// Returns one slice per beat, each sounding the named notes.
@@ -127,10 +125,10 @@ mod tests {
     /// Scores a change from C major to G major on the second of the given beats.
     fn change_from_c_to_g(beats: &[&[&str]]) -> f32 {
         let slices = slices(beats);
-        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(reading("C").chord) };
+        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(major("C")) };
         let context = ChordTransitionContext {
             previous: Some(&previous),
-            next: reading("G").chord,
+            next: major("G"),
             slice: &slices[1],
             slices: &slices,
         };

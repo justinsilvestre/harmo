@@ -13,6 +13,7 @@ pub mod chord_seventh_delay;
 pub mod chord_seventh_rival;
 pub mod chord_seventh_sonority;
 pub mod chord_six_four;
+pub mod function_cadential_rival;
 pub mod function_distinct_readings;
 pub mod function_picardy_third;
 pub mod function_progression;
@@ -42,6 +43,7 @@ pub fn default_rules() -> Vec<Rule> {
     [
         chord_proposal::RULES,
         chord_cadential_dominant::RULES,
+        function_cadential_rival::RULES,
         chord_fit::RULES,
         chord_implied_harmony::RULES,
         chord_rhythm::RULES,
