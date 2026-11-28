@@ -30,6 +30,12 @@ impl Pending {
         &self.chord_hypotheses[id.0 as usize]
     }
 
+    /// Returns the score of the complete interpretation that a proposed hypothesis ends:
+    /// its chord hypothesis's score plus its own.
+    pub fn score(&self, hypothesis: &PendingKeyHypothesis) -> f32 {
+        self.chord_hypothesis(hypothesis.chord_hypothesis).score + hypothesis.score
+    }
+
     /// Returns the segment that a proposed hypothesis ends in, as the key layer reads it.
     pub fn segment(&self, hypothesis: &PendingKeyHypothesis) -> KeySegment {
         KeySegment {

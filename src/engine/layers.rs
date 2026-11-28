@@ -23,6 +23,13 @@ impl Layers {
         &self.key_hypotheses[id.0 as usize]
     }
 
+    /// Returns the score of the complete interpretation that ends in a hypothesis:
+    /// its chord hypothesis's score plus its own.
+    pub fn score(&self, hypothesis: KeyHypothesisId) -> f32 {
+        let key_hypothesis = self.key_hypothesis(hypothesis);
+        self.chord_hypothesis(key_hypothesis.chord_hypothesis).score + key_hypothesis.score
+    }
+
     /// Returns the chord hypothesis that a hypothesis interprets.
     pub fn chord_hypothesis_of(&self, hypothesis: KeyHypothesisId) -> &ChordHypothesis {
         self.chord_hypothesis(self.key_hypothesis(hypothesis).chord_hypothesis)

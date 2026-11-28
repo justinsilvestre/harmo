@@ -46,7 +46,7 @@ impl Extension<'_> {
         let chord_hypothesis = self.extend_chord_hypothesis(hypothesis.chord_hypothesis, chord_fit);
         let key_fit = self.key_fit(Reading { chord, function: hypothesis.function });
         let (previous, function) = (hypothesis.previous, hypothesis.function);
-        let score = hypothesis.score + chord_fit + key_fit;
+        let score = hypothesis.score + key_fit;
         self.pending.key_hypotheses.push(KeyHypothesis {
             parent,
             previous,

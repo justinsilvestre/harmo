@@ -4,7 +4,7 @@ use super::chord_hooks::{ChordCloseContext, ChordTransitionContext};
 use super::key_contexts::{KeyCloseContext, KeyDepartureContext, KeyTransitionContext, Rival, RivalContext};
 use super::model::{ChordHypothesisId, ChordSegment, KeyHypothesisId, KeySegment};
 use super::moment::Moment;
-use super::proposals::{Opening, ProposedChord};
+use super::proposals::{LayerScores, Opening, ProposedChord};
 use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use std::collections::HashMap;
@@ -29,7 +29,7 @@ pub struct KeyExit {
     pub hypothesis: KeyHypothesisId,
     /// The position in `Exits::chords` of the exit of the chord hypothesis that the hypothesis interprets.
     pub chord_exit: usize,
-    /// The hypothesis's score before it is left.
+    /// The hypothesis's own score before it is left, in the key layer alone.
     pub score: f32,
     /// The hypothesis's last segment, or `None` at the start of the piece.
     pub segment: Option<KeySegment>,
@@ -51,8 +51,8 @@ pub struct Exits {
 pub struct Predecessor {
     /// The position of the hypothesis's exit in `Exits::keys`.
     pub exit: usize,
-    /// The score of the path up to the new segment, closing and transition scores included.
-    pub score: f32,
+    /// The score of the path up to the new segment in each layer, closing and transition scores included.
+    pub score: LayerScores,
 }
 
 impl Exits {
@@ -130,15 +130,15 @@ impl Exits {
         let (slice, history) = (moment.slice(), moment.key_history(exit.hypothesis));
         let context =
             KeyTransitionContext { previous: exit.segment.as_ref(), next: &opening.reading, slice, history };
-        let transition = chord_transition + rules.key.score_transition(&context, &exit.departures);
-        let score = exit.score + (chord_exit.close + exit.close) + transition;
-        Predecessor { exit: position, score }
+        let chord = chord_exit.score + chord_exit.close + chord_transition;
+        let key = exit.score + exit.close + rules.key.score_transition(&context, &exit.departures);
+        Predecessor { exit: position, score: LayerScores { chord, key } }
     }
 }
 
 /// Returns the best of the predecessors at the given positions, the last of any that tie.
 fn best_of(scored: &[Predecessor], positions: impl Iterator<Item = usize>) -> Option<usize> {
-    positions.max_by(|&a, &b| scored[a].score.total_cmp(&scored[b].score))
+    positions.max_by(|&a, &b| scored[a].score.total().total_cmp(&scored[b].score.total()))
 }
 
 fn chord_exit(

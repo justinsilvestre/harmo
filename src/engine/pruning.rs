@@ -44,6 +44,7 @@ pub struct Pruned {
     pub parent: KeyHypothesisId,
     /// The last hypothesis of the segment before its last segment, or `KeyHypothesisId::NONE`.
     pub previous: KeyHypothesisId,
+    /// The score of its complete interpretation.
     pub score: f32,
     /// Its last segment.
     pub segment: KeySegment,
@@ -82,17 +83,20 @@ pub fn prune(
     rules: &RuleSet,
     config: &Config,
 ) -> (Vec<PendingKeyHypothesis>, Vec<Pruned>) {
-    let mut ranked = pending.key_hypotheses.clone();
-    ranked.sort_by(|a, b| b.score.total_cmp(&a.score));
+    let mut ranked: Vec<(f32, PendingKeyHypothesis)> =
+        pending.key_hypotheses.iter().map(|h| (pending.score(h), *h)).collect();
+    ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
     let merges = config.distinct_depth > 0 && !rules.key.distinguish.is_empty();
     let pruner = Pruner { pending, layers, rules, config, merges };
     let mut kept = Kept::new(layers.key_hypotheses.len() as u32, config.beam_width);
     let mut dropped = Vec::new();
-    for (rank, hypothesis) in ranked.into_iter().enumerate() {
+    for (rank, (score, hypothesis)) in ranked.into_iter().enumerate() {
         match pruner.judge(&kept, &hypothesis) {
             Ok(signature) => kept.add(hypothesis, signature),
             Err(PruneCause::Width) if !config.record_pruning => break,
-            Err(cause) if config.record_pruning => dropped.push(pruner.record(&hypothesis, rank + 1, cause)),
+            Err(cause) if config.record_pruning => {
+                dropped.push(pruner.record(&hypothesis, score, rank + 1, cause))
+            }
             Err(_) => {}
         }
     }
@@ -157,8 +161,15 @@ impl Pruner<'_> {
         values
     }
 
-    fn record(&self, hypothesis: &PendingKeyHypothesis, rank: usize, cause: PruneCause) -> Pruned {
-        let (parent, previous, score) = (hypothesis.parent, hypothesis.previous, hypothesis.score);
+    /// Records a dropped hypothesis, given the score of its complete interpretation.
+    fn record(
+        &self,
+        hypothesis: &PendingKeyHypothesis,
+        score: f32,
+        rank: usize,
+        cause: PruneCause,
+    ) -> Pruned {
+        let (parent, previous) = (hypothesis.parent, hypothesis.previous);
         Pruned { parent, previous, score, segment: self.pending.segment(hypothesis), rank, cause }
     }
 }

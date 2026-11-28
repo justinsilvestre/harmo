@@ -88,7 +88,7 @@ fn departure(
 ) -> Option<Departure> {
     let pruned = analysis.pruned.get(slice)?.iter().find(|p| holds(p.parent))?;
     let beam = &analysis.snapshots[slice];
-    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.key_hypothesis(first).score);
+    let best = beam.first().map_or(pruned.score, |&first| analysis.layers.score(first));
     let keeper = match pruned.cause {
         PruneCause::Merged { keeper } => Some(keeper),
         PruneCause::Width | PruneCause::ChordHypothesisWidth => None,

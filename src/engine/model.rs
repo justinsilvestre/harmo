@@ -117,8 +117,7 @@ pub struct KeyHypothesis<H = ChordHypothesisId> {
     pub chord_hypothesis: H,
     /// The function of the chord hypothesis's latest chord, in the key the hypothesis hears it in.
     pub function: Function,
-    /// The sum of every weighted rule score along the hypothesis:
-    /// its chord hypothesis's score plus the key layer's rule scores.
+    /// The sum of the key layer's weighted rule scores along the hypothesis.
     pub score: f32,
 }
 

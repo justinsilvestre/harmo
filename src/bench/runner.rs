@@ -361,9 +361,9 @@ pub fn offered_from(
     let Some(&best) = beam.first() else {
         return vec![];
     };
-    let best_score = analysis.layers.key_hypothesis(best).score;
+    let best_score = analysis.layers.score(best);
     let is_close = |hypothesis: &&KeyHypothesisId| {
-        best_score - analysis.layers.key_hypothesis(**hypothesis).score <= config.offer_margin
+        best_score - analysis.layers.score(**hypothesis) <= config.offer_margin
     };
     let mut labels: Vec<Label> = Vec::new();
     for &hypothesis in beam.iter().filter(is_close) {

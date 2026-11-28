@@ -97,7 +97,7 @@ pub fn trace_segment(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::exits::chord_close;
+    use crate::engine::exits::{chord_close, key_close};
     use crate::engine::path::segments_of;
     use crate::engine::rule::Layer;
     use crate::engine::search::{Config, analyze};
@@ -106,7 +106,7 @@ mod tests {
     /// For each final hypothesis of I–V–I,
     /// returns its trace's weighted sum in the given layer beside the score it should equal:
     /// the ranking score for both layers together,
-    /// or the chord hypothesis's score plus its last close for the chord layer.
+    /// or for one layer, that layer's hypothesis's score plus the close of its last segment.
     fn sums(layer: Option<Layer>) -> Vec<(f32, f32)> {
         let (slices, rules) =
             (i_v_i(), RuleSet::new(crate::rules::default_rules(), &Default::default()).unwrap());
@@ -118,9 +118,14 @@ mod tests {
             contributions.filter(|c| layer.is_none_or(|l| layer_of(c.rule) == l)).map(|c| c.weighted).sum()
         };
         let expected = |&(hypothesis, score): &(KeyHypothesisId, f32)| match layer {
-            Some(_) => {
+            Some(Layer::Chord) => {
                 let chord_hypothesis = analysis.layers.chord_hypothesis_of(hypothesis);
                 chord_hypothesis.score + chord_close(&slices, &chord_hypothesis.segment, slices.len(), &rules)
+            }
+            Some(Layer::Key) => {
+                let segment = analysis.layers.segment(hypothesis);
+                let own = analysis.layers.key_hypothesis(hypothesis).score;
+                own + key_close(&slices, &segment, slices.len(), &rules)
             }
             None => score,
         };
@@ -140,5 +145,10 @@ mod tests {
     #[test]
     fn the_chord_layer_of_a_trace_sums_to_the_chord_hypothesis_score_and_its_last_close() {
         assert!(agree(&sums(Some(Layer::Chord))));
+    }
+
+    #[test]
+    fn the_key_layer_of_a_trace_sums_to_the_key_hypothesis_score_and_its_last_close() {
+        assert!(agree(&sums(Some(Layer::Key))));
     }
 }

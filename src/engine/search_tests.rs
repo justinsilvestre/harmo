@@ -31,10 +31,9 @@ fn key_scoring_rules() -> Vec<(&'static str, f32)> {
 }
 
 #[test]
-fn without_key_scores_a_hypothesis_scores_exactly_its_chord_hypothesis() {
+fn without_key_scores_a_key_hypothesis_scores_nothing_of_its_own() {
     let layers = analyze_i_v_i(&key_scoring_rules()).layers;
-    let differs = |h: &KeyHypothesis| h.score != layers.chord_hypothesis(h.chord_hypothesis).score;
-    assert!(!layers.key_hypotheses.iter().any(differs));
+    assert!(layers.key_hypotheses.iter().all(|h| h.score == 0.0));
 }
 
 /// Returns the chord hypothesis that a key hypothesis reads, or `ChordHypothesisId::NONE` for none.

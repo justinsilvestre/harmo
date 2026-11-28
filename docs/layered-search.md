@@ -48,6 +48,11 @@ Each stage was measured on `tune` and `agreement-tune` against the one before. C
 
 **Splitting the layers changed nothing measurable** (commit dba10d3). Every figure stayed within 0.1 of round 8, since scores are now summed in another order, and the search took 10% less CPU time, since a chord hypothesis's chord scores are computed once for all the hypotheses that read it.
 
+**Storing each layer's own score shifts figures only by rounding.** A key hypothesis once stored a running total of both layers. Each layer's hypotheses now store only their own layer's score, and a complete interpretation's score is the sum of the two, so nothing is stored twice. The sums are the same in exact arithmetic, but single-precision rounding falls differently. Against the same search with running totals, on `tune`:
+- **RN rose 0.08** [+0.05,+0.12], chord 0.07 [+0.04,+0.10] and offered 0.02. RN now fell 0.03 [-0.06,-0.01], and key and RN eq moved by 0.01. On `agreement-tune`, RN rose 0.07 and chord 0.06.
+- **Coverage moved by 0.06 points or less,** whole and by layer.
+- **The change is small but not without direction.** RN rose in 62 pieces and fell in 13. Sums of the two layers' own scores tie exactly about 5% more often than running totals, which picked up different rounding along each path, and an exact tie is broken by the order in which hypotheses were made, best fit first. No other way of summing reproduces the old figures without keeping the running total.
+
 **A limit on chord hypotheses helps a little; per-layer cuts and quotas do not** (commit 46c5c6b).
 - **At most 40 chord hypotheses in the beam of 80** left RN and RN eq unchanged and offered keys by layer about 1.4 points more often where the analysts disagree, with chords by layer about 0.5 higher. The search took 4% less time. It is now the default.
 - **A fixed number of key hypotheses per chord hypothesis** cost RN at equal CPU time. A beam of 32 chord hypotheses, each with up to 4 key hypotheses, lost 0.3 RN, and only 64 by 4, at 1.7 times the CPU time, matched the flat beam.

@@ -32,15 +32,14 @@ pub fn missing_reason(
     let (analysis, slices) = (&context.analysis, &context.piece.slices);
     let at = context.frame_slices[frame];
     let beam = lagged_beam(analysis, slices, at, config.offer_lag).unwrap_or(&[]);
-    let best = beam.first().map_or(0.0, |&hypothesis| analysis.layers.key_hypothesis(hypothesis).score);
+    let best = beam.first().map_or(0.0, |&hypothesis| analysis.layers.score(hypothesis));
     let holds = |hypothesis: &&KeyHypothesisId| {
         segment_at(analysis, **hypothesis, at).is_some_and(|s| is_rn_match(&s.label(), label))
     };
     match beam.iter().position(|hypothesis| holds(&hypothesis)) {
-        Some(rank) => MissingReason::BelowCutoff {
-            rank: rank + 1,
-            gap: best - analysis.layers.key_hypothesis(beam[rank]).score,
-        },
+        Some(rank) => {
+            MissingReason::BelowCutoff { rank: rank + 1, gap: best - analysis.layers.score(beam[rank]) }
+        }
         None if context.gaps[analyst][frame].is_some() => MissingReason::Unproducible,
         None => {
             let until = lagged_slice(slices, at, config.offer_lag);

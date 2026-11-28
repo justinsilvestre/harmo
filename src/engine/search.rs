@@ -4,9 +4,11 @@
 //!
 //! The search keeps two layers. The chord layer holds chord hypotheses (`ChordHypothesis`),
 //! scored by the chord rules alone. The key layer holds key hypotheses (`KeyHypothesis`),
-//! each of which reads one chord hypothesis's latest segment in a key and is scored by every rule.
+//! each of which reads one chord hypothesis's latest segment in a key
+//! and is scored by the key layer's rules alone.
 //! Several key hypotheses can share one chord hypothesis. A key hypothesis is a complete
-//! interpretation, so the beam holds key hypotheses, and "hypothesis" alone means one of them.
+//! interpretation, scored by the sum of its own score and its chord hypothesis's,
+//! so the beam holds key hypotheses, and "hypothesis" alone means one of them.
 //!
 //! The beam at each slice is the set of interpretations a listener might hold at that moment.
 //! Hypotheses that open the same reading at the same slice are merged, keeping the best history.
@@ -125,7 +127,7 @@ impl Opened<'_> {
     fn open(&mut self, pending: &mut Pending, opening: &Opening, predecessor: &Predecessor) {
         let chord_hypothesis = self.chord_hypothesis(pending, opening, predecessor);
         let (parent, function) = (self.exits.keys[predecessor.exit].hypothesis, opening.reading.function);
-        let score = predecessor.score + opening.fit.total();
+        let score = predecessor.score.key + opening.fit.key;
         pending.key_hypotheses.push(KeyHypothesis {
             parent,
             previous: parent,
@@ -147,8 +149,7 @@ impl Opened<'_> {
         let slice = self.slice;
         *self.chord_hypotheses.entry((chord_exit.chord_hypothesis, opening.chord_index)).or_insert_with(
             || {
-                let transition = chord_exit.transitions[opening.chord_index];
-                let score = chord_exit.score + chord_exit.close + transition + opening.fit.chord;
+                let score = predecessor.score.chord + opening.fit.chord;
                 pending.add_chord_hypothesis(ChordHypothesis {
                     parent: chord_exit.chord_hypothesis,
                     previous: chord_exit.chord_hypothesis,
@@ -170,9 +171,11 @@ fn rank_final(
 ) -> Vec<(KeyHypothesisId, f32)> {
     let end = slices.len();
     let finish = |hypothesis: KeyHypothesisId| {
-        let segment = layers.segment(hypothesis);
-        let close = chord_close(slices, &segment.heard, end, rules) + key_close(slices, &segment, end, rules);
-        (hypothesis, layers.key_hypothesis(hypothesis).score + close)
+        let (segment, key_hypothesis) = (layers.segment(hypothesis), layers.key_hypothesis(hypothesis));
+        let chord = layers.chord_hypothesis(key_hypothesis.chord_hypothesis).score
+            + chord_close(slices, &segment.heard, end, rules);
+        let key = key_hypothesis.score + key_close(slices, &segment, end, rules);
+        (hypothesis, chord + key)
     };
     let mut ranking: Vec<(KeyHypothesisId, f32)> =
         beam.iter().map(|&hypothesis| finish(hypothesis)).collect();
