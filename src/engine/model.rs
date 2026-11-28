@@ -103,12 +103,6 @@ pub struct Segment {
     pub bass: Bass,
 }
 
-/// Returns the segment that the hypothesis `node` ends in, as both layers read it.
-pub fn segment_of(hypotheses: &[Hypothesis], hearings: &[Hearing], node: u32) -> Segment {
-    let hypothesis = &hypotheses[node as usize];
-    Segment::join(&hearings[hypothesis.hearing as usize].segment, hypothesis)
-}
-
 impl Segment {
     /// Joins a chord segment with a hypothesis's reading of it in a key.
     pub fn join(chord: &ChordSegment, hypothesis: &Hypothesis) -> Segment {

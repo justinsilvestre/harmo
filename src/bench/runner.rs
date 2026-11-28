@@ -188,8 +188,12 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
         }
     }
     let (layers, hindsight, timing) = layered_frames(&analysis, piece, top.len(), config);
-    let timing =
-        Timing { search, hypotheses: analysis.hypotheses.len(), hearings: analysis.hearings.len(), ..timing };
+    let timing = Timing {
+        search,
+        hypotheses: analysis.layers.hypotheses.len(),
+        hearings: analysis.layers.hearings.len(),
+        ..timing
+    };
     let layered = (layers.as_slice(), hindsight.as_deref());
     let agreement = (piece.analyses.len() >= 2)
         .then(|| agreement(piece, (&top, &offered), layered, config.timing_tolerance));
@@ -337,9 +341,9 @@ pub fn offered_from(analysis: &Analysis, beam: &[u32], at: usize, config: &EvalC
     let Some(&best) = beam.first() else {
         return vec![];
     };
-    let best_score = analysis.hypotheses[best as usize].score;
+    let best_score = analysis.layers.hypotheses[best as usize].score;
     let is_close =
-        |node: &&u32| best_score - analysis.hypotheses[**node as usize].score <= config.offer_margin;
+        |node: &&u32| best_score - analysis.layers.hypotheses[**node as usize].score <= config.offer_margin;
     let mut labels: Vec<Label> = Vec::new();
     for &node in beam.iter().filter(is_close) {
         if labels.len() == config.offer_count {

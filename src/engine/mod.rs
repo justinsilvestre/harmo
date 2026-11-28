@@ -2,6 +2,7 @@
 
 pub mod bass;
 pub mod history;
+pub mod layers;
 pub mod model;
 pub mod path;
 pub mod pruning;
