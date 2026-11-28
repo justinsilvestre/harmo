@@ -38,7 +38,7 @@ pub const RULES: &[Rule] = &[Rule {
 fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
     let reading = context.segment.reading;
     let chord = reading.chord;
-    let is_dominant = reading.tonicized.unwrap_or(reading.key).degree_of(chord.root).number == 5;
+    let is_dominant = reading.function.tonicized.unwrap_or(reading.key).degree_of(chord.root).number == 5;
     if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
         return None;
     }
@@ -53,7 +53,7 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
         return None;
     }
     let mut hasher = DefaultHasher::new();
-    (reading.key, reading.tonicized, chord.root).hash(&mut hasher);
+    (reading.key, reading.function.tonicized, chord.root).hash(&mut hasher);
     Some(hasher.finish())
 }
 
@@ -68,7 +68,7 @@ fn is_approached_by_step(note: &SliceNote, before: Option<&Slice>) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::key::Key;
 
@@ -96,7 +96,7 @@ mod tests {
     fn group(root: &str, quality: Quality, before: &Slice, slices: &[Slice]) -> Option<u64> {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 1,

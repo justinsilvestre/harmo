@@ -63,10 +63,10 @@ fn raised_fourth(context: &TransitionContext, params: &[f64]) -> f32 {
 /// Reports whether a reading is the major dominant triad of its key and the next is that key's tonic.
 fn is_dominant_triad_to_tonic(dominant: &Reading, next: &Reading) -> bool {
     let key = dominant.key;
-    let is_dominant = dominant.tonicized.is_none()
+    let is_dominant = dominant.function.tonicized.is_none()
         && dominant.chord.root == key.tonic + 1
         && dominant.chord.quality == Quality::Major;
-    is_dominant && next.key == key && next.tonicized.is_none() && next.chord.root == key.tonic
+    is_dominant && next.key == key && next.function.tonicized.is_none() && next.chord.root == key.tonic
 }
 
 /// Reports whether, of a fourth degree and its raised form, the raised form sounded last.
@@ -84,7 +84,7 @@ fn sounds(slice: &Slice, tpc: Tpc) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Segment};
+    use crate::engine::model::{Function, NONE, Segment};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
@@ -97,7 +97,7 @@ mod tests {
 
     fn reading(root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc("C"), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), tonicized: None, category: Category::Diatonic }
+        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
     }
 
     /// A one-beat slice starting at `start` that sounds the named pitches.

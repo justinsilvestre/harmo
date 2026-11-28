@@ -51,5 +51,5 @@ pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
 /// Returns the label of a segment, with the inversion given by the lowest chord tone heard so far.
 pub fn segment_label(segment: &Segment) -> Label {
     let reading = segment.reading;
-    Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc())
+    Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc())
 }

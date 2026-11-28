@@ -104,12 +104,12 @@ fn is_tonic_six_four(segment: &Segment) -> bool {
 /// Reports whether the segment is the tonic chord of its key, in any inversion.
 pub fn is_tonic(segment: &Segment) -> bool {
     let reading = segment.reading;
-    reading.tonicized.is_none() && reading.chord.root == reading.key.tonic
+    reading.function.tonicized.is_none() && reading.chord.root == reading.key.tonic
 }
 
 fn is_dominant(segment: &Segment) -> bool {
     let reading = segment.reading;
-    reading.tonicized.is_none()
+    reading.function.tonicized.is_none()
         && reading.chord.root == reading.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh)
 }
@@ -122,7 +122,7 @@ fn is_in_root_position(segment: &Segment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading};
+    use crate::engine::model::{Function, NONE, Reading};
     use crate::engine::rule::History;
     use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
@@ -135,7 +135,7 @@ mod tests {
 
     fn reading(key: &str, root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc(key), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), tonicized: None, category: Category::Diatonic }
+        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
     }
 
     fn slice(metric_level: u8, phrase: usize) -> Slice {

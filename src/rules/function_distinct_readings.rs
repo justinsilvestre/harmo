@@ -28,13 +28,13 @@ pub const RULES: &[Rule] = &[Rule {
 /// exactly when their readings are equal.
 fn reading_identity(segment: &Segment, _: &[f64]) -> u64 {
     let reading = segment.reading;
-    let tonicized = reading.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
+    let tonicized = reading.function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
     let fields = [
         (pack_key(reading.key), 17),
         (pack_tpc(reading.chord.root), 16),
         (quality_index(reading.chord.quality), 4),
         (tonicized, 18),
-        (category_index(reading.category), 2),
+        (category_index(reading.function.category), 2),
     ];
     fields.iter().fold(0, |packed, &(value, bits)| packed << bits | value)
 }
@@ -60,15 +60,18 @@ fn category_index(category: Category) -> u64 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{NONE, Reading};
+    use crate::engine::model::{Function, NONE, Reading};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
 
     fn segment(key: &str, root: &str, tonicized: Option<&str>, start: u32) -> Segment {
         let major = |name: &str| Key::new(tpc_from_name(name).unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let reading =
-            Reading { key: major(key), chord, tonicized: tonicized.map(major), category: Category::Diatonic };
+        let reading = Reading {
+            key: major(key),
+            chord,
+            function: Function { tonicized: tonicized.map(major), category: Category::Diatonic },
+        };
         Segment { reading, start, previous: NONE, duration: 1.0, members_heard: 0, bass: Bass::default() }
     }
 

@@ -82,7 +82,7 @@ fn opens_on_dorian_tonic(slices: &[Slice], signature: KeySignature) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, Reading};
+    use crate::engine::model::{Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
@@ -113,7 +113,7 @@ mod tests {
         let slices = [slice(0.0, bass.map(note).into_iter().collect(), opening), slice(2.0, vec![], fifths)];
         let key = Key::new(tpc_from_name(key.0).unwrap(), key.1);
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::Major);
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         signature_key(
             &SliceContext {
                 slice: &slices[1],

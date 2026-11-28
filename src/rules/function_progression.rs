@@ -104,7 +104,7 @@ const UNRESOLVED_COST: Param = Param {
 
 fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
     let next = context.next;
-    match next.category {
+    match next.function.category {
         Category::Diatonic => 0.0,
         Category::Mixture if borrows_only_lowered_sixth(next) => -LOWERED_SIXTH_MIXTURE.read(params) as f32,
         Category::Applied if continues_tonicization(context) => -CONTINUED_TONICIZATION.read(params) as f32,
@@ -117,13 +117,14 @@ fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
 /// following a chord applied to it.
 fn continues_tonicization(context: &TransitionContext) -> bool {
     let next = context.next;
-    let Some(target) = next.tonicized else { return false };
+    let Some(target) = next.function.tonicized else { return false };
     let mut recent = context.history.segments().take_while(|s| s.reading.key == next.key);
-    let tonicizes = |segment: &Segment| segment.reading.tonicized == Some(target);
+    let tonicizes = |segment: &Segment| segment.reading.function.tonicized == Some(target);
     match recent.next() {
         Some(previous) if tonicizes(&previous) => true,
         Some(previous)
-            if previous.reading.chord.root == target.tonic && previous.reading.tonicized.is_none() =>
+            if previous.reading.chord.root == target.tonic
+                && previous.reading.function.tonicized.is_none() =>
         {
             recent.next().is_some_and(|s| tonicizes(&s))
         }
@@ -142,7 +143,7 @@ fn applied_resolution(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
-    match previous.reading.tonicized {
+    match previous.reading.function.tonicized {
         Some(target) if target.tonic == context.next.chord.root => 1.0,
         Some(_) => -UNRESOLVED_COST.read(params) as f32,
         None => 0.0,
@@ -157,7 +158,7 @@ fn dominant_resolution(context: &TransitionContext, _: &[f64]) -> f32 {
     let next = context.next;
     let resolves = next.key == reading.key && next.chord.root == reading.key.tonic;
     let is_tonic_six_four = context.slice.bass().is_some_and(|n| next.chord.member_index(n.tpc) == Some(2));
-    let rewarded = reading.tonicized.is_none() && has_dominant_function(reading) && resolves;
+    let rewarded = reading.function.tonicized.is_none() && has_dominant_function(reading) && resolves;
     if rewarded && !is_tonic_six_four { 1.0 } else { 0.0 }
 }
 
@@ -175,7 +176,7 @@ fn has_dominant_function(reading: Reading) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::NONE;
+    use crate::engine::model::{Function, NONE};
     use crate::engine::rule::History;
     use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
@@ -185,14 +186,18 @@ mod tests {
 
     fn reading(key: &str, root: &str, quality: Quality, category: Category) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        Reading { key: Key::parse(key, "major").unwrap(), chord, tonicized: None, category }
+        Reading {
+            key: Key::parse(key, "major").unwrap(),
+            chord,
+            function: Function { tonicized: None, category },
+        }
     }
 
     /// Builds a path of one-slice segments in C major, each given as (root, quality, tonicized key).
     fn path(chords: &[(&str, Quality, Option<&str>)]) -> Vec<Segment> {
         let node = |(i, &(root, quality, target)): (usize, &(&str, Quality, Option<&str>))| {
             let mut reading = reading("C", root, quality, Category::Diatonic);
-            reading.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
+            reading.function.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
             let previous = if i == 0 { NONE } else { i as u32 - 1 };
 
             Segment {
@@ -212,7 +217,7 @@ mod tests {
         let segments = path(chords);
         let (hypotheses, hearings) = arenas_of(&segments);
         let mut next = reading("C", "D", Quality::Major, Category::Applied);
-        next.tonicized = Key::parse("G", "major");
+        next.function.tonicized = Key::parse("G", "major");
         let slice = Slice {
             start: 0.0,
             duration: 1.0,

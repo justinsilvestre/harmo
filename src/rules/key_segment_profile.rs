@@ -88,7 +88,7 @@ fn segment_fit(context: &SliceContext, params: &[f64]) -> f32 {
     let fit_in = |key| key_score(&scores, key) + allowance * dominant_allowance(&present, key, chord);
     let home = fit_in(context.reading.key);
     let share = TONICIZED_SHARE.read(params) as f32;
-    let fit = match context.reading.tonicized {
+    let fit = match context.reading.function.tonicized {
         Some(local) => share * fit_in(local) + (1.0 - share) * home,
         None => home,
     };
@@ -177,7 +177,7 @@ fn measure_pitch_classes(slices: &[Slice], index: usize, look_ahead: f64) -> [bo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, Reading};
+    use crate::engine::model::{Category, Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
 
@@ -263,8 +263,11 @@ mod tests {
     fn secondary_dominant_fit(tonicized: Option<Key>) -> f32 {
         let slices = [slice(0.0, 4.0, &["D", "F#", "A", "C"])];
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let reading =
-            Reading { key: Key::new(tpc("C"), Mode::Major), chord, tonicized, category: Category::Applied };
+        let reading = Reading {
+            key: Key::new(tpc("C"), Mode::Major),
+            chord,
+            function: Function { tonicized, category: Category::Applied },
+        };
         let context = SliceContext {
             slice: &slices[0],
             next_slice: None,
@@ -280,7 +283,7 @@ mod tests {
     fn bar_fit(names: &[&str], key: Key, root: &str, quality: Quality) -> f32 {
         let slices = [slice(0.0, 4.0, names)];
         let chord = Chord::new(tpc(root), quality);
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let context = SliceContext {
             slice: &slices[0],
             next_slice: None,

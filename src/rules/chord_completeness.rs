@@ -133,7 +133,7 @@ fn completeness(context: &ChordCloseContext, params: &[f64]) -> f32 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
     use crate::theory::key::Key;
@@ -154,7 +154,7 @@ mod tests {
         ];
         let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::DominantSeventh);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,
@@ -185,12 +185,7 @@ mod tests {
         ];
         let next = slice(vec![pitch("C", next_midi, true)], 1.0);
         let chord = Chord::new(tpc("G"), Quality::DominantSeventh);
-        let reading = Reading {
-            key: Key::parse("C", "major").unwrap(),
-            chord,
-            tonicized: None,
-            category: Category::Diatonic,
-        };
+        let reading = Reading { key: Key::parse("C", "major").unwrap(), chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,

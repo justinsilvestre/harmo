@@ -122,7 +122,7 @@ pub fn build_output(
 }
 
 fn segment_output(segment: &SegmentReading, context: &Context) -> SegmentOutput {
-    let reading = reading_output(&segment.label, segment.reading.category);
+    let reading = reading_output(&segment.label, segment.reading.function.category);
     let at = segment.slices.0;
     let histories = rank_histories(context.analysis, at);
     let history_context =
@@ -167,7 +167,7 @@ fn alternatives_at(
         let Some(rival) = path.iter().find(|s| s.slices.0 <= at && at < s.slices.1) else {
             continue;
         };
-        let reading = reading_output(&rival.label, rival.reading.category);
+        let reading = reading_output(&rival.label, rival.reading.function.category);
         if reading == *favored || alternatives.iter().any(|a| a.reading == reading) {
             continue;
         }

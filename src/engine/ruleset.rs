@@ -216,7 +216,7 @@ fn find_param(rules: &[Rule], key: &str) -> Option<(usize, usize)> {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::engine::rule::{History, Layer, Param};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -249,7 +249,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, tonicized: None, category: Category::Diatonic }
+        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
     fn segment(tonic: &str) -> Segment {

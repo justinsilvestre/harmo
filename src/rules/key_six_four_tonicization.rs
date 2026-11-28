@@ -43,7 +43,8 @@ fn six_four_tonicization(context: &TransitionContext, params: &[f64]) -> f32 {
     let opening = context.history.slices.get(previous.start as usize).map_or(0, |s| s.metric_level);
     let is_on_stronger_beat =
         f64::from(opening) >= STRONG_BEAT.read(params) && opening > context.slice.metric_level;
-    let tonicizes_six_four = context.next.tonicized.is_some_and(|t| t.tonic == previous.reading.chord.root);
+    let tonicizes_six_four =
+        context.next.function.tonicized.is_some_and(|t| t.tonic == previous.reading.chord.root);
     let is_cadential = is_on_stronger_beat && is_six_four(previous) && is_dominant_on_bass(context, previous);
     if is_cadential && tonicizes_six_four { -1.0 } else { 0.0 }
 }
@@ -68,7 +69,7 @@ fn is_dominant_on_bass(context: &TransitionContext, previous: &Segment) -> bool 
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading};
+    use crate::engine::model::{Category, Function, NONE, Reading};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
@@ -107,7 +108,7 @@ mod tests {
     fn score(setting: &Setting, tonicized: Option<&str>) -> f32 {
         let c_major = Key::new(tpc("C"), Mode::Major);
         let chord = Chord::new(tpc("G"), Quality::Major);
-        let six_four = Reading { key: c_major, chord, tonicized: None, category: Category::Diatonic };
+        let six_four = Reading { key: c_major, chord, function: Function::DIATONIC };
         let bass = Bass { note: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
         let previous = Segment {
             reading: six_four,
@@ -120,7 +121,7 @@ mod tests {
         let tonicized = tonicized.map(|t| Key::new(tpc(t), Mode::Major));
         let category = if tonicized.is_some() { Category::Applied } else { Category::Diatonic };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let next = Reading { key: c_major, chord, tonicized, category };
+        let next = Reading { key: c_major, chord, function: Function { tonicized, category } };
         let slices = [
             slice(setting.six_four_level, setting.six_four_bass),
             slice(setting.dominant_level, setting.dominant_bass),

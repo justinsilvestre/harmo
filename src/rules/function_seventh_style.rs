@@ -34,14 +34,14 @@ fn rare_seventh(context: &TransitionContext, _: &[f64]) -> f32 {
         Mode::Minor => MINOR_RARE_ROOTS,
     };
     let is_rare_root = rare_roots.contains(&(reading.chord.root - reading.key.tonic));
-    let is_rare = is_nondominant_seventh && is_rare_root && reading.tonicized.is_none();
+    let is_rare = is_nondominant_seventh && is_rare_root && reading.function.tonicized.is_none();
     if is_rare { -1.0 } else { 0.0 }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, Reading};
+    use crate::engine::model::{Function, Reading};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -51,7 +51,7 @@ mod tests {
     fn score(root: &str, quality: Quality) -> f32 {
         let key = Key::parse("C", "major").unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let next = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let next = Reading { key, chord, function: Function::DIATONIC };
         let slice = Slice {
             start: 0.0,
             duration: 1.0,

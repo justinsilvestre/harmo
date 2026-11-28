@@ -186,7 +186,7 @@ fn window_weights(slices: &[Slice], index: usize, window: Window) -> [f32; 12] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, Reading};
+    use crate::engine::model::{Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
@@ -234,7 +234,7 @@ mod tests {
 
     fn fit_in(slices: &[Slice], index: usize, key: Key) -> f32 {
         let chord = Chord::new(tpc_from_name("F").unwrap(), Quality::Major);
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let context = SliceContext {
             slice: &slices[index],
             next_slice: slices.get(index + 1),

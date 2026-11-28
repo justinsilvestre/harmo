@@ -58,13 +58,13 @@ pub fn find_gap(rules: &RuleSet, label: &Label, slices: &[Slice]) -> Option<Gap>
 fn vocabulary_gap(rules: &RuleSet, label: &Label, chord: Chord) -> Option<Gap> {
     let readings: Vec<_> =
         rules.interpreters.iter().flat_map(|interpret| interpret(label.key, chord)).collect();
-    if readings.iter().any(|(tonicized, _)| has_same_numeral(label, *tonicized, chord)) {
+    if readings.iter().any(|function| has_same_numeral(label, function.tonicized, chord)) {
         return None;
     }
     let is_dominant_function = matches!(label.degree.number, 5 | 7);
     Some(match label.tonicized {
         None => Gap::ChordNotInKey,
-        Some(_) if readings.iter().any(|(tonicized, _)| tonicized.is_none()) => Gap::AppliedReadInKey,
+        Some(_) if readings.iter().any(|function| function.tonicized.is_none()) => Gap::AppliedReadInKey,
         Some(_) if !is_dominant_function => Gap::AppliedNonDominant,
         Some(_) => Gap::AppliedTargetMissing,
     })

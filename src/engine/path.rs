@@ -27,7 +27,7 @@ pub fn segments_of(analysis: &Analysis, slices: &[Slice], node: u32) -> Vec<Segm
         let segment = analysis.segment(current);
         let (first, end) = (segment.start as usize, last.slice as usize + 1);
         let reading = segment.reading;
-        let label = Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc());
+        let label = Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc());
         let end_time = slices[end - 1].start + slices[end - 1].duration;
         segments.push(SegmentReading {
             slices: (first, end),

@@ -68,7 +68,7 @@ fn propose_cadential_dominant(slice: &Slice) -> Vec<Chord> {
 fn cadential_rival(reading: &Reading, slice: &Slice, _: &[f64]) -> Option<Reading> {
     let bass = six_four_bass(slice)?;
     let key = reading.key;
-    if reading.tonicized.is_some() || bass != key.tonic + 1 {
+    if reading.function.tonicized.is_some() || bass != key.tonic + 1 {
         return None;
     }
     let tonic_quality = match key.mode {
@@ -90,7 +90,7 @@ fn cadential_rival(reading: &Reading, slice: &Slice, _: &[f64]) -> Option<Readin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::Category;
+    use crate::engine::model::Function;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::key::Key;
@@ -140,7 +140,7 @@ mod tests {
     fn in_c(root: &str, quality: Quality) -> Reading {
         let key = Key::parse("C", "major").unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        Reading { key, chord, tonicized: None, category: Category::Diatonic }
+        Reading { key, chord, function: Function::DIATONIC }
     }
 
     #[test]

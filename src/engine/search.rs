@@ -156,7 +156,8 @@ fn step(
             parent,
             slice: index as u32,
             hearing,
-            reading: opening.reading.key_reading(),
+            key: opening.reading.key,
+            function: opening.reading.function,
             previous: parent,
             score: previous_score + opening.fit,
         });
@@ -196,7 +197,7 @@ fn continuations(
             });
             hearings.len() as u32 - 1
         });
-        let reading = Reading::of(chord, node.reading);
+        let reading = Reading { key: node.key, chord, function: node.function };
         let key_fit = *key_fits.entry(reading).or_insert_with(|| {
             let context =
                 SliceContext { slice, next_slice, slices, index, reading: &reading, is_opening: false };
@@ -230,12 +231,10 @@ fn openings(
     for &chord in &chords {
         for &key in keys {
             for interpret in &rules.interpreters {
-                let interpretations = interpret(key, chord).into_iter();
-                readings.extend(interpretations.map(|(tonicized, category)| Reading {
+                readings.extend(interpret(key, chord).into_iter().map(|function| Reading {
                     key,
                     chord,
-                    tonicized,
-                    category,
+                    function,
                 }));
             }
         }
@@ -265,7 +264,9 @@ fn openings(
         }
     }
     let is_rival = |r: &Reading| {
-        rivals.iter().any(|v| v.key == r.key && v.chord == r.chord && v.tonicized == r.tonicized)
+        rivals
+            .iter()
+            .any(|v| v.key == r.key && v.chord == r.chord && v.function.tonicized == r.function.tonicized)
     };
     scored.extend(rest.into_iter().filter(|opening| is_rival(&opening.reading)));
     (chords, scored)
@@ -470,9 +471,7 @@ fn prune(
     let mut kept = Vec::with_capacity(config.beam_width);
     let mut dropped = Vec::new();
     let mut kept_hearings: HashSet<u32> = HashSet::new();
-    let joined = |node: &Hypothesis| {
-        Segment::join(&hearings[node.hearing as usize].segment, node.reading, node.previous)
-    };
+    let joined = |node: &Hypothesis| Segment::join(&hearings[node.hearing as usize].segment, node);
     for (rank, node) in pending.into_iter().enumerate() {
         let cause = if kept.len() == config.beam_width {
             if !config.record_pruning {

@@ -91,7 +91,7 @@ fn line_fit<'a>(line: impl Iterator<Item = (&'a Slice, f64)>, chord: Chord) -> f
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Quality;
@@ -100,7 +100,7 @@ mod tests {
     fn reading(root: &str) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
-        Reading { key, chord, tonicized: None, category: Category::Diatonic }
+        Reading { key, chord, function: Function::DIATONIC }
     }
 
     /// Returns one slice per beat, each sounding the named notes.

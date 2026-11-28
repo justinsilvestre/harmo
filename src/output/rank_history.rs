@@ -85,6 +85,6 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
 fn held_reading(node: u32, context: &HistoryContext) -> Option<ReadingOutput> {
     let segment = segment_at(context.analysis, node, context.at)?;
     let reading = segment.reading;
-    let label = Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc());
-    Some(reading_output(&label, reading.category))
+    let label = Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc());
+    Some(reading_output(&label, reading.function.category))
 }

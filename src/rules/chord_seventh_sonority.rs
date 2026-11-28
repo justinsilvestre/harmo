@@ -66,7 +66,7 @@ fn is_judged(quality: Quality) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Chord;
@@ -94,7 +94,7 @@ mod tests {
     fn score(root: &str, quality: Quality, slices: &[Slice]) -> f32 {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,

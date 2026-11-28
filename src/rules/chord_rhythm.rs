@@ -109,7 +109,7 @@ fn is_thin(slice: &Slice, most_pitch_classes: usize) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
@@ -118,7 +118,7 @@ mod tests {
     fn reading(root: &str) -> Reading {
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
-        Reading { key, chord, tonicized: None, category: Category::Diatonic }
+        Reading { key, chord, function: Function::DIATONIC }
     }
 
     /// Scores a change from C to G on a slice sounding the named notes at the given metric level.

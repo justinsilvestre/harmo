@@ -29,14 +29,14 @@ fn opening_tonic(context: &TransitionContext, _: &[f64]) -> f32 {
 }
 
 fn is_tonic(reading: &Reading) -> bool {
-    reading.tonicized.is_none() && reading.chord.root == reading.key.tonic
+    reading.function.tonicized.is_none() && reading.chord.root == reading.key.tonic
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Segment};
+    use crate::engine::model::{Function, NONE, Segment};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -46,7 +46,7 @@ mod tests {
     fn reading(root: &str) -> Reading {
         let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        Reading { key, chord, tonicized: None, category: Category::Diatonic }
+        Reading { key, chord, function: Function::DIATONIC }
     }
 
     /// Scores opening a C major segment read in C major, after the given segment if any.

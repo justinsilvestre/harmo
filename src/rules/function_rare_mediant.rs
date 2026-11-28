@@ -38,7 +38,7 @@ const MINOR_MEDIANT: i32 = -3;
 
 fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
     let reading = context.segment.reading;
-    if reading.category != Category::Diatonic || reading.tonicized.is_some() {
+    if reading.function.category != Category::Diatonic || reading.function.tonicized.is_some() {
         return 0.0;
     }
     let degree = reading.chord.root - reading.key.tonic;
@@ -53,7 +53,7 @@ fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
     use crate::theory::key::Key;
@@ -62,7 +62,7 @@ mod tests {
     fn score(tonic: &str, mode: &str, root: &str, quality: Quality) -> f32 {
         let key = Key::parse(tonic, mode).unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,

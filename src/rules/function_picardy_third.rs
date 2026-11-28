@@ -33,7 +33,7 @@ fn picardy_third(context: &CloseContext, _: &[f64]) -> f32 {
 }
 
 fn is_major_tonic_in_minor(reading: &Reading) -> bool {
-    let is_tonic = reading.chord.root == reading.key.tonic && reading.tonicized.is_none();
+    let is_tonic = reading.chord.root == reading.key.tonic && reading.function.tonicized.is_none();
     reading.key.mode == Mode::Minor && is_tonic && reading.chord.quality == Quality::Major
 }
 
@@ -41,7 +41,7 @@ fn is_major_tonic_in_minor(reading: &Reading) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Segment};
+    use crate::engine::model::{Category, Function, NONE, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -66,8 +66,7 @@ mod tests {
         let reading = Reading {
             key: Key::new(g, mode),
             chord: Chord::new(g, quality),
-            tonicized: None,
-            category: Category::Mixture,
+            function: Function { tonicized: None, category: Category::Mixture },
         };
         let segment = Segment {
             reading,

@@ -72,7 +72,7 @@ fn area_heard(history: History, key: Key, established: f64) -> f64 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
@@ -82,7 +82,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, tonicized: None, category: Category::Diatonic }
+        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
     /// Chains one tonic triad segment per (tonic, duration), each following the one before.

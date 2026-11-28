@@ -91,7 +91,7 @@ fn holds_until_next_beat(following: &[Slice], chord: Chord, member: usize, beat:
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Quality;
     use crate::theory::key::Key;
@@ -115,7 +115,7 @@ mod tests {
     fn score(slices: &[Slice]) -> f32 {
         let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,

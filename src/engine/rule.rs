@@ -1,7 +1,7 @@
 //! The interface between the engine and the rules it hooks into.
 
 use super::bass::{Bass, BassNote};
-use super::model::{Category, ChordSegment, Hearing, Hypothesis, NONE, Reading, Segment, segment_of};
+use super::model::{ChordSegment, Function, Hearing, Hypothesis, NONE, Reading, Segment, segment_of};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -67,12 +67,9 @@ impl Param {
     }
 }
 
-/// A way a chord can function in a key: the key it tonicizes, if any, and its category.
-pub type Interpretation = (Option<Key>, Category);
-
 pub type ProposeFn = fn(&Slice) -> Vec<Chord>;
 pub type ProposeKeysFn = fn(&Slice) -> Vec<Key>;
-pub type InterpretFn = fn(Key, Chord) -> Vec<Interpretation>;
+pub type InterpretFn = fn(Key, Chord) -> Vec<Function>;
 /// Scoring hooks receive the context and the values of their rule's parameters.
 /// Hooks of the chord layer receive only the chord layer's state, never a key.
 pub type ChordSliceFn = fn(&ChordSliceContext, &[f64]) -> f32;
@@ -98,7 +95,7 @@ pub enum Hook {
     ProposeChords(ProposeFn),
     /// Proposes keys in which a new segment opening on this slice might be read.
     ProposeKeys(ProposeKeysFn),
-    /// Lists the ways a chord can function in a key, as (tonicized key, category) pairs.
+    /// Lists the ways a chord can function in a key.
     Interpret(InterpretFn),
     /// Scores how well one slice fits a chord, in the chord layer.
     ChordSlice(ChordSliceFn),
@@ -274,7 +271,8 @@ pub fn arenas_of(segments: &[Segment]) -> (Vec<Hypothesis>, Vec<Hearing>) {
         parent: s.previous,
         slice: i as u32,
         hearing: i as u32,
-        reading: s.reading.key_reading(),
+        key: s.reading.key,
+        function: s.reading.function,
         previous: s.previous,
         score: 0.0,
     };
@@ -298,7 +296,7 @@ mod tests {
     fn reading(tonic: &str) -> Reading {
         let tpc = tpc_from_name(tonic).unwrap();
         let chord = Chord::new(tpc, Quality::Major);
-        Reading { key: Key::new(tpc, Mode::Major), chord, tonicized: None, category: Category::Diatonic }
+        Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
     fn segment(tonic: &str) -> Segment {

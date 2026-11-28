@@ -70,7 +70,7 @@ pub fn natural_minor_logs() -> &'static [f32; 12] {
 
 fn profile_fit(context: &SliceContext, _: &[f64]) -> f32 {
     let home = key_fit(context.reading.key, context);
-    match context.reading.tonicized {
+    match context.reading.function.tonicized {
         Some(local) => TONICIZED_SHARE * key_fit(local, context) + (1.0 - TONICIZED_SHARE) * home,
         None => home,
     }
@@ -93,7 +93,7 @@ fn key_fit(key: Key, context: &SliceContext) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::model::{Category, Reading};
+    use crate::engine::model::{Category, Function, Reading};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
     use crate::theory::chord::{Chord, Quality};
@@ -120,8 +120,11 @@ mod tests {
             key_signature: None,
         };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
-        let reading =
-            Reading { key: Key::new(tpc("C"), Mode::Major), chord, tonicized, category: Category::Applied };
+        let reading = Reading {
+            key: Key::new(tpc("C"), Mode::Major),
+            chord,
+            function: Function { tonicized, category: Category::Applied },
+        };
         let slices = [slice];
         let context = SliceContext {
             slice: &slices[0],

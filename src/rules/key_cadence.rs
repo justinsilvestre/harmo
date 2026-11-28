@@ -33,7 +33,8 @@ fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let tonic = context.next;
     let key = tonic.key;
-    let is_tonic = tonic.tonicized.is_none() && tonic.chord.root == key.tonic && previous.reading.key == key;
+    let is_tonic =
+        tonic.function.tonicized.is_none() && tonic.chord.root == key.tonic && previous.reading.key == key;
     let bass_is_tonic = context.slice.bass().is_some_and(|note| note.tpc == key.tonic);
     let is_strong = f64::from(context.slice.metric_level) >= STRONG_BEAT.read(params);
     if is_tonic && bass_is_tonic && is_strong && is_root_position_dominant(previous) { 1.0 } else { 0.0 }
@@ -41,7 +42,7 @@ fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {
 
 fn is_root_position_dominant(segment: &Segment) -> bool {
     let reading = segment.reading;
-    let is_dominant = reading.tonicized.is_none()
+    let is_dominant = reading.function.tonicized.is_none()
         && reading.chord.root == reading.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
     is_dominant && segment.bass_tpc() == reading.chord.root
@@ -51,7 +52,7 @@ fn is_root_position_dominant(segment: &Segment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading};
+    use crate::engine::model::{Function, NONE, Reading};
     use crate::engine::rule::History;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
@@ -64,7 +65,7 @@ mod tests {
 
     fn reading(root: &str, quality: Quality) -> Reading {
         let key = Key::new(tpc("C"), Mode::Major);
-        Reading { key, chord: Chord::new(tpc(root), quality), tonicized: None, category: Category::Diatonic }
+        Reading { key, chord: Chord::new(tpc(root), quality), function: Function::DIATONIC }
     }
 
     /// Scores G7, with the given bass, moving to C major on a slice with the given bass and metric level.

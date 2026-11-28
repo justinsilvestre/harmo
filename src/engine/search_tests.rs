@@ -1,5 +1,5 @@
 use super::*;
-use crate::engine::model::Category;
+use crate::engine::model::Function;
 use crate::engine::rule::{Rule, arenas_of};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
@@ -8,7 +8,7 @@ use crate::theory::key::{Key, Mode};
 fn reading(root: &str) -> Reading {
     let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
     let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-    Reading { key, chord, tonicized: None, category: Category::Diatonic }
+    Reading { key, chord, function: Function::DIATONIC }
 }
 
 fn segment(root: &str, start: u32, previous: u32) -> Segment {

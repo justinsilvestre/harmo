@@ -37,7 +37,7 @@ const HALF_CADENCE: Param = Param {
 
 fn phrase_close(context: &CloseContext, params: &[f64]) -> f32 {
     let reading = context.segment.reading;
-    if !ends_phrase(context) || reading.tonicized.is_some() {
+    if !ends_phrase(context) || reading.function.tonicized.is_some() {
         return 0.0;
     }
     let root = reading.chord.root;
@@ -61,7 +61,7 @@ pub fn ends_phrase(context: &CloseContext) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -83,7 +83,7 @@ mod tests {
     fn close(root: &str, next_phrase: Option<usize>) -> f32 {
         let key = Key::new(tpc_from_name("C").unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let segment = Segment {
             reading,
             start: 0,

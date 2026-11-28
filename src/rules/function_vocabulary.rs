@@ -4,8 +4,8 @@
 //! hard constraint on readings.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Category;
-use crate::engine::rule::{Citation, Hook, Interpretation, Layer, Rule};
+use crate::engine::model::{Category, Function};
+use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
 
@@ -120,22 +120,25 @@ const MINOR_TARGETS: &[(i32, Mode)] =
 const APPLIED: &[(i32, Quality)] =
     &[(1, Major), (1, DominantSeventh), (5, Diminished), (5, DiminishedSeventh), (5, HalfDiminishedSeventh)];
 
-fn interpret(key: Key, chord: Chord) -> Vec<Interpretation> {
+fn interpret(key: Key, chord: Chord) -> Vec<Function> {
     let (entries, targets) = match key.mode {
         Mode::Major => (MAJOR, MAJOR_TARGETS),
         Mode::Minor => (MINOR, MINOR_TARGETS),
     };
     let root = chord.root - key.tonic;
-    let local =
-        entries.iter().filter(|(r, q, _)| *r == root && *q == chord.quality).map(|(_, _, c)| (None, *c));
-    let mut readings: Vec<Interpretation> = local.collect();
-    if readings.iter().any(|(_, category)| *category == Diatonic) {
+    let local = entries
+        .iter()
+        .filter(|(r, q, _)| *r == root && *q == chord.quality)
+        .map(|&(_, _, category)| Function { tonicized: None, category });
+    let mut readings: Vec<Function> = local.collect();
+    if readings.iter().any(|function| function.category == Diatonic) {
         return readings;
     }
     for &(offset, mode) in targets {
         let is_applied = APPLIED.iter().any(|&(r, q)| r == root - offset && q == chord.quality);
         if is_applied {
-            readings.push((Some(Key::new(key.tonic + offset, mode)), Category::Applied));
+            let tonicized = Some(Key::new(key.tonic + offset, mode));
+            readings.push(Function { tonicized, category: Category::Applied });
         }
     }
     readings
@@ -154,13 +157,16 @@ mod tests {
     fn secondary_dominant_tonicizes_the_dominant() {
         let c = Key::parse("C", "major").unwrap();
         let g = Key::parse("G", "major").unwrap();
-        assert_eq!(interpret(c, chord("D", DominantSeventh)), vec![(Some(g), Category::Applied)]);
+        assert_eq!(
+            interpret(c, chord("D", DominantSeventh)),
+            vec![Function { tonicized: Some(g), category: Category::Applied }]
+        );
     }
 
     #[test]
     fn diatonic_chords_are_not_also_read_as_applied() {
         let c = Key::parse("C", "major").unwrap();
-        assert_eq!(interpret(c, chord("C", Major)), vec![(None, Diatonic)]);
+        assert_eq!(interpret(c, chord("C", Major)), vec![Function { tonicized: None, category: Diatonic }]);
     }
 
     #[test]
@@ -173,18 +179,24 @@ mod tests {
     fn subtonic_dominant_seventh_in_minor_tonicizes_the_mediant() {
         let c = Key::parse("C", "minor").unwrap();
         let e_flat = Key::parse("Eb", "major").unwrap();
-        assert_eq!(interpret(c, chord("Bb", DominantSeventh)), vec![(Some(e_flat), Category::Applied)]);
+        assert_eq!(
+            interpret(c, chord("Bb", DominantSeventh)),
+            vec![Function { tonicized: Some(e_flat), category: Category::Applied }]
+        );
     }
 
     #[test]
     fn subtonic_triad_in_minor_stays_diatonic() {
         let c = Key::parse("C", "minor").unwrap();
-        assert_eq!(interpret(c, chord("Bb", Major)), vec![(None, Diatonic)]);
+        assert_eq!(interpret(c, chord("Bb", Major)), vec![Function { tonicized: None, category: Diatonic }]);
     }
 
     #[test]
     fn german_sixth_is_chromatic_in_minor() {
         let c = Key::parse("C", "minor").unwrap();
-        assert_eq!(interpret(c, chord("F#", GermanSixth)), vec![(None, Chromatic)]);
+        assert_eq!(
+            interpret(c, chord("F#", GermanSixth)),
+            vec![Function { tonicized: None, category: Chromatic }]
+        );
     }
 }

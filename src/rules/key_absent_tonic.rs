@@ -40,7 +40,7 @@ fn absent_tonic(context: &DepartureContext, _: &[f64]) -> f32 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::engine::rule::History;
     use crate::engine::rule::arenas_of;
     use crate::pitch::tpc_from_name;
@@ -53,7 +53,7 @@ mod tests {
         let node = |(i, &(key, root)): (usize, &(&str, &str))| {
             let key = Key::new(tpc_from_name(key).unwrap(), Mode::Major);
             let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-            let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+            let reading = Reading { key, chord, function: Function::DIATONIC };
             let previous = if i == 0 { NONE } else { i as u32 - 1 };
 
             Segment {

@@ -58,7 +58,7 @@ fn seventh_delay(context: &ChordCloseContext, params: &[f64]) -> f32 {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, NONE, Reading, Segment};
+    use crate::engine::model::{Function, NONE, Reading, Segment};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Chord;
@@ -80,7 +80,7 @@ mod tests {
     fn score(quality: Quality, slices: &[Slice]) -> f32 {
         let chord = Chord::new(tpc_from_name("G").unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, tonicized: None, category: Category::Diatonic };
+        let reading = Reading { key, chord, function: Function::DIATONIC };
         let duration = slices.iter().map(|s| s.duration).sum();
         let (start, previous, members_heard) = (0, NONE, 0b1111);
         let segment = Segment { reading, start, previous, duration, members_heard, bass: Bass::default() };
