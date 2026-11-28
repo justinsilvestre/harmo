@@ -40,7 +40,7 @@ Several key hypotheses can interpret the same chord hypothesis, so a chord hypot
 
 **Complete interpretations are ranked by the sum of the layers' scores.** Each layer's alternatives are ranked by the best complete interpretation that holds them, the same shortfall that the bench uses for coverage by layer.
 
-**How alternatives are counted in coverage is left to the user.** The bench reports both whole readings and readings offered by layer. With layers, offering by layer follows the model: keys are offered from the key layer and chords from the chord layer, so a second reading of the same chord takes no place from a key. Whole readings stay as the yardstick that round 8 used.
+**Keys and chords are judged by layer, and RN on the joint list.** The bench reports both whole readings and readings offered by layer. Offering by layer follows the model: keys are offered from the key layer and chords from the chord layer, so a second reading of the same chord takes no place from a key. The user chose this as the yardstick for key and chord coverage (README, step 4), each compared at an equal mean offered in its own layer. RN coverage is still judged on the joint list, and the joint key and chord columns are still reported.
 
 ## What was measured
 

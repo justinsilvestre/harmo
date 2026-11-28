@@ -220,7 +220,7 @@ Keep a change only if it passes all five checks:
 |---|---|
 | **Accuracy** | RN on `tune` improves and its 95% interval excludes zero, or the interval of the layer measure the change targets does. A change aimed at coverage passes instead when coverage at an equal number offered improves with an interval that excludes zero, and neither RN nor RN eq falls |
 | **No corpus harmed** | no corpus loses more than about 1 RN point |
-| **Coverage** | how often both readings are offered where analysts disagree does not fall, in the key, RN or chord column |
+| **Coverage** | how often both readings are offered where analysts disagree does not fall: keys and chords as offered by layer, and RN as offered in the joint list |
 | **Mechanism** | `diagnose` shows most of the gain coming from the targeted error kind |
 | **Not a convention** | where a change is kept for its RN gain, RN eq improves too and its 95% interval excludes zero |
 
@@ -229,8 +229,9 @@ Record rejected and masked ideas in the commit message or the round report.
 **Intervals.** `bench --compare` resamples the pieces of each set with replacement, 1000 times and paired by piece, and prints a 95% interval for every change. This includes the change in coverage for each set with two analyses.
 
 **Coverage.**
-- Compare coverage at an equal mean number of readings offered. On `agreement-tune`, coverage rises about 5 points for each extra reading offered, so otherwise a change could win or lose coverage only by offering more or fewer readings. When the means differ, rerun the side that offers more with a smaller `--offer-margin` until they agree within about 0.02, or interpolate between two such reruns.
-- Check the key and chord columns on their own, because a change can keep RN coverage by offering more keys for the same chord while offering fewer chords, or by offering more chords in one key while offering fewer keys.
+- Judge keys and chords by layer, and RN on the joint list. Keys and chords are offered on their own in coverage by layer (see [Benchmarks](#benchmarks)), so a rival reading in one layer takes no offered place from the other, and the key and chord lines of `by layer` decide the check. RN coverage is read from the joint list of offered readings. The key and chord columns of the joint list are still reported, but a fall in them alone does not fail a change.
+- Compare each coverage at an equal mean number offered: RN at an equal mean of the joint list, and keys and chords at an equal mean offered in their own layer. On `agreement-tune`, coverage rises about 5 points for each extra reading offered, so otherwise a change could win or lose coverage only by offering more or fewer readings. When the means differ, rerun the side that offers more with a smaller margin (`--offer-margin` for the joint list, `--key-offer-margin` or `--chord-offer-margin` for a layer) until they agree within about 0.02, or interpolate between two such reruns.
+- Check keys and chords on their own, because a change can keep RN coverage by offering more keys for the same chord while offering fewer chords, or by offering more chords in one key while offering fewer keys.
 - Coverage counts as fallen only when the 95% interval of its change lies entirely below zero.
 - A change that raises `offered` without raising the mean number offered also counts in its favor, as long as it passes the RN checks.
 
