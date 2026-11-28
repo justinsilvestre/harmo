@@ -21,8 +21,8 @@ use super::ruleset::RuleSet;
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -32,17 +32,8 @@ pub struct Config {
     /// Number of hearings of the chords kept after each slice, each ranked by the best hypothesis
     /// that interprets it. Zero keeps every hearing that some kept hypothesis interprets.
     pub hearing_width: usize,
-    /// Number of hypotheses kept for each hearing of the chords. Zero sets no limit.
-    pub keys_per_hearing: usize,
-    /// Number of new readings, ranked by their fit to the opening slice, considered per slice, when
-    /// candidates are not cut layer by layer.
+    /// Number of new readings, ranked by their fit to the opening slice, considered per slice.
     pub candidate_limit: usize,
-    /// Number of chords proposed for a slice that are considered, ranked by their chord fit to the
-    /// opening slice. Zero cuts whole readings by `candidate_limit` instead.
-    pub chord_candidates: usize,
-    /// Number of readings of each considered chord in a key, ranked by their key fit to the opening
-    /// slice, when chords are cut by `chord_candidates`.
-    pub key_candidates: usize,
     /// Number of recent segments that identify a hypothesis when the beam is pruned.
     /// Of the hypotheses whose last `distinct_depth` segments the rules' distinguish hooks count as
     /// the same, only the best is kept. Zero, or a rule set without distinguish hooks, keeps them all.
@@ -59,10 +50,7 @@ impl Default for Config {
         Config {
             beam_width: 80,
             hearing_width: 40,
-            keys_per_hearing: 0,
             candidate_limit: 48,
-            chord_candidates: 0,
-            key_candidates: 0,
             distinct_depth: 0,
             record_snapshots: false,
             record_pruning: false,
@@ -265,11 +253,7 @@ fn openings(
     };
     let mut scored: Vec<Opening> = readings.into_iter().map(score).collect();
     scored.sort_by(|a, b| b.fit.total_cmp(&a.fit));
-    let rest = if config.chord_candidates == 0 {
-        scored.split_off(config.candidate_limit.min(scored.len()))
-    } else {
-        cut_by_layer(&mut scored, &chord_fits, config)
-    };
+    let rest = scored.split_off(config.candidate_limit.min(scored.len()));
     let mut rivals: Vec<Reading> = Vec::new();
     for opening in &scored {
         for (rival_of, params) in &rules.rival_candidate_rules {
@@ -281,25 +265,6 @@ fn openings(
     };
     scored.extend(rest.into_iter().filter(|opening| is_rival(&opening.reading)));
     (chords, scored)
-}
-
-/// Keeps, of readings sorted best first, those whose chord is among the `chord_candidates` best by
-/// chord fit and that are among the `key_candidates` best readings of their chord, and returns the
-/// rest, best first.
-fn cut_by_layer(scored: &mut Vec<Opening>, chord_fits: &[f32], config: &Config) -> Vec<Opening> {
-    let mut ranked: Vec<usize> = (0..chord_fits.len()).collect();
-    ranked.sort_by(|&a, &b| chord_fits[b].total_cmp(&chord_fits[a]));
-    let mut is_considered = vec![false; chord_fits.len()];
-    ranked.iter().take(config.chord_candidates).for_each(|&id| is_considered[id] = true);
-    let mut taken = vec![0; chord_fits.len()];
-    let (kept, rest) = std::mem::take(scored).into_iter().partition(|opening: &Opening| {
-        let id = opening.chord_id;
-        let is_kept = is_considered[id] && taken[id] < config.key_candidates;
-        taken[id] += is_kept as usize;
-        is_kept
-    });
-    *scored = kept;
-    rest
 }
 
 /// The scores of leaving a hypothesis's last segment on a given slice, which are the same for every
@@ -500,7 +465,7 @@ fn prune(
     let mut seen: HashMap<Vec<u64>, u32> = HashMap::new();
     let mut kept = Vec::with_capacity(config.beam_width);
     let mut dropped = Vec::new();
-    let mut per_hearing: HashMap<u32, usize> = HashMap::new();
+    let mut hearings: HashSet<u32> = HashSet::new();
     let joined =
         |node: &Node| Segment::join(&chords[node.chord as usize].segment, node.reading, node.previous);
     for (rank, node) in pending.into_iter().enumerate() {
@@ -509,17 +474,17 @@ fn prune(
                 break;
             }
             PruneCause::Width
-        } else if let Some(cause) = layer_limit(&per_hearing, node.chord, config) {
-            cause
+        } else if is_hearing_beyond_limit(&hearings, node.chord, config) {
+            PruneCause::HearingWidth
         } else if !merges {
-            *per_hearing.entry(node.chord).or_insert(0) += 1;
+            hearings.insert(node.chord);
             kept.push(node);
             continue;
         } else {
             match seen.entry(signature(joined(&node), (arena, chords), rules, config.distinct_depth)) {
                 Entry::Vacant(entry) => {
                     entry.insert(first + kept.len() as u32);
-                    *per_hearing.entry(node.chord).or_insert(0) += 1;
+                    hearings.insert(node.chord);
                     kept.push(node);
                     continue;
                 }
@@ -533,18 +498,10 @@ fn prune(
     (kept, dropped)
 }
 
-/// Returns why a hypothesis interpreting `hearing` cannot be kept, given how many hypotheses
-/// already kept interpret each hearing, or `None` if it can.
-fn layer_limit(per_hearing: &HashMap<u32, usize>, hearing: u32, config: &Config) -> Option<PruneCause> {
-    match per_hearing.get(&hearing) {
-        None if config.hearing_width > 0 && per_hearing.len() == config.hearing_width => {
-            Some(PruneCause::HearingWidth)
-        }
-        Some(&count) if config.keys_per_hearing > 0 && count == config.keys_per_hearing => {
-            Some(PruneCause::KeysPerHearing)
-        }
-        _ => None,
-    }
+/// Reports whether a hypothesis interpreting `hearing` would take the beam past its limit of hearings,
+/// given the hearings that the hypotheses already kept interpret.
+fn is_hearing_beyond_limit(hearings: &HashSet<u32>, hearing: u32, config: &Config) -> bool {
+    config.hearing_width > 0 && hearings.len() == config.hearing_width && !hearings.contains(&hearing)
 }
 
 /// Returns the distinguish hooks' values for a segment and for up to `depth - 1` segments before it,
