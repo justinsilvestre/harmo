@@ -6,10 +6,10 @@ The corpora are WiR (When in Rome), ABC (Beethoven string quartets), MPS (Mozart
 
 Labels are compared at every thirty-second note, called a **frame**. Unless a table says otherwise, a figure is the percentage of frames on which the engine's top reading is right in that respect.
 
-- **Engine:** commit `f28fc77`, with weights from the defaults
-- **Generated:** 2026-11-27 23:30 UTC
-- **Search settings:** beam width 80, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, RN eq timing tolerance in quarter notes 0.5
-- **Runtime:** 13.5 s in all on 18 threads: 7.2 s for the benchmark and 6.1 s for the diagnosis
+- **Engine:** commit `b013d5d`, with weights from the defaults
+- **Generated:** 2026-11-28 10:34 UTC
+- **Search settings:** beam width 80, candidate readings per slice 48, distinct depth 0, readings offered at most 4, offer margin 4, offer lag in quarter notes 2, key offer margin 4, chord offer margin 4, numeral offer margin 4, RN eq timing tolerance in quarter notes 0.5
+- **Runtime:** 13.6 s in all on 18 threads: 7.3 s for the benchmark and 6.2 s for the diagnosis
 - **Pieces:** 1035 evaluated; left out because they could not be loaded: `piano-sonatas-mozart-wolfgang-amadeus-k311-2` (no main analysis)
 
 ## Accuracy on the test split
@@ -131,6 +131,8 @@ These sets include pieces with two expert analyses. `agreement` holds the 150 Wh
 Each row is a percentage of frames.
 - **Where the analysts agree,** the target is for the top reading to match them as often as a third expert would. If each expert matched an ideal analysis at rate *p*, two experts would agree at about *p*², and a third would match their consensus at about *p*, so the target is the square root of the analysts' agreement rate.
 - **Where they disagree,** the measure is how often both readings are among those the engine offers. How often the top reading matches either analyst is given beside it.
+- **Offered by layer** lists keys and chords offered on their own rather than as parts of whole readings. A key's or chord's **shortfall** is the best score in the beam two quarter notes later minus the best score of a hypothesis holding it. Up to four keys and, separately, up to four chords are offered, those whose shortfall is within the offer margin, smallest first. A chord here is its root, quality and inversion, as in the chord column. The RN row pairs each offered key with each offered chord and offers up to four of these numerals, ranked by the sum of the two shortfalls, each with the tonicization of the best hypothesis holding that key and chord. Both offered is a share of the frames where the analysts differ in that layer, and **per frame** is how many keys, chords or numerals are offered on average.
+- **In hindsight** ranks the same beam's readings by the best final score that a hypothesis holding each one led to, and offers whole readings in the RN row. A reading whose hypotheses all left the beam before the end has no such score and is never offered. This is a report on the finished analysis; no rule and no other figure uses it.
 - **RN eq** counts two labels that are notational equivalents of each other as the same, for the analysts as for the engine. Its rows for where the analysts agree and disagree therefore cover different frames from the RN column's: analysts whose labels are equivalents count as agreeing.
 
 ### `agreement`
@@ -145,6 +147,14 @@ Each row is a percentage of frames.
 
 The engine offers 3.5 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 67.0 | 2.32 | 0.5 | 1.05 |
+| chord | 24.7 | 3.29 | 0.4 | 1.05 |
+| RN | 24.2 | 3.52 | 0.3 | 1.07 |
+
 ### `agreement-tune`
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -156,6 +166,14 @@ The engine offers 3.5 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 51.8 | 40.3 | 41.9 | 44.4 | 36.5 | 22.5 | 21.3 | 36.1 |
 
 The engine offers 3.5 readings per frame on average here.
+
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 66.5 | 2.29 | 0.6 | 1.05 |
+| chord | 23.6 | 3.28 | 0.4 | 1.06 |
+| RN | 23.3 | 3.52 | 0.3 | 1.08 |
 
 ### `anet-test` (all of test)
 
@@ -169,6 +187,14 @@ The engine offers 3.5 readings per frame on average here.
 
 The engine offers 3.4 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 69.8 | 2.24 | 0.0 | 1.03 |
+| chord | 28.2 | 3.22 | 0.1 | 1.03 |
+| RN | 27.6 | 3.43 | 0.1 | 1.04 |
+
 ### `anet-test-wir` (WiR)
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -180,6 +206,14 @@ The engine offers 3.4 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 100.0 | 73.7 | 42.9 | 25.0 | 0.0 | 50.0 | 23.1 | 56.2 |
 
 The engine offers 3.6 readings per frame on average here.
+
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 100.0 | 2.81 | 0.0 | 1.35 |
+| chord | 30.8 | 3.19 | 7.7 | 1.15 |
+| RN | 43.3 | 3.58 | 3.3 | 1.38 |
 
 ### `anet-test-mps` (MPS)
 
@@ -193,6 +227,14 @@ The engine offers 3.6 readings per frame on average here.
 
 The engine offers 3.5 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 68.6 | 2.44 | 0.0 | 1.02 |
+| chord | 29.7 | 3.33 | 0.0 | 1.03 |
+| RN | 28.9 | 3.54 | 0.0 | 1.03 |
+
 ### `anet-test-tavern` (TAVERN)
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -204,6 +246,14 @@ The engine offers 3.5 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 0.0 | 21.6 | 45.6 | 40.5 | 23.8 | 18.7 | 20.2 | 29.5 |
 
 The engine offers 3.2 readings per frame on average here.
+
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 0.0 | 1.93 | 0.0 | 1.02 |
+| chord | 21.0 | 3.07 | 0.0 | 1.03 |
+| RN | 17.6 | 3.26 | 0.0 | 1.03 |
 
 ### `tune` (all of tune)
 
@@ -217,6 +267,14 @@ The engine offers 3.2 readings per frame on average here.
 
 The engine offers 3.4 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 66.7 | 2.20 | 0.6 | 1.04 |
+| chord | 23.6 | 3.24 | 0.2 | 1.04 |
+| RN | 20.9 | 3.46 | 0.2 | 1.05 |
+
 ### `tune-wir` (WiR)
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -228,6 +286,14 @@ The engine offers 3.4 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 82.8 | 62.7 | 59.1 | 21.6 | 50.0 | 41.7 | 40.6 | 55.3 |
 
 The engine offers 3.6 readings per frame on average here.
+
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 82.8 | 2.51 | 0.0 | 1.14 |
+| chord | 45.4 | 3.30 | 0.0 | 1.10 |
+| RN | 43.2 | 3.60 | 0.0 | 1.16 |
 
 ### `tune-mps` (MPS)
 
@@ -241,6 +307,14 @@ The engine offers 3.6 readings per frame on average here.
 
 The engine offers 3.5 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 65.6 | 2.25 | 0.0 | 1.02 |
+| chord | 22.1 | 3.29 | 0.2 | 1.03 |
+| RN | 22.6 | 3.51 | 0.1 | 1.04 |
+
 ### `tune-tavern` (TAVERN)
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -253,6 +327,14 @@ The engine offers 3.5 readings per frame on average here.
 
 The engine offers 3.4 readings per frame on average here.
 
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 77.2 | 2.08 | 0.0 | 1.01 |
+| chord | 23.6 | 3.19 | 0.0 | 1.02 |
+| RN | 17.1 | 3.40 | 0.0 | 1.03 |
+
 ### `tune-early_choral` (Early choral)
 
 |  | key | degree | quality | inversion | root | RN | chord | RN eq |
@@ -264,6 +346,14 @@ The engine offers 3.4 readings per frame on average here.
 | Where they disagree, both readings are among those offered | 65.4 | 45.2 | 50.1 | 37.9 | 34.8 | 22.5 | 27.5 | 36.2 |
 
 The engine offers 3.5 readings per frame on average here.
+
+Offered by layer:
+
+| layer | both offered | per frame | both offered in hindsight | per frame in hindsight |
+|---|---:|---:|---:|---:|
+| key | 81.1 | 2.44 | 11.8 | 1.18 |
+| chord | 31.2 | 3.26 | 1.9 | 1.13 |
+| RN | 26.0 | 3.54 | 1.9 | 1.22 |
 
 ## How soon readings are offered
 
