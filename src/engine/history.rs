@@ -1,6 +1,5 @@
 //! Tracks how a reading's standing in the beam changes as the music unfolds.
 
-use super::model::NONE;
 use super::model::{KeySegment, Reading};
 use super::pruning::{Departure, PruneCause};
 use super::search::Analysis;
@@ -109,13 +108,6 @@ pub fn reading_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<Rea
 
 /// Returns the segment that the hypothesis ending at `hypothesis` assigns to slice `at`.
 pub fn segment_at(analysis: &Analysis, hypothesis: u32, at: usize) -> Option<KeySegment> {
-    let mut current = hypothesis;
-    while current != NONE {
-        let segment = analysis.segment(current);
-        if segment.chord.start as usize <= at {
-            return Some(segment);
-        }
-        current = segment.previous;
-    }
-    None
+    let layers = &analysis.layers;
+    layers.path_back(hypothesis).map(|last| layers.segment(last)).find(|s| s.heard.start as usize <= at)
 }

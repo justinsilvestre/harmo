@@ -124,7 +124,7 @@ fn continues_tonicization(context: &KeyTransitionContext) -> bool {
     match recent.next() {
         Some(previous) if tonicizes(&previous) => true,
         Some(previous)
-            if previous.reading().chord.root == target.tonic && previous.function.tonicized.is_none() =>
+            if previous.heard.chord.root == target.tonic && previous.function.tonicized.is_none() =>
         {
             recent.next().is_some_and(|s| tonicizes(&s))
         }

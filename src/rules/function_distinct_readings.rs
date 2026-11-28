@@ -28,14 +28,14 @@ pub const RULES: &[Rule] = &[Rule {
 /// Packs the segment's whole reading into one value, so that two segments get the same value
 /// exactly when their readings are equal.
 fn reading_identity(segment: &KeySegment, _: &[f64]) -> u64 {
-    let reading = segment.reading();
-    let tonicized = reading.function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
+    let (chord, function) = (segment.heard.chord, segment.function);
+    let tonicized = function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
     let fields = [
-        (pack_key(reading.function.key), 17),
-        (pack_tpc(reading.chord.root), 16),
-        (quality_index(reading.chord.quality), 4),
+        (pack_key(function.key), 17),
+        (pack_tpc(chord.root), 16),
+        (quality_index(chord.quality), 4),
         (tonicized, 18),
-        (category_index(reading.function.category), 2),
+        (category_index(function.category), 2),
     ];
     fields.iter().fold(0, |packed, &(value, bits)| packed << bits | value)
 }
@@ -72,7 +72,7 @@ mod tests {
             Function { key: major(key), tonicized: tonicized.map(major), category: Category::Diatonic };
         let reading = Reading { chord, function };
         let segment = key_segment(reading);
-        KeySegment { chord: ChordSegment { start, ..segment.chord }, ..segment }
+        KeySegment { heard: ChordSegment { start, ..segment.heard }, ..segment }
     }
 
     #[test]

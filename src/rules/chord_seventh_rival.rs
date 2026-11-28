@@ -37,10 +37,8 @@ pub const RULES: &[Rule] = &[Rule {
 /// Groups a segment read as a dominant triad or dominant seventh chord, by its key, tonicized key
 /// and root, when its seventh sounds for part of the segment and is approached like a nonchord tone.
 fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
-    let reading = context.segment.reading();
-    let chord = reading.chord;
-    let is_dominant =
-        reading.function.tonicized.unwrap_or(reading.function.key).degree_of(chord.root).number == 5;
+    let (chord, function) = (context.segment.heard.chord, context.segment.function);
+    let is_dominant = function.tonicized.unwrap_or(function.key).degree_of(chord.root).number == 5;
     if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
         return None;
     }
@@ -55,7 +53,7 @@ fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
         return None;
     }
     let mut hasher = DefaultHasher::new();
-    (reading.function.key, reading.function.tonicized, chord.root).hash(&mut hasher);
+    (function.key, function.tonicized, chord.root).hash(&mut hasher);
     Some(hasher.finish())
 }
 
@@ -100,7 +98,7 @@ mod tests {
         let key = Key::parse("C", "major").unwrap();
         let segment = key_segment(Reading { chord, function: Function::diatonic(key) });
         let segment =
-            KeySegment { chord: ChordSegment { start: 1, duration: 2.0, ..segment.chord }, ..segment };
+            KeySegment { heard: ChordSegment { start: 1, duration: 2.0, ..segment.heard }, ..segment };
         let context = RivalContext { segment: &segment, slices, previous_slice: Some(before) };
         seventh_rival(&context, &[])
     }

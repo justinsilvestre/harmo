@@ -109,7 +109,7 @@ mod tests {
     fn bass_of(notes: &[BassNote]) -> Option<i32> {
         let params = RULES[0].default_params();
         let bass = notes.iter().fold(Bass::default(), |bass, n| hear(bass, n, &params));
-        bass.note().map(|(midi, _)| midi)
+        bass.note.map(|(midi, _)| midi)
     }
 
     #[test]

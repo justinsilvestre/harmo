@@ -37,15 +37,15 @@ const HALF_CADENCE: Param = Param {
 };
 
 fn phrase_close(context: &KeyCloseContext, params: &[f64]) -> f32 {
-    let reading = context.segment.reading();
-    if !ends_phrase(context) || reading.function.tonicized.is_some() {
+    let (chord, function) = (context.segment.heard.chord, context.segment.function);
+    if !ends_phrase(context) || function.tonicized.is_some() {
         return 0.0;
     }
-    let root = reading.chord.root;
-    let is_major = matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
-    if root == reading.function.key.tonic {
+    let root = chord.root;
+    let is_major = matches!(chord.quality, Quality::Major | Quality::DominantSeventh);
+    if root == function.key.tonic {
         1.0
-    } else if root == reading.function.key.tonic + 1 && is_major {
+    } else if root == function.key.tonic + 1 && is_major {
         HALF_CADENCE.read(params) as f32
     } else {
         0.0

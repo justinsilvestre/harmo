@@ -79,7 +79,7 @@ fn find_confirmation(context: &KeyDepartureContext, strong_beat: u8) -> Confirma
 /// Phrase numbers never decrease, so an area crosses a phrase end exactly when one of its
 /// segments does.
 fn crosses_phrase_end(segment: &KeySegment, slices: &[Slice], slice: &Slice) -> bool {
-    slices.get(segment.chord.start as usize).is_some_and(|start| start.phrase != slice.phrase)
+    slices.get(segment.heard.start as usize).is_some_and(|start| start.phrase != slice.phrase)
 }
 
 /// Reports whether a root-position dominant is followed by a root-position tonic on a strong beat.
@@ -93,30 +93,30 @@ fn is_cadential_six_four(later: &KeySegment, earlier: &KeySegment) -> bool {
 }
 
 fn is_cadential_tonic(segment: &KeySegment, slices: &[Slice], strong_beat: u8) -> bool {
-    let is_strong = slices.get(segment.chord.start as usize).is_some_and(|s| s.metric_level >= strong_beat);
+    let is_strong = slices.get(segment.heard.start as usize).is_some_and(|s| s.metric_level >= strong_beat);
     is_tonic(segment) && is_in_root_position(segment) && is_strong
 }
 
 fn is_tonic_six_four(segment: &KeySegment) -> bool {
     let key = segment.function.key;
-    is_tonic(segment) && segment.chord.bass_tpc() == key.tonic + 1
+    is_tonic(segment) && segment.heard.bass_tpc() == key.tonic + 1
 }
 
 /// Reports whether the segment is the tonic chord of its key, in any inversion.
 pub fn is_tonic(segment: &KeySegment) -> bool {
-    let reading = segment.reading();
-    reading.function.tonicized.is_none() && reading.chord.root == reading.function.key.tonic
+    let (chord, function) = (segment.heard.chord, segment.function);
+    function.tonicized.is_none() && chord.root == function.key.tonic
 }
 
 fn is_dominant(segment: &KeySegment) -> bool {
-    let reading = segment.reading();
-    reading.function.tonicized.is_none()
-        && reading.chord.root == reading.function.key.tonic + 1
-        && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh)
+    let (chord, function) = (segment.heard.chord, segment.function);
+    function.tonicized.is_none()
+        && chord.root == function.key.tonic + 1
+        && matches!(chord.quality, Quality::Major | Quality::DominantSeventh)
 }
 
 fn is_in_root_position(segment: &KeySegment) -> bool {
-    segment.chord.bass_tpc() == segment.reading().chord.root
+    segment.heard.bass_tpc() == segment.heard.chord.root
 }
 
 #[cfg(test)]
@@ -154,7 +154,7 @@ mod tests {
     fn segment(&(key, root, quality, bass): &(&str, &str, Quality, &str)) -> KeySegment {
         let segment = key_segment(reading(key, root, quality));
         let bass = Bass { note: Some((40, tpc(bass))), ..Bass::default() };
-        KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment }
+        KeySegment { heard: ChordSegment { bass, ..segment.heard }, ..segment }
     }
 
     /// Scores leaving the key of the last of a path of segments, with slices at the given metric

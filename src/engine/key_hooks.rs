@@ -139,8 +139,7 @@ pub struct History<'a> {
 impl<'a> History<'a> {
     pub fn segments(self) -> impl Iterator<Item = KeySegment> + 'a {
         let layers = self.layers;
-        let at = move |hypothesis: u32| (hypothesis != NONE).then(|| layers.segment(hypothesis));
-        std::iter::successors(at(self.last), move |s| at(s.previous))
+        layers.path_back(self.last).map(|hypothesis| layers.segment(hypothesis))
     }
 
     /// A history with no segments before it.

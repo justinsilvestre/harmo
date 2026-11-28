@@ -70,13 +70,6 @@ pub struct Analysis {
     pub pruned: Vec<Vec<Pruned>>,
 }
 
-impl Analysis {
-    /// Returns the segment that a hypothesis ends in, as the key layer reads it.
-    pub fn segment(&self, hypothesis: u32) -> KeySegment {
-        self.layers.segment(hypothesis)
-    }
-}
-
 pub fn analyze(slices: &[Slice], rules: &RuleSet, config: &Config) -> Analysis {
     let mut layers = Layers::default();
     let mut beam: Vec<u32> = Vec::new();
@@ -320,7 +313,7 @@ fn exit(moment: &Moment, b: u32, chord_transitions: Vec<f32>, rules: &RuleSet) -
     let segment = moment.layers.segment(b);
     let context =
         KeyDepartureContext { previous: &segment, slice: moment.slice(), history: moment.history(b) };
-    let start = segment.chord.start as usize;
+    let start = segment.heard.start as usize;
     let rival = RivalContext {
         segment: &segment,
         slices: &moment.slices[start..moment.index],
@@ -400,13 +393,13 @@ fn predecessors(opening: &Opening, moment: &Moment, exits: &[Exit], rules: &Rule
         return vec![];
     };
     let mut found = vec![best];
-    let best_chord = exit_of(best).segment.chord.chord;
+    let best_chord = exit_of(best).segment.heard.chord;
     for (rule, group) in exit_of(best).rivals.iter().enumerate() {
         let Some(group) = *group else {
             continue;
         };
         let is_rival = |&i: &usize| {
-            exit_of(i).rivals[rule] == Some(group) && exit_of(i).segment.chord.chord != best_chord
+            exit_of(i).rivals[rule] == Some(group) && exit_of(i).segment.heard.chord != best_chord
         };
         if let Some(rival) = best_of(&mut (0..scored.len()).filter(is_rival)).filter(|r| !found.contains(r)) {
             found.push(rival);
@@ -440,9 +433,9 @@ fn extend(mut segment: ChordSegment, slice: &Slice, rules: &RuleSet) -> ChordSeg
 
 /// Returns the close rules' scores of a segment whose last slice is the one before `end`.
 fn close_scores(slices: &[Slice], segment: &KeySegment, end: usize, rules: &RuleSet) -> LayerScores {
-    let (span, next_slice) = (&slices[segment.chord.start as usize..end], slices.get(end));
+    let (span, next_slice) = (&slices[segment.heard.start as usize..end], slices.get(end));
     let chord =
-        rules.chord.score_close(&ChordCloseContext { segment: &segment.chord, slices: span, next_slice });
+        rules.chord.score_close(&ChordCloseContext { segment: &segment.heard, slices: span, next_slice });
     LayerScores { chord, key: rules.key.score_close(&KeyCloseContext { segment, slices: span, next_slice }) }
 }
 
@@ -464,8 +457,9 @@ fn prune(
     let mut kept = Vec::with_capacity(config.beam_width);
     let mut dropped = Vec::new();
     let mut kept_hearings: HashSet<u32> = HashSet::new();
-    let segment = |hypothesis: &Hypothesis| {
-        KeySegment::of(pending.hearings[hypothesis.hearing as usize].segment, hypothesis)
+    let segment = |hypothesis: &Hypothesis| KeySegment {
+        heard: pending.hearings[hypothesis.hearing as usize].segment,
+        function: hypothesis.function,
     };
     for (rank, hypothesis) in ranked.into_iter().enumerate() {
         let cause = if kept.len() == config.beam_width {
@@ -480,7 +474,13 @@ fn prune(
             kept.push(hypothesis);
             continue;
         } else {
-            match seen.entry(signature(segment(&hypothesis), layers, rules, config.distinct_depth)) {
+            match seen.entry(signature(
+                &segment(&hypothesis),
+                hypothesis.previous,
+                layers,
+                rules,
+                config.distinct_depth,
+            )) {
                 Entry::Vacant(entry) => {
                     entry.insert(first + kept.len() as u32);
                     kept_hearings.insert(hypothesis.hearing);
@@ -491,8 +491,9 @@ fn prune(
             }
         };
         if config.record_pruning {
-            let (parent, score) = (hypothesis.parent, hypothesis.score);
-            dropped.push(Pruned { parent, score, segment: segment(&hypothesis), rank: rank + 1, cause });
+            let (parent, previous, score) = (hypothesis.parent, hypothesis.previous, hypothesis.score);
+            let segment = segment(&hypothesis);
+            dropped.push(Pruned { parent, previous, score, segment, rank: rank + 1, cause });
         }
     }
     (kept, dropped)
@@ -505,16 +506,18 @@ fn is_hearing_beyond_limit(hearings: &HashSet<u32>, hearing: u32, config: &Confi
 }
 
 /// Returns the distinguish hooks' values for a segment and for up to `depth - 1` segments before it,
-/// most recent first.
-fn signature(segment: KeySegment, layers: &Layers, rules: &RuleSet, depth: usize) -> Vec<u64> {
+/// most recent first. `previous` is the last hypothesis of the segment before it.
+fn signature(
+    segment: &KeySegment,
+    previous: u32,
+    layers: &Layers,
+    rules: &RuleSet,
+    depth: usize,
+) -> Vec<u64> {
     let mut values = Vec::with_capacity(depth * rules.key.distinguish.len());
-    let mut current = segment;
-    for count in 1.. {
-        rules.key.distinguish(&current, &mut values);
-        if count == depth || current.previous == NONE {
-            break;
-        }
-        current = layers.segment(current.previous);
+    rules.key.distinguish(segment, &mut values);
+    for earlier in layers.path_back(previous).take(depth - 1) {
+        rules.key.distinguish(&layers.segment(earlier), &mut values);
     }
     values
 }

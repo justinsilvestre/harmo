@@ -35,6 +35,8 @@ impl PruneCause {
 pub struct Pruned {
     /// Index in the hypotheses of the hypothesis that it extended or opened after.
     pub parent: u32,
+    /// Index in the hypotheses of the last hypothesis of the segment before its last segment, or `NONE`.
+    pub previous: u32,
     pub score: f32,
     /// Its last segment.
     pub segment: KeySegment,

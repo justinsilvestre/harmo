@@ -14,9 +14,9 @@ fn reading(root: &str) -> Reading {
     Reading { chord, function: Function::diatonic(key) }
 }
 
-fn segment(root: &str, start: u32, previous: u32) -> KeySegment {
+fn segment(root: &str, start: u32) -> KeySegment {
     let segment = key_segment(reading(root));
-    KeySegment { chord: ChordSegment { start, ..segment.chord }, previous, ..segment }
+    KeySegment { heard: ChordSegment { start, ..segment.heard }, ..segment }
 }
 
 /// Two opening segments with the given roots (hypotheses 0 and 1), and two pending hypotheses that
@@ -27,9 +27,8 @@ struct Fixture {
 }
 
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
-    let segments =
-        [segment(first_root, 0, NONE), segment(second_root, 0, NONE), segment("G", 1, 0), segment("G", 2, 1)];
-    let mut layers = layers_of(&segments);
+    let segments = [segment(first_root, 0), segment(second_root, 0), segment("G", 1), segment("G", 2)];
+    let mut layers = layers_of(&segments, &[NONE, NONE, 0, 1]);
     let mut hypotheses = layers.hypotheses.split_off(2);
     let hearings = layers.hearings.split_off(2);
     (hypotheses[0].hearing, hypotheses[0].score) = (0, -2.0);
@@ -135,7 +134,7 @@ fn parents(rival_hook: bool, readings: [Reading; 2], scores: [f32; 2]) -> Vec<u3
         hook: crate::engine::rule::Hook::Key(KeyHook::Rival(same_group)),
     };
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
-    let mut layers = layers_of(&readings.map(key_segment));
+    let mut layers = layers_of(&readings.map(key_segment), &[NONE, NONE]);
     for (i, score) in scores.into_iter().enumerate() {
         (layers.hypotheses[i].score, layers.hypotheses[i].slice, layers.hearings[i].slice) = (score, 2, 2);
     }

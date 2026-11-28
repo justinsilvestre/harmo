@@ -1,6 +1,7 @@
 //! Reconstructs the segments of a hypothesis, with their readings, by following its links.
 
-use super::model::{NONE, Reading};
+use super::layers::Layers;
+use super::model::Reading;
 use super::search::Analysis;
 use crate::score::model::Offset;
 use crate::score::slicing::Slice;
@@ -20,32 +21,26 @@ pub struct SegmentReading {
 
 /// Returns the segments of the hypothesis ending at `hypothesis`, in chronological order.
 pub fn segments_of(analysis: &Analysis, slices: &[Slice], hypothesis: u32) -> Vec<SegmentReading> {
-    let mut segments = Vec::new();
-    let mut current = hypothesis;
-    while current != NONE {
-        let last = &analysis.layers.hypotheses[current as usize];
-        let segment = analysis.segment(current);
-        let (first, end) = (segment.chord.start as usize, last.slice as usize + 1);
-        let reading = segment.reading();
-        let label = Label::new(
-            reading.function.key,
-            reading.function.tonicized,
-            reading.chord,
-            segment.chord.bass_tpc(),
-        );
-        let end_time = slices[end - 1].start + slices[end - 1].duration;
-        segments.push(SegmentReading {
-            slices: (first, end),
-            start: slices[first].start,
-            end: end_time,
-            reading,
-            label,
-            hypothesis: current,
-        });
-        current = segment.previous;
-    }
+    let layers = &analysis.layers;
+    let mut segments: Vec<SegmentReading> =
+        layers.path_back(hypothesis).map(|last| segment_reading(layers, slices, last)).collect();
     segments.reverse();
     segments
+}
+
+/// Returns the segment whose last hypothesis is `last`.
+fn segment_reading(layers: &Layers, slices: &[Slice], last: u32) -> SegmentReading {
+    let segment = layers.segment(last);
+    let (first, end) = (segment.heard.start as usize, layers.hypotheses[last as usize].slice as usize + 1);
+    let last_slice = &slices[end - 1];
+    SegmentReading {
+        slices: (first, end),
+        start: slices[first].start,
+        end: last_slice.start + last_slice.duration,
+        reading: segment.reading(),
+        label: segment.label(),
+        hypothesis: last,
+    }
 }
 
 /// Returns the segments of the best final hypothesis.

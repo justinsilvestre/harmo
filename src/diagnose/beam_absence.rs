@@ -1,7 +1,6 @@
 //! Explains why no hypothesis in the beam holds an analyst's reading, from the hypotheses the
 //! search pruned.
 
-use super::beam_diversity::segment_label;
 use crate::bench::metrics::is_rn_match;
 use crate::engine::history::segment_at;
 use crate::engine::model::KeySegment;
@@ -37,7 +36,7 @@ pub fn find_pruning(
     label: &Label,
 ) -> Option<Absence> {
     let holds = |pruned: &Pruned| {
-        pruned_segment_at(analysis, pruned, at).is_some_and(|s| is_rn_match(&segment_label(&s), label))
+        pruned_segment_at(analysis, pruned, at).is_some_and(|s| is_rn_match(&s.label(), label))
     };
     let last = (at..=until).rev().find_map(|slice| {
         let dropped = analysis.pruned.get(slice)?;
@@ -54,9 +53,5 @@ pub fn find_pruning(
 
 fn pruned_segment_at(analysis: &Analysis, pruned: &Pruned, at: usize) -> Option<KeySegment> {
     let segment = pruned.segment;
-    if segment.chord.start as usize <= at {
-        Some(segment)
-    } else {
-        segment_at(analysis, segment.previous, at)
-    }
+    if segment.heard.start as usize <= at { Some(segment) } else { segment_at(analysis, pruned.previous, at) }
 }

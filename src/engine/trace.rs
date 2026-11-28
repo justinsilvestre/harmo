@@ -33,11 +33,12 @@ pub fn trace_segment(
     rules: &RuleSet,
     segment: &SegmentReading,
 ) -> Vec<Contribution> {
-    let state = analysis.segment(segment.hypothesis);
     let layers = &analysis.layers;
+    let state = layers.segment(segment.hypothesis);
+    let previous_hypothesis = layers.hypotheses[segment.hypothesis as usize].previous;
     let heard = layers.hearing_of(segment.hypothesis);
     let hearing = &heard.segment;
-    let previous = (state.previous != NONE).then(|| analysis.segment(state.previous));
+    let previous = (previous_hypothesis != NONE).then(|| layers.segment(previous_hypothesis));
     let previous_hearing =
         (heard.previous != NONE).then(|| &layers.hearings[heard.previous as usize].segment);
     let (first, end) = segment.slices;
@@ -45,7 +46,7 @@ pub fn trace_segment(
         previous: previous.as_ref(),
         next: &segment.reading,
         slice: &slices[first],
-        history: History { layers, slices, last: state.previous },
+        history: History { layers, slices, last: previous_hypothesis },
     };
     let chord_transition = ChordTransitionContext {
         previous: previous_hearing,

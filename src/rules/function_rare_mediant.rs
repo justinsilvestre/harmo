@@ -38,14 +38,14 @@ const MEDIANT: i32 = 4;
 const MINOR_MEDIANT: i32 = -3;
 
 fn rare_mediant(context: &KeyCloseContext, _: &[f64]) -> f32 {
-    let reading = context.segment.reading();
-    if reading.function.category != Category::Diatonic || reading.function.tonicized.is_some() {
+    let (chord, function) = (context.segment.heard.chord, context.segment.function);
+    if function.category != Category::Diatonic || function.tonicized.is_some() {
         return 0.0;
     }
-    let degree = reading.chord.root - reading.function.key.tonic;
-    let is_rare = match reading.function.key.mode {
-        Mode::Major => reading.chord.quality == Quality::Minor && degree == MEDIANT,
-        Mode::Minor => reading.chord.quality == Quality::Augmented && degree == MINOR_MEDIANT,
+    let degree = chord.root - function.key.tonic;
+    let is_rare = match function.key.mode {
+        Mode::Major => chord.quality == Quality::Minor && degree == MEDIANT,
+        Mode::Minor => chord.quality == Quality::Augmented && degree == MINOR_MEDIANT,
     };
     if is_rare { -1.0 } else { 0.0 }
 }

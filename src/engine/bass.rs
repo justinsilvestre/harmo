@@ -34,10 +34,3 @@ pub struct BassNote {
     /// Whether the slice opens the segment.
     pub opens_segment: bool,
 }
-
-impl Bass {
-    /// Returns the bass note that gives the segment's inversion.
-    pub fn note(&self) -> Option<(i32, Tpc)> {
-        self.note
-    }
-}

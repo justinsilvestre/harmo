@@ -6,7 +6,6 @@ use crate::engine::pruning::Departure;
 use crate::engine::search::Analysis;
 use crate::score::model::Score;
 use crate::score::slicing::{Slice, measure_at};
-use crate::theory::label::Label;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -84,8 +83,5 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
 /// Returns the reading that the hypothesis ending at `hypothesis` gives the followed slice.
 fn held_reading(hypothesis: u32, context: &HistoryContext) -> Option<ReadingOutput> {
     let segment = segment_at(context.analysis, hypothesis, context.at)?;
-    let reading = segment.reading();
-    let label =
-        Label::new(reading.function.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc());
-    Some(reading_output(&label, reading.function.category))
+    Some(reading_output(&segment.label(), segment.function.category))
 }

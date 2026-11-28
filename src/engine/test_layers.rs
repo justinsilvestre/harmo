@@ -16,41 +16,43 @@ pub fn chord_segment(chord: Chord) -> ChordSegment {
 /// A segment that reads the reading's chord, as `chord_segment` gives it, in the reading's key,
 /// and follows no other segment.
 pub fn key_segment(reading: Reading) -> KeySegment {
-    KeySegment { chord: chord_segment(reading.chord), function: reading.function, previous: NONE }
+    KeySegment { heard: chord_segment(reading.chord), function: reading.function }
 }
 
 /// Holds segments in layers: segment i becomes the last segment of hypothesis i, which interprets
-/// hearing i and ends on slice i. Each hypothesis and hearing follows the one that the segment's
-/// `previous` gives.
-pub fn layers_of(segments: &[KeySegment]) -> Layers {
-    let hypothesis = |(i, s): (usize, &KeySegment)| Hypothesis {
-        parent: s.previous,
-        previous: s.previous,
+/// hearing i and ends on slice i. Hypothesis i follows hypothesis `previous[i]`, or nothing if that is
+/// `NONE`, and its hearing follows the hearing with the same index.
+pub fn layers_of(segments: &[KeySegment], previous: &[u32]) -> Layers {
+    let hypothesis = |i: usize| Hypothesis {
+        parent: previous[i],
+        previous: previous[i],
         slice: i as u32,
         hearing: i as u32,
-        function: s.function,
+        function: segments[i].function,
         score: 0.0,
     };
-    let hearing = |(i, s): (usize, &KeySegment)| Hearing {
-        parent: s.previous,
-        previous: s.previous,
+    let hearing = |i: usize| Hearing {
+        parent: previous[i],
+        previous: previous[i],
         slice: i as u32,
-        segment: s.chord,
+        segment: segments[i].heard,
         score: 0.0,
     };
-    let hearings = segments.iter().enumerate().map(hearing).collect();
-    Layers { hearings, hypotheses: segments.iter().enumerate().map(hypothesis).collect() }
+    Layers {
+        hearings: (0..segments.len()).map(hearing).collect(),
+        hypotheses: (0..segments.len()).map(hypothesis).collect(),
+    }
 }
 
 /// Holds segments in layers as the path of one hypothesis, in which segment i opens on slice i and
 /// follows segment i - 1.
 pub fn path_of(segments: &[KeySegment]) -> Layers {
-    let link = |(i, s): (usize, &KeySegment)| KeySegment {
-        chord: ChordSegment { start: i as u32, ..s.chord },
-        previous: if i == 0 { NONE } else { i as u32 - 1 },
+    let opened = |(i, s): (usize, &KeySegment)| KeySegment {
+        heard: ChordSegment { start: i as u32, ..s.heard },
         ..*s
     };
-    layers_of(&segments.iter().enumerate().map(link).collect::<Vec<_>>())
+    let previous: Vec<u32> = (0..segments.len() as u32).map(|i| i.checked_sub(1).unwrap_or(NONE)).collect();
+    layers_of(&segments.iter().enumerate().map(opened).collect::<Vec<_>>(), &previous)
 }
 
 /// Returns the history that a transition after the last segment of a path reads.

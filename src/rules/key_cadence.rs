@@ -42,11 +42,11 @@ fn cadential_confirmation(context: &KeyTransitionContext, params: &[f64]) -> f32
 }
 
 fn is_root_position_dominant(segment: &KeySegment) -> bool {
-    let reading = segment.reading();
-    let is_dominant = reading.function.tonicized.is_none()
-        && reading.chord.root == reading.function.key.tonic + 1
-        && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
-    is_dominant && segment.chord.bass_tpc() == reading.chord.root
+    let (chord, function) = (segment.heard.chord, segment.function);
+    let is_dominant = function.tonicized.is_none()
+        && chord.root == function.key.tonic + 1
+        && matches!(chord.quality, Quality::Major | Quality::DominantSeventh);
+    is_dominant && segment.heard.bass_tpc() == chord.root
 }
 
 #[cfg(test)]
@@ -75,7 +75,7 @@ mod tests {
         let bass = Bass { note: Some((43, tpc(dominant_bass))), ..Bass::default() };
         let dominant = reading("G", Quality::DominantSeventh);
         let segment = key_segment(dominant);
-        let previous = KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment };
+        let previous = KeySegment { heard: ChordSegment { bass, ..segment.heard }, ..segment };
         let note = SliceNote { tpc: tpc(tonic_bass), midi: 48, attacked: true, onset_level: metric_level };
         let slice = Slice {
             start: 1.0,

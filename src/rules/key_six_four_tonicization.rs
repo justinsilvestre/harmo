@@ -41,26 +41,26 @@ const STRONG_BEAT: Param = Param {
 
 fn six_four_tonicization(context: &KeyTransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
-    let opening = context.history.slices.get(previous.chord.start as usize).map_or(0, |s| s.metric_level);
+    let opening = context.history.slices.get(previous.heard.start as usize).map_or(0, |s| s.metric_level);
     let is_on_stronger_beat =
         f64::from(opening) >= STRONG_BEAT.read(params) && opening > context.slice.metric_level;
     let tonicizes_six_four =
-        context.next.function.tonicized.is_some_and(|t| t.tonic == previous.reading().chord.root);
+        context.next.function.tonicized.is_some_and(|t| t.tonic == previous.heard.chord.root);
     let is_cadential = is_on_stronger_beat && is_six_four(previous) && is_dominant_on_bass(context, previous);
     if is_cadential && tonicizes_six_four { -1.0 } else { 0.0 }
 }
 
 /// Reports whether the segment is a major or minor triad with its fifth in the bass.
 fn is_six_four(segment: &KeySegment) -> bool {
-    let chord = segment.reading().chord;
+    let chord = segment.heard.chord;
     matches!(chord.quality, Quality::Major | Quality::Minor)
-        && chord.member_index(segment.chord.bass_tpc()) == Some(2)
+        && chord.member_index(segment.heard.bass_tpc()) == Some(2)
 }
 
 /// Reports whether the new chord is a major triad or dominant seventh in root position on the bass
 /// of the previous segment.
 fn is_dominant_on_bass(context: &KeyTransitionContext, previous: &KeySegment) -> bool {
-    let bass = previous.chord.bass_tpc();
+    let bass = previous.heard.bass_tpc();
     let keeps_bass = context.slice.bass().is_some_and(|note| note.tpc == bass);
     let chord = context.next.chord;
     keeps_bass && chord.root == bass && matches!(chord.quality, Quality::Major | Quality::DominantSeventh)
@@ -113,7 +113,7 @@ mod tests {
         let six_four = Reading { chord, function: Function::diatonic(c_major) };
         let bass = Bass { note: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
         let segment = key_segment(six_four);
-        let previous = KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment };
+        let previous = KeySegment { heard: ChordSegment { bass, ..segment.heard }, ..segment };
         let tonicized = tonicized.map(|t| Key::new(tpc(t), Mode::Major));
         let category = if tonicized.is_some() { Category::Applied } else { Category::Diatonic };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);

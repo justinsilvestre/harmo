@@ -61,7 +61,7 @@ fn area_duration(context: &KeyDepartureContext, params: &[f64]) -> f32 {
 fn area_heard(history: History, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
     for segment in history.segments().take_while(|s| s.function.key == key) {
-        area += segment.chord.duration;
+        area += segment.heard.duration;
         if area >= established {
             break;
         }
@@ -90,7 +90,7 @@ mod tests {
     fn path(segments: &[(&str, f64)]) -> Layers {
         let segment = |&(tonic, duration): &(&str, f64)| {
             let segment = key_segment(reading(tonic));
-            KeySegment { chord: ChordSegment { duration, ..segment.chord }, ..segment }
+            KeySegment { heard: ChordSegment { duration, ..segment.heard }, ..segment }
         };
         path_of(&segments.iter().map(segment).collect::<Vec<_>>())
     }

@@ -5,6 +5,7 @@ use super::bass::Bass;
 use crate::pitch::Tpc;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
+use crate::theory::label::Label;
 use serde::Serialize;
 
 /// Marks the absence of an index into the hypotheses or the hearings.
@@ -60,13 +61,9 @@ pub struct ChordSegment {
 }
 
 impl ChordSegment {
-    /// Returns the bass note that gives the segment's inversion, as (MIDI number, spelling).
-    pub fn bass_note(&self) -> Option<(i32, Tpc)> {
-        self.bass.note()
-    }
-
+    /// Returns the spelling of the segment's bass note, or of its root if it has none.
     pub fn bass_tpc(&self) -> Tpc {
-        self.bass_note().map_or(self.chord.root, |(_, tpc)| tpc)
+        self.bass.note.map_or(self.chord.root, |(_, tpc)| tpc)
     }
 
     pub fn has_heard_member(&self, index: usize) -> bool {
@@ -106,23 +103,21 @@ pub struct Hypothesis {
     pub score: f32,
 }
 
-/// A segment as the key layer reads it: a chord segment, with the key it is heard in and its
-/// function there. Rules of the key layer receive segments in this form.
+/// A segment as the key layer reads it: a chord segment that the chord layer heard, with the
+/// chord's function. Rules of the key layer receive segments in this form.
 #[derive(Clone, Copy, Debug)]
 pub struct KeySegment {
-    pub chord: ChordSegment,
+    pub heard: ChordSegment,
     pub function: Function,
-    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
-    pub previous: u32,
 }
 
 impl KeySegment {
-    /// Returns a hypothesis's reading of a chord segment.
-    pub fn of(chord: ChordSegment, hypothesis: &Hypothesis) -> KeySegment {
-        KeySegment { chord, function: hypothesis.function, previous: hypothesis.previous }
+    pub fn reading(&self) -> Reading {
+        Reading { chord: self.heard.chord, function: self.function }
     }
 
-    pub fn reading(&self) -> Reading {
-        Reading { chord: self.chord.chord, function: self.function }
+    /// Returns the segment's Roman numeral label, in the inversion that its bass gives.
+    pub fn label(&self) -> Label {
+        Label::new(self.function.key, self.function.tonicized, self.heard.chord, self.heard.bass_tpc())
     }
 }

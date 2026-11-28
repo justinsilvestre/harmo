@@ -31,7 +31,7 @@ const STEP: i32 = 2;
 
 fn six_four(context: &ChordCloseContext, _: &[f64]) -> f32 {
     let segment = context.segment;
-    let Some((midi, tpc)) = segment.bass_note().filter(|_| is_six_four(segment)) else {
+    let Some((midi, tpc)) = segment.bass.note.filter(|_| is_six_four(segment)) else {
         return 0.0;
     };
     let next_bass = context.next_slice.and_then(Slice::bass);

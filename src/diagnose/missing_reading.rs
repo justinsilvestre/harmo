@@ -1,7 +1,6 @@
 //! Explains why the engine does not offer an analyst's reading.
 
 use super::beam_absence::{Absence, find_pruning};
-use super::beam_diversity::segment_label;
 use super::piece_context::PieceContext;
 use crate::bench::metrics::is_rn_match;
 use crate::bench::runner::{EvalConfig, lagged_beam, lagged_slice};
@@ -34,7 +33,7 @@ pub fn missing_reason(
     let beam = lagged_beam(analysis, slices, at, config.offer_lag).unwrap_or(&[]);
     let best = beam.first().map_or(0.0, |&hypothesis| analysis.layers.hypotheses[hypothesis as usize].score);
     let holds = |hypothesis: &&u32| {
-        segment_at(analysis, **hypothesis, at).is_some_and(|s| is_rn_match(&segment_label(&s), label))
+        segment_at(analysis, **hypothesis, at).is_some_and(|s| is_rn_match(&s.label(), label))
     };
     match beam.iter().position(|hypothesis| holds(&hypothesis)) {
         Some(rank) => MissingReason::BelowCutoff {
