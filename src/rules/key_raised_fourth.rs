@@ -45,8 +45,8 @@ const EPSILON: f64 = 1e-6;
 
 fn raised_fourth(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
-    let key = previous.reading.key;
-    if !is_dominant_triad_to_tonic(&previous.reading, context.next) {
+    let key = previous.key;
+    if !is_dominant_triad_to_tonic(&previous.reading(), context.next) {
         return 0.0;
     }
     let slices = context.history.slices;
@@ -83,9 +83,9 @@ fn sounds(slice: &Slice, tpc: Tpc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Segment};
+    use crate::engine::model::Function;
     use crate::engine::rule::History;
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Chord;
@@ -115,14 +115,7 @@ mod tests {
         let opening = slices.len();
         slices.push(slice(opening as f64, tonic));
         slices.push(slice(opening as f64 + 1.0, after));
-        let previous = Segment {
-            reading: reading("G", dominant),
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let previous = key_segment(reading("G", dominant));
         let next = reading("C", Quality::Major);
         let history = History::empty(&slices);
         raised_fourth(

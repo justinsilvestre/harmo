@@ -1,6 +1,6 @@
 //! The stores of the search's two layers.
 
-use super::model::{Hearing, Hypothesis, Segment};
+use super::model::{Hearing, Hypothesis, KeySegment};
 
 /// What the search keeps of both layers: the chord layer's hearings, and the key layer's
 /// hypotheses, each of which interprets one hearing. Each links to the one before it by index.
@@ -20,7 +20,7 @@ impl Layers {
     }
 
     /// Returns the segment that a hypothesis ends in, as the key layer reads it.
-    pub fn segment(&self, hypothesis: u32) -> Segment {
-        Segment::join(&self.hearing_of(hypothesis).segment, &self.hypotheses[hypothesis as usize])
+    pub fn segment(&self, hypothesis: u32) -> KeySegment {
+        KeySegment::of(self.hearing_of(hypothesis).segment, &self.hypotheses[hypothesis as usize])
     }
 }

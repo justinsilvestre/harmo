@@ -1,7 +1,7 @@
 //! Rules about cadences as evidence for a key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Segment;
+use crate::engine::model::KeySegment;
 use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::theory::chord::Quality;
 
@@ -33,27 +33,27 @@ fn cadential_confirmation(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
     let tonic = context.next;
     let key = tonic.key;
-    let is_tonic =
-        tonic.function.tonicized.is_none() && tonic.chord.root == key.tonic && previous.reading.key == key;
+    let is_tonic = tonic.function.tonicized.is_none() && tonic.chord.root == key.tonic && previous.key == key;
     let bass_is_tonic = context.slice.bass().is_some_and(|note| note.tpc == key.tonic);
     let is_strong = f64::from(context.slice.metric_level) >= STRONG_BEAT.read(params);
     if is_tonic && bass_is_tonic && is_strong && is_root_position_dominant(previous) { 1.0 } else { 0.0 }
 }
 
-fn is_root_position_dominant(segment: &Segment) -> bool {
-    let reading = segment.reading;
+fn is_root_position_dominant(segment: &KeySegment) -> bool {
+    let reading = segment.reading();
     let is_dominant = reading.function.tonicized.is_none()
         && reading.chord.root == reading.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh);
-    is_dominant && segment.bass_tpc() == reading.chord.root
+    is_dominant && segment.chord.bass_tpc() == reading.chord.root
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading};
+    use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
     use crate::engine::rule::History;
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
     use crate::theory::chord::Chord;
@@ -72,14 +72,8 @@ mod tests {
     fn cadence(dominant_bass: &str, tonic_bass: &str, metric_level: u8) -> f32 {
         let bass = Bass { note: Some((43, tpc(dominant_bass))), ..Bass::default() };
         let dominant = reading("G", Quality::DominantSeventh);
-        let previous = Segment {
-            reading: dominant,
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b1111,
-            bass,
-        };
+        let segment = key_segment(dominant);
+        let previous = KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment };
         let note = SliceNote { tpc: tpc(tonic_bass), midi: 48, attacked: true, onset_level: metric_level };
         let slice = Slice {
             start: 1.0,

@@ -108,8 +108,8 @@ fn is_thin(slice: &Slice, most_pitch_classes: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::{Chord, Quality};
@@ -138,16 +138,9 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let previous = Segment {
-            reading: reading("C"),
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(reading("C").chord) };
         let context = ChordTransitionContext {
-            previous: Some(&previous.chord_segment(NONE)),
+            previous: Some(&previous),
             next: reading("G").chord,
             slice: &slice,
             slices: &[],

@@ -1,7 +1,7 @@
 //! Tracks how a reading's standing in the beam changes as the music unfolds.
 
 use super::model::NONE;
-use super::model::{Reading, Segment};
+use super::model::{KeySegment, Reading};
 use super::pruning::{Departure, PruneCause};
 use super::search::Analysis;
 use serde::Serialize;
@@ -104,15 +104,15 @@ fn departure(
 
 /// Returns the reading that the hypothesis ending at `node` assigns to slice `at`.
 pub fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Reading> {
-    segment_at(analysis, node, at).map(|s| s.reading)
+    segment_at(analysis, node, at).map(|s| s.reading())
 }
 
 /// Returns the segment that the hypothesis ending at `node` assigns to slice `at`.
-pub fn segment_at(analysis: &Analysis, node: u32, at: usize) -> Option<Segment> {
+pub fn segment_at(analysis: &Analysis, node: u32, at: usize) -> Option<KeySegment> {
     let mut current = node;
     while current != NONE {
         let segment = analysis.segment(current);
-        if segment.start as usize <= at {
+        if segment.chord.start as usize <= at {
             return Some(segment);
         }
         current = segment.previous;

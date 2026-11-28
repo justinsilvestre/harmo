@@ -35,9 +35,10 @@ fn is_tonic(reading: &Reading) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Segment};
+
+    use crate::engine::model::{Function, KeySegment};
     use crate::engine::rule::History;
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
@@ -50,7 +51,7 @@ mod tests {
     }
 
     /// Scores opening a C major segment read in C major, after the given segment if any.
-    fn transition(previous: Option<&Segment>, root: &str) -> f32 {
+    fn transition(previous: Option<&KeySegment>, root: &str) -> f32 {
         let slice = Slice {
             start: 0.0,
             duration: 1.0,
@@ -76,14 +77,7 @@ mod tests {
 
     #[test]
     fn tonic_after_the_opening_earns_nothing() {
-        let previous = Segment {
-            reading: reading("G"),
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let previous = key_segment(reading("G"));
         assert_eq!(transition(Some(&previous), "C"), 0.0);
     }
 }

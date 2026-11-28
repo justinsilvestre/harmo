@@ -1,6 +1,7 @@
 use super::*;
 use crate::engine::model::Function;
-use crate::engine::rule::{Rule, arenas_of};
+use crate::engine::rule::Rule;
+use crate::engine::test_layers::{key_segment, layers_of};
 use crate::pitch::tpc_from_name;
 use crate::theory::chord::{Chord, Quality};
 use crate::theory::key::{Key, Mode};
@@ -11,15 +12,9 @@ fn reading(root: &str) -> Reading {
     Reading { key, chord, function: Function::DIATONIC }
 }
 
-fn segment(root: &str, start: u32, previous: u32) -> Segment {
-    Segment {
-        reading: reading(root),
-        start,
-        previous,
-        duration: 1.0,
-        members_heard: 0,
-        bass: Bass::default(),
-    }
+fn segment(root: &str, start: u32, previous: u32) -> KeySegment {
+    let segment = key_segment(reading(root));
+    KeySegment { chord: ChordSegment { start, ..segment.chord }, previous, ..segment }
 }
 
 /// Two opening segments with the given roots (hypotheses 0 and 1), and two pending hypotheses that
@@ -32,7 +27,7 @@ struct Fixture {
 fn fixture(first_root: &str, second_root: &str) -> Fixture {
     let segments =
         [segment(first_root, 0, NONE), segment(second_root, 0, NONE), segment("G", 1, 0), segment("G", 2, 1)];
-    let mut layers = arenas_of(&segments);
+    let mut layers = layers_of(&segments);
     let mut hypotheses = layers.hypotheses.split_off(2);
     let hearings = layers.hearings.split_off(2);
     (hypotheses[0].hearing, hypotheses[0].score) = (0, -2.0);
@@ -138,7 +133,7 @@ fn parents(rival_hook: bool, roots: [&str; 2], scores: [f32; 2]) -> Vec<u32> {
         hook: crate::engine::rule::Hook::Rival(same_group),
     };
     let rules = RuleSet::new(if rival_hook { vec![rule] } else { vec![] }, &Default::default()).unwrap();
-    let mut layers = arenas_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);
+    let mut layers = layers_of(&[segment(roots[0], 0, NONE), segment(roots[1], 0, NONE)]);
     for (i, score) in scores.into_iter().enumerate() {
         (layers.hypotheses[i].score, layers.hypotheses[i].slice, layers.hearings[i].slice) = (score, 2, 2);
     }

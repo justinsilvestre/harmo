@@ -1,7 +1,7 @@
 //! Rules about whether a key area was confirmed before the music leaves it.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Segment;
+use crate::engine::model::KeySegment;
 use crate::engine::rule::{Citation, DepartureContext, Hook, Layer, Param, Rule};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Quality;
@@ -56,13 +56,13 @@ enum Confirmation {
 /// event that confirms it. A cadential tonic must arrive at `strong_beat` or a stronger metric level.
 fn find_confirmation(context: &DepartureContext, strong_beat: u8) -> Confirmation {
     let slices = context.history.slices;
-    let key = context.previous.reading.key;
-    let mut later: Option<Segment> = None;
+    let key = context.previous.key;
+    let mut later: Option<KeySegment> = None;
     for segment in context.history.segments() {
-        if segment.reading.key != key {
+        if segment.key != key {
             return Confirmation::Unconfirmed;
         }
-        let is_confirming = |later: &Segment| {
+        let is_confirming = |later: &KeySegment| {
             is_authentic_cadence(later, &segment, slices, strong_beat)
                 || is_cadential_six_four(later, &segment)
         };
@@ -77,54 +77,53 @@ fn find_confirmation(context: &DepartureContext, strong_beat: u8) -> Confirmatio
 /// Reports whether a phrase ending falls between the segment's first slice and the given slice.
 /// Phrase numbers never decrease, so an area crosses a phrase end exactly when one of its
 /// segments does.
-fn crosses_phrase_end(segment: &Segment, slices: &[Slice], slice: &Slice) -> bool {
-    slices.get(segment.start as usize).is_some_and(|start| start.phrase != slice.phrase)
+fn crosses_phrase_end(segment: &KeySegment, slices: &[Slice], slice: &Slice) -> bool {
+    slices.get(segment.chord.start as usize).is_some_and(|start| start.phrase != slice.phrase)
 }
 
 /// Reports whether a root-position dominant is followed by a root-position tonic on a strong beat.
-fn is_authentic_cadence(later: &Segment, earlier: &Segment, slices: &[Slice], strong_beat: u8) -> bool {
+fn is_authentic_cadence(later: &KeySegment, earlier: &KeySegment, slices: &[Slice], strong_beat: u8) -> bool {
     is_cadential_tonic(later, slices, strong_beat) && is_dominant(earlier) && is_in_root_position(earlier)
 }
 
 /// Reports whether a tonic six-four is followed by a dominant.
-fn is_cadential_six_four(later: &Segment, earlier: &Segment) -> bool {
+fn is_cadential_six_four(later: &KeySegment, earlier: &KeySegment) -> bool {
     is_dominant(later) && is_tonic_six_four(earlier)
 }
 
-fn is_cadential_tonic(segment: &Segment, slices: &[Slice], strong_beat: u8) -> bool {
-    let is_strong = slices.get(segment.start as usize).is_some_and(|s| s.metric_level >= strong_beat);
+fn is_cadential_tonic(segment: &KeySegment, slices: &[Slice], strong_beat: u8) -> bool {
+    let is_strong = slices.get(segment.chord.start as usize).is_some_and(|s| s.metric_level >= strong_beat);
     is_tonic(segment) && is_in_root_position(segment) && is_strong
 }
 
-fn is_tonic_six_four(segment: &Segment) -> bool {
-    let key = segment.reading.key;
-    is_tonic(segment) && segment.bass_tpc() == key.tonic + 1
+fn is_tonic_six_four(segment: &KeySegment) -> bool {
+    let key = segment.key;
+    is_tonic(segment) && segment.chord.bass_tpc() == key.tonic + 1
 }
 
 /// Reports whether the segment is the tonic chord of its key, in any inversion.
-pub fn is_tonic(segment: &Segment) -> bool {
-    let reading = segment.reading;
+pub fn is_tonic(segment: &KeySegment) -> bool {
+    let reading = segment.reading();
     reading.function.tonicized.is_none() && reading.chord.root == reading.key.tonic
 }
 
-fn is_dominant(segment: &Segment) -> bool {
-    let reading = segment.reading;
+fn is_dominant(segment: &KeySegment) -> bool {
+    let reading = segment.reading();
     reading.function.tonicized.is_none()
         && reading.chord.root == reading.key.tonic + 1
         && matches!(reading.chord.quality, Quality::Major | Quality::DominantSeventh)
 }
 
-fn is_in_root_position(segment: &Segment) -> bool {
-    segment.bass_tpc() == segment.reading.chord.root
+fn is_in_root_position(segment: &KeySegment) -> bool {
+    segment.chord.bass_tpc() == segment.reading().chord.root
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading};
-    use crate::engine::rule::History;
-    use crate::engine::rule::arenas_of;
+    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::test_layers::{history_after, key_segment, path_of};
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
     use crate::theory::key::{Key, Mode};
@@ -150,31 +149,21 @@ mod tests {
         }
     }
 
-    /// Builds a path of one-slice segments, each given as (key, root, quality, bass), one per slice.
-    fn path(chords: &[(&str, &str, Quality, &str)]) -> Vec<Segment> {
-        let node = |(i, &(key, root, quality, bass)): (usize, &(&str, &str, Quality, &str))| Segment {
-            reading: reading(key, root, quality),
-            start: i as u32,
-            previous: if i == 0 { NONE } else { i as u32 - 1 },
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass { note: Some((40, tpc(bass))), ..Bass::default() },
-        };
-        chords.iter().enumerate().map(node).collect()
+    /// Returns a one-slice segment given as (key, root, quality, bass).
+    fn segment(&(key, root, quality, bass): &(&str, &str, Quality, &str)) -> KeySegment {
+        let segment = key_segment(reading(key, root, quality));
+        let bass = Bass { note: Some((40, tpc(bass))), ..Bass::default() };
+        KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment }
     }
 
-    /// Scores leaving the key of the path's last segment, with slices at the given metric levels and
-    /// phrases (one more slice than the path, for the new segment).
+    /// Scores leaving the key of the last of a path of segments, with slices at the given metric
+    /// levels and phrases (one more slice than the path, for the new segment).
     fn depart(chords: &[(&str, &str, Quality, &str)], slices: &[Slice]) -> f32 {
-        let segments = path(chords);
-        let layers = arenas_of(&segments);
-        let history = History { layers: &layers, slices, last: layers.hypotheses.len() as u32 - 1 };
+        let path = path_of(&chords.iter().map(segment).collect::<Vec<_>>());
+        let history = history_after(&path, slices);
+        let previous = path.segment(history.last);
         unconfirmed_departure(
-            &DepartureContext {
-                previous: &segments[segments.len() - 1],
-                slice: &slices[chords.len()],
-                history,
-            },
+            &DepartureContext { previous: &previous, slice: &slices[chords.len()], history },
             &RULES[0].default_params(),
         )
     }

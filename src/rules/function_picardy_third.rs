@@ -29,7 +29,7 @@ pub const RULES: &[Rule] = &[Rule {
 }];
 
 fn picardy_third(context: &CloseContext, _: &[f64]) -> f32 {
-    if ends_phrase(context) && is_major_tonic_in_minor(&context.segment.reading) { 1.0 } else { 0.0 }
+    if ends_phrase(context) && is_major_tonic_in_minor(&context.segment.reading()) { 1.0 } else { 0.0 }
 }
 
 fn is_major_tonic_in_minor(reading: &Reading) -> bool {
@@ -40,8 +40,9 @@ fn is_major_tonic_in_minor(reading: &Reading) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, Function, NONE, Segment};
+
+    use crate::engine::model::{Category, Function};
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -68,14 +69,7 @@ mod tests {
             chord: Chord::new(g, quality),
             function: Function { tonicized: None, category: Category::Mixture },
         };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let segment = key_segment(reading);
         let next = next_phrase.map(slice);
         picardy_third(
             &CloseContext { segment: &segment, slices: &[slice(0)], next_slice: next.as_ref() },

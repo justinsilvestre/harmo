@@ -1,7 +1,7 @@
 //! Rules that tell the search which hypotheses hold the same interpretation.
 
 use super::sources::TEMPERLEY_2001;
-use crate::engine::model::{Category, Segment};
+use crate::engine::model::{Category, KeySegment};
 use crate::engine::rule::{Citation, Hook, Layer, Rule};
 use crate::theory::chord::Quality;
 use crate::theory::key::{Key, Mode};
@@ -26,8 +26,8 @@ pub const RULES: &[Rule] = &[Rule {
 
 /// Packs the segment's whole reading into one value, so that two segments get the same value
 /// exactly when their readings are equal.
-fn reading_identity(segment: &Segment, _: &[f64]) -> u64 {
-    let reading = segment.reading;
+fn reading_identity(segment: &KeySegment, _: &[f64]) -> u64 {
+    let reading = segment.reading();
     let tonicized = reading.function.tonicized.map_or(0, |key| 1 << 17 | pack_key(key));
     let fields = [
         (pack_key(reading.key), 17),
@@ -59,12 +59,12 @@ fn category_index(category: Category) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading};
+    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
 
-    fn segment(key: &str, root: &str, tonicized: Option<&str>, start: u32) -> Segment {
+    fn segment(key: &str, root: &str, tonicized: Option<&str>, start: u32) -> KeySegment {
         let major = |name: &str| Key::new(tpc_from_name(name).unwrap(), Mode::Major);
         let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
         let reading = Reading {
@@ -72,7 +72,8 @@ mod tests {
             chord,
             function: Function { tonicized: tonicized.map(major), category: Category::Diatonic },
         };
-        Segment { reading, start, previous: NONE, duration: 1.0, members_heard: 0, bass: Bass::default() }
+        let segment = key_segment(reading);
+        KeySegment { chord: ChordSegment { start, ..segment.chord }, ..segment }
     }
 
     #[test]

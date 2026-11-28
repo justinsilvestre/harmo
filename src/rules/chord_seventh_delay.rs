@@ -57,12 +57,11 @@ fn seventh_delay(context: &ChordCloseContext, params: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::ChordSegment;
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Chord;
-    use crate::theory::key::Key;
 
     /// A two-beat slice in the given bar, sounding the named notes.
     fn slice(start: f64, measure: usize, names: &[&str]) -> Slice {
@@ -76,16 +75,13 @@ mod tests {
         Slice { start, duration: 2.0, notes, measure, metric_level: 2, phrase: 0, key_signature: None }
     }
 
-    /// Scores a segment on G in C major over the given slices.
+    /// Scores a segment on G over the given slices.
     fn score(quality: Quality, slices: &[Slice]) -> f32 {
         let chord = Chord::new(tpc_from_name("G").unwrap(), quality);
-        let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
         let duration = slices.iter().map(|s| s.duration).sum();
-        let (start, previous, members_heard) = (0, NONE, 0b1111);
-        let segment = Segment { reading, start, previous, duration, members_heard, bass: Bass::default() };
+        let segment = ChordSegment { duration, members_heard: 0b1111, ..chord_segment(chord) };
         seventh_delay(
-            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
+            &ChordCloseContext { segment: &segment, slices, next_slice: None },
             &RULES[0].default_params(),
         )
     }

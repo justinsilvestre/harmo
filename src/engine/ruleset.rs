@@ -1,7 +1,7 @@
 //! A set of rules with weights, split by hook so the engine can call each group directly.
 
 use super::bass::{Bass, BassNote};
-use super::model::Segment;
+use super::model::KeySegment;
 use super::rule::{
     AdmitFn, BassFn, ChordCloseContext, ChordCloseFn, ChordSliceContext, ChordSliceFn,
     ChordTransitionContext, ChordTransitionFn, CloseContext, CloseFn, DepartureContext, DepartureFn,
@@ -199,7 +199,7 @@ impl RuleSet {
     }
 
     /// Appends each distinguish hook's value for the segment, in rule order.
-    pub fn distinguish(&self, segment: &Segment, values: &mut Vec<u64>) {
+    pub fn distinguish(&self, segment: &KeySegment, values: &mut Vec<u64>) {
         values.extend(self.distinguish_rules.iter().map(|(f, params)| f(segment, params)));
     }
 }
@@ -215,9 +215,10 @@ fn find_param(rules: &[Rule], key: &str) -> Option<(usize, usize)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+
+    use crate::engine::model::{Function, Reading};
     use crate::engine::rule::{History, Layer, Param};
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
@@ -252,11 +253,6 @@ mod tests {
         Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
-    fn segment(tonic: &str) -> Segment {
-        let (start, previous, duration, members_heard) = (0, NONE, 1.0, 0);
-        Segment { reading: reading(tonic), start, previous, duration, members_heard, bass: Bass::default() }
-    }
-
     fn slice() -> Slice {
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None }
@@ -268,7 +264,7 @@ mod tests {
     }
 
     fn transition_with(rules: &RuleSet, tonic: &str) -> f32 {
-        let (previous, slice) = (segment("C"), slice());
+        let (previous, slice) = (key_segment(reading("C")), slice());
         let history = History::empty(&[]);
         let departures =
             rules.score_departures(&DepartureContext { previous: &previous, slice: &slice, history });

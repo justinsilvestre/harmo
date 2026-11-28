@@ -31,52 +31,36 @@ pub const RULES: &[Rule] = &[Rule {
 }];
 
 fn absent_tonic(context: &DepartureContext, _: &[f64]) -> f32 {
-    let key = context.previous.reading.key;
-    let mut area = context.history.segments().take_while(|s| s.reading.key == key);
+    let key = context.previous.key;
+    let mut area = context.history.segments().take_while(|s| s.key == key);
     if area.any(|s| is_tonic(&s)) { 0.0 } else { -1.0 }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
-    use crate::engine::rule::History;
-    use crate::engine::rule::arenas_of;
+    use crate::engine::model::{Function, KeySegment, Reading};
+    use crate::engine::test_layers::{history_after, key_segment, path_of};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
     use crate::theory::key::{Key, Mode};
 
-    /// Builds a path of one-slice segments, each given as (key, chord root), read in major.
-    fn path(chords: &[(&str, &str)]) -> Vec<Segment> {
-        let node = |(i, &(key, root)): (usize, &(&str, &str))| {
-            let key = Key::new(tpc_from_name(key).unwrap(), Mode::Major);
-            let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
-            let reading = Reading { key, chord, function: Function::DIATONIC };
-            let previous = if i == 0 { NONE } else { i as u32 - 1 };
-
-            Segment {
-                reading,
-                start: i as u32,
-                previous,
-                duration: 1.0,
-                members_heard: 0b111,
-                bass: Bass::default(),
-            }
-        };
-        chords.iter().enumerate().map(node).collect()
+    /// Returns a segment of a major triad, read diatonically in a major key.
+    fn segment(&(key, root): &(&str, &str)) -> KeySegment {
+        let key = Key::new(tpc_from_name(key).unwrap(), Mode::Major);
+        let chord = Chord::new(tpc_from_name(root).unwrap(), Quality::Major);
+        key_segment(Reading { key, chord, function: Function::DIATONIC })
     }
 
-    /// Scores leaving the key of the path's last segment.
+    /// Scores leaving the key of the last of a path of segments, each given as (key, chord root).
     fn depart(chords: &[(&str, &str)]) -> f32 {
-        let segments = path(chords);
-        let layers = arenas_of(&segments);
-        let last = layers.hypotheses.len() as u32 - 1;
+        let path = path_of(&chords.iter().map(segment).collect::<Vec<_>>());
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         let slice = Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None };
-        let history = History { layers: &layers, slices: &[], last };
-        absent_tonic(&DepartureContext { previous: &segments[last as usize], slice: &slice, history }, &[])
+        let history = history_after(&path, &[]);
+        let previous = path.segment(history.last);
+        absent_tonic(&DepartureContext { previous: &previous, slice: &slice, history }, &[])
     }
 
     #[test]

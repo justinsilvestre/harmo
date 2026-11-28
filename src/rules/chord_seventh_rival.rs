@@ -36,7 +36,7 @@ pub const RULES: &[Rule] = &[Rule {
 /// Groups a segment read as a dominant triad or dominant seventh chord, by its key, tonicized key
 /// and root, when its seventh sounds for part of the segment and is approached like a nonchord tone.
 fn seventh_rival(context: &RivalContext, _: &[f64]) -> Option<u64> {
-    let reading = context.segment.reading;
+    let reading = context.segment.reading();
     let chord = reading.chord;
     let is_dominant = reading.function.tonicized.unwrap_or(reading.key).degree_of(chord.root).number == 5;
     if !matches!(chord.quality, Quality::Major | Quality::DominantSeventh) || !is_dominant {
@@ -67,8 +67,8 @@ fn is_approached_by_step(note: &SliceNote, before: Option<&Slice>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::key::Key;
 
@@ -96,15 +96,9 @@ mod tests {
     fn group(root: &str, quality: Quality, before: &Slice, slices: &[Slice]) -> Option<u64> {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 1,
-            previous: NONE,
-            duration: 2.0,
-            members_heard: 0,
-            bass: Bass::default(),
-        };
+        let segment = key_segment(Reading { key, chord, function: Function::DIATONIC });
+        let segment =
+            KeySegment { chord: ChordSegment { start: 1, duration: 2.0, ..segment.chord }, ..segment };
         let context = RivalContext { segment: &segment, slices, previous_slice: Some(before) };
         seventh_rival(&context, &[])
     }

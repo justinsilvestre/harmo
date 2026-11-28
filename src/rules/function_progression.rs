@@ -1,7 +1,7 @@
 //! Rules about how chords function in succession.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::{Category, Reading, Segment};
+use crate::engine::model::{Category, KeySegment, Reading};
 use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::pitch::Tpc;
 use crate::theory::chord::Quality;
@@ -118,13 +118,12 @@ fn diatonic_preference(context: &TransitionContext, params: &[f64]) -> f32 {
 fn continues_tonicization(context: &TransitionContext) -> bool {
     let next = context.next;
     let Some(target) = next.function.tonicized else { return false };
-    let mut recent = context.history.segments().take_while(|s| s.reading.key == next.key);
-    let tonicizes = |segment: &Segment| segment.reading.function.tonicized == Some(target);
+    let mut recent = context.history.segments().take_while(|s| s.key == next.key);
+    let tonicizes = |segment: &KeySegment| segment.function.tonicized == Some(target);
     match recent.next() {
         Some(previous) if tonicizes(&previous) => true,
         Some(previous)
-            if previous.reading.chord.root == target.tonic
-                && previous.reading.function.tonicized.is_none() =>
+            if previous.reading().chord.root == target.tonic && previous.function.tonicized.is_none() =>
         {
             recent.next().is_some_and(|s| tonicizes(&s))
         }
@@ -143,7 +142,7 @@ fn applied_resolution(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
-    match previous.reading.function.tonicized {
+    match previous.function.tonicized {
         Some(target) if target.tonic == context.next.chord.root => 1.0,
         Some(_) => -UNRESOLVED_COST.read(params) as f32,
         None => 0.0,
@@ -154,7 +153,7 @@ fn dominant_resolution(context: &TransitionContext, _: &[f64]) -> f32 {
     let Some(previous) = context.previous else {
         return 0.0;
     };
-    let reading = previous.reading;
+    let reading = previous.reading();
     let next = context.next;
     let resolves = next.key == reading.key && next.chord.root == reading.key.tonic;
     let is_tonic_six_four = context.slice.bass().is_some_and(|n| next.chord.member_index(n.tpc) == Some(2));
@@ -175,10 +174,8 @@ fn has_dominant_function(reading: Reading) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE};
-    use crate::engine::rule::History;
-    use crate::engine::rule::arenas_of;
+    use crate::engine::model::Function;
+    use crate::engine::test_layers::{history_after, key_segment, path_of};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::Chord;
@@ -193,29 +190,16 @@ mod tests {
         }
     }
 
-    /// Builds a path of one-slice segments in C major, each given as (root, quality, tonicized key).
-    fn path(chords: &[(&str, Quality, Option<&str>)]) -> Vec<Segment> {
-        let node = |(i, &(root, quality, target)): (usize, &(&str, Quality, Option<&str>))| {
-            let mut reading = reading("C", root, quality, Category::Diatonic);
-            reading.function.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
-            let previous = if i == 0 { NONE } else { i as u32 - 1 };
-
-            Segment {
-                reading,
-                start: i as u32,
-                previous,
-                duration: 1.0,
-                members_heard: 0,
-                bass: Bass::default(),
-            }
-        };
-        chords.iter().enumerate().map(node).collect()
+    /// Returns a segment in C major given as (root, quality, tonicized key).
+    fn segment(&(root, quality, target): &(&str, Quality, Option<&str>)) -> KeySegment {
+        let mut reading = reading("C", root, quality, Category::Diatonic);
+        reading.function.tonicized = target.map(|t| Key::parse(t, "major").unwrap());
+        key_segment(reading)
     }
 
-    /// Scores reading D major as V/V in C major after the given chords.
+    /// Scores reading D major as V/V in C major after a path of the given chords.
     fn secondary_dominant_after(chords: &[(&str, Quality, Option<&str>)]) -> f32 {
-        let segments = path(chords);
-        let layers = arenas_of(&segments);
+        let path = path_of(&chords.iter().map(segment).collect::<Vec<_>>());
         let mut next = reading("C", "D", Quality::Major, Category::Applied);
         next.function.tonicized = Key::parse("G", "major");
         let slice = Slice {
@@ -227,11 +211,10 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let last = layers.hypotheses.len() as u32 - 1;
-        let history = History { layers: &layers, slices: &[], last };
-        let previous = Some(&segments[last as usize]);
+        let history = history_after(&path, &[]);
+        let previous = path.segment(history.last);
         diatonic_preference(
-            &TransitionContext { previous, next: &next, slice: &slice, history },
+            &TransitionContext { previous: Some(&previous), next: &next, slice: &slice, history },
             &RULES[0].default_params(),
         )
     }

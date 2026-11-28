@@ -90,11 +90,9 @@ fn holds_until_next_beat(following: &[Slice], chord: Chord, member: usize, beat:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Quality;
-    use crate::theory::key::Key;
 
     /// A slice of one bass note, attacked, at the given metric level.
     fn slice(midi: i32, name: &str, metric_level: u8) -> Slice {
@@ -113,19 +111,9 @@ mod tests {
 
     /// Scores a C major segment over the given slices.
     fn score(slices: &[Slice]) -> f32 {
-        let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
-        let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0,
-            bass: Bass::default(),
-        };
+        let segment = chord_segment(Chord::new(tpc_from_name("C").unwrap(), Quality::Major));
         bass_change(
-            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
+            &ChordCloseContext { segment: &segment, slices, next_slice: None },
             &RULES[0].default_params(),
         )
     }

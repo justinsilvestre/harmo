@@ -367,6 +367,6 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
 /// Returns the label that the hypothesis `node` gives the slice `at`.
 pub(super) fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Label> {
     let segment = segment_at(analysis, node, at)?;
-    let reading = segment.reading;
-    Some(Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc()))
+    let reading = segment.reading();
+    Some(Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc()))
 }

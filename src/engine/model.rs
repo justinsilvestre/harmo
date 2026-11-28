@@ -50,91 +50,10 @@ pub struct ChordSegment {
     pub chord: Chord,
     /// Index of the first slice in the segment.
     pub start: u32,
-    /// Index in the hearings of the last hearing of the preceding segment, or `NONE`.
-    pub previous: u32,
     pub duration: f64,
     /// Bit i is set once chord member i (root, third, fifth, seventh) has sounded.
     pub members_heard: u8,
     pub bass: Bass,
-}
-
-/// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
-#[derive(Clone, Copy, Debug)]
-pub struct Hearing {
-    /// Index in the hearings of the hearing up to the slice before, or `NONE`.
-    pub parent: u32,
-    pub slice: u32,
-    pub segment: ChordSegment,
-    /// The sum of the chord rules' weighted scores along the hearing.
-    pub score: f32,
-}
-
-/// A hypothesis, or complete interpretation, which reads the latest segment of one
-/// hearing of the chords in a key, and through its parents every slice up to and including `slice`.
-#[derive(Clone, Copy, Debug)]
-pub struct Hypothesis {
-    /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
-    pub parent: u32,
-    pub slice: u32,
-    /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
-    pub hearing: u32,
-    /// The key that the hypothesis reads the hearing's latest segment in.
-    pub key: Key,
-    /// The function of the segment's chord in that key.
-    pub function: Function,
-    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
-    pub previous: u32,
-    /// The sum of every weighted rule score along the hypothesis, both layers included.
-    pub score: f32,
-}
-
-/// A segment as both layers read it: the chord layer's segment with the key layer's reading of it.
-/// Rules of the key layer receive segments in this form.
-#[derive(Clone, Copy, Debug)]
-pub struct Segment {
-    pub reading: Reading,
-    /// Index of the first slice in the segment.
-    pub start: u32,
-    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
-    pub previous: u32,
-    pub duration: f64,
-    /// Bit i is set once chord member i (root, third, fifth, seventh) has sounded.
-    pub members_heard: u8,
-    pub bass: Bass,
-}
-
-impl Segment {
-    /// Joins a chord segment with a hypothesis's reading of it in a key.
-    pub fn join(chord: &ChordSegment, hypothesis: &Hypothesis) -> Segment {
-        let (key, function) = (hypothesis.key, hypothesis.function);
-        Segment {
-            reading: Reading { key, chord: chord.chord, function },
-            start: chord.start,
-            previous: hypothesis.previous,
-            duration: chord.duration,
-            members_heard: chord.members_heard,
-            bass: chord.bass,
-        }
-    }
-
-    /// Returns the chord layer's part of the segment, with `previous` as given.
-    pub fn chord_segment(&self, previous: u32) -> ChordSegment {
-        let (chord, start, duration) = (self.reading.chord, self.start, self.duration);
-        ChordSegment { chord, start, previous, duration, members_heard: self.members_heard, bass: self.bass }
-    }
-
-    /// Returns the bass note that gives the segment's inversion, as (MIDI number, spelling).
-    pub fn bass_note(&self) -> Option<(i32, Tpc)> {
-        self.bass.note()
-    }
-
-    pub fn bass_tpc(&self) -> Tpc {
-        self.bass_note().map_or(self.reading.chord.root, |(_, tpc)| tpc)
-    }
-
-    pub fn has_heard_member(&self, index: usize) -> bool {
-        self.members_heard & (1 << index) != 0
-    }
 }
 
 impl ChordSegment {
@@ -149,5 +68,61 @@ impl ChordSegment {
 
     pub fn has_heard_member(&self, index: usize) -> bool {
         self.members_heard & (1 << index) != 0
+    }
+}
+
+/// A hearing of the chords: the chord layer's reading of every slice up to and including `slice`.
+#[derive(Clone, Copy, Debug)]
+pub struct Hearing {
+    /// Index in the hearings of the hearing up to the slice before, or `NONE`.
+    pub parent: u32,
+    /// Index in the hearings of the last hearing of the preceding segment, or `NONE`.
+    pub previous: u32,
+    pub slice: u32,
+    /// The segment that the hearing ends in.
+    pub segment: ChordSegment,
+    /// The sum of the chord rules' weighted scores along the hearing.
+    pub score: f32,
+}
+
+/// A hypothesis, or complete interpretation, which reads the latest segment of one hearing of the
+/// chords in a key, and through its parents every slice up to and including `slice`.
+#[derive(Clone, Copy, Debug)]
+pub struct Hypothesis {
+    /// Index in the hypotheses of the hypothesis up to the slice before, or `NONE`.
+    pub parent: u32,
+    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
+    pub previous: u32,
+    pub slice: u32,
+    /// Index in the hearings of the hearing of the chords that this hypothesis interprets.
+    pub hearing: u32,
+    /// The key that the hypothesis reads the hearing's latest segment in.
+    pub key: Key,
+    /// The function of the segment's chord in that key.
+    pub function: Function,
+    /// The sum of every weighted rule score along the hypothesis, both layers included.
+    pub score: f32,
+}
+
+/// A segment as the key layer reads it: a chord segment, with the key it is heard in and its
+/// function there. Rules of the key layer receive segments in this form.
+#[derive(Clone, Copy, Debug)]
+pub struct KeySegment {
+    pub chord: ChordSegment,
+    pub key: Key,
+    pub function: Function,
+    /// Index in the hypotheses of the last hypothesis of the preceding segment, or `NONE`.
+    pub previous: u32,
+}
+
+impl KeySegment {
+    /// Returns a hypothesis's reading of a chord segment.
+    pub fn of(chord: ChordSegment, hypothesis: &Hypothesis) -> KeySegment {
+        let (key, function, previous) = (hypothesis.key, hypothesis.function, hypothesis.previous);
+        KeySegment { chord, key, function, previous }
+    }
+
+    pub fn reading(&self) -> Reading {
+        Reading { key: self.key, chord: self.chord.chord, function: self.function }
     }
 }

@@ -132,11 +132,10 @@ fn completeness(context: &ChordCloseContext, params: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::ChordSegment;
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::{Chord, Quality};
-    use crate::theory::key::Key;
 
     fn note(name: &str, attacked: bool) -> SliceNote {
         SliceNote { tpc: tpc_from_name(name).unwrap(), midi: 0, attacked, onset_level: 0 }
@@ -146,25 +145,21 @@ mod tests {
         Slice { start: 0.0, duration, notes, measure: 0, metric_level: 0, phrase: 0, key_signature: None }
     }
 
+    /// A G7 segment four beats long that has heard its root, third and seventh.
+    fn g7_segment() -> ChordSegment {
+        let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::DominantSeventh);
+        ChordSegment { duration: 4.0, members_heard: 0b1011, ..chord_segment(chord) }
+    }
+
     /// Scores a G7 segment: G and B for three beats, then F for one beat over a G that may be restruck.
     fn g7_seventh_evidence(root_restruck: bool) -> f32 {
         let slices = [
             slice(vec![note("G", true), note("B", true)], 3.0),
             slice(vec![note("G", root_restruck), note("F", true)], 1.0),
         ];
-        let chord = Chord::new(tpc_from_name("G").unwrap(), Quality::DominantSeventh);
-        let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 4.0,
-            members_heard: 0b1011,
-            bass: Bass::default(),
-        };
+        let segment = g7_segment();
         seventh_evidence(
-            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices: &slices, next_slice: None },
+            &ChordCloseContext { segment: &segment, slices: &slices, next_slice: None },
             &RULES[1].default_params(),
         )
     }
@@ -184,22 +179,9 @@ mod tests {
             slice(vec![pitch("G", 55, false), pitch("F", 77, true)], 1.0),
         ];
         let next = slice(vec![pitch("C", next_midi, true)], 1.0);
-        let chord = Chord::new(tpc("G"), Quality::DominantSeventh);
-        let reading = Reading { key: Key::parse("C", "major").unwrap(), chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 4.0,
-            members_heard: 0b1011,
-            bass: Bass::default(),
-        };
+        let segment = g7_segment();
         seventh_evidence(
-            &ChordCloseContext {
-                segment: &segment.chord_segment(NONE),
-                slices: &slices,
-                next_slice: Some(&next),
-            },
+            &ChordCloseContext { segment: &segment, slices: &slices, next_slice: Some(&next) },
             &RULES[1].default_params(),
         )
     }

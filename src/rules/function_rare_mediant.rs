@@ -37,7 +37,7 @@ const MEDIANT: i32 = 4;
 const MINOR_MEDIANT: i32 = -3;
 
 fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
-    let reading = context.segment.reading;
+    let reading = context.segment.reading();
     if reading.function.category != Category::Diatonic || reading.function.tonicized.is_some() {
         return 0.0;
     }
@@ -52,8 +52,9 @@ fn rare_mediant(context: &CloseContext, _: &[f64]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+
+    use crate::engine::model::{Function, Reading};
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
     use crate::theory::key::Key;
@@ -63,14 +64,7 @@ mod tests {
         let key = Key::parse(tonic, mode).unwrap();
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
         let reading = Reading { key, chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let segment = key_segment(reading);
         rare_mediant(&CloseContext { segment: &segment, slices: &[], next_slice: None }, &[])
     }
 

@@ -9,4 +9,6 @@ pub mod pruning;
 pub mod rule;
 pub mod ruleset;
 pub mod search;
+#[cfg(test)]
+pub mod test_layers;
 pub mod trace;

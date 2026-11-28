@@ -12,7 +12,7 @@
 
 use super::bass::{Bass, BassNote};
 use super::layers::Layers;
-use super::model::{ChordSegment, Hearing, Hypothesis, NONE, Reading, Segment};
+use super::model::{ChordSegment, Hearing, Hypothesis, KeySegment, NONE, Reading};
 use super::pruning::{PruneCause, Pruned};
 use super::rule::{
     ChordCloseContext, ChordSliceContext, ChordTransitionContext, CloseContext, DepartureContext, History,
@@ -74,7 +74,7 @@ pub struct Analysis {
 
 impl Analysis {
     /// Returns the segment that a hypothesis ends in, as the key layer reads it.
-    pub fn segment(&self, hypothesis: u32) -> Segment {
+    pub fn segment(&self, hypothesis: u32) -> KeySegment {
         self.layers.segment(hypothesis)
     }
 }
@@ -151,8 +151,9 @@ fn step(
             let previous_score =
                 if parent_chord == NONE { 0.0 } else { layers.hearings[parent_chord as usize].score };
             let score = previous_score + close + transition + opening.chord_fit;
-            let segment = open_segment(chord, index, parent_chord, &slices[index], rules);
-            hearings.push(Hearing { parent: parent_chord, slice: index as u32, segment, score });
+            let segment = open_segment(chord, index, &slices[index], rules);
+            let (parent, previous, slice) = (parent_chord, parent_chord, index as u32);
+            hearings.push(Hearing { parent, previous, slice, segment, score });
             hearings.len() as u32 - 1
         });
         pending.hypotheses.push(Hypothesis {
@@ -191,6 +192,7 @@ fn continuations(slices: &[Slice], index: usize, layers: &Layers, beam: &[u32], 
                 slice: index as u32,
                 segment,
                 score: hearing.score + chord_fit,
+                ..hearing
             });
             hearings.len() as u32 - 1
         });
@@ -273,7 +275,7 @@ fn openings(
 /// new reading (departure scores apply only to readings in another key).
 struct Exit {
     /// The hypothesis's last segment, as both layers read it.
-    segment: Segment,
+    segment: KeySegment,
     /// The hearing of the chords that the hypothesis interprets.
     hearing: u32,
     /// The close rules' score of that segment, both layers included.
@@ -290,7 +292,7 @@ fn exit(slices: &[Slice], index: usize, layers: &Layers, b: u32, rules: &RuleSet
     let segment = layers.segment(b);
     let history = History { layers, slices, last: b };
     let context = DepartureContext { previous: &segment, slice: &slices[index], history };
-    let start = segment.start as usize;
+    let start = segment.chord.start as usize;
     let rival = RivalContext {
         segment: &segment,
         slices: &slices[start..=node.slice as usize],
@@ -355,7 +357,7 @@ fn predecessors(
     rules: &RuleSet,
 ) -> Vec<(Option<usize>, f32)> {
     let reading = &opening.reading;
-    let evaluate = |previous: Option<&Segment>, last: u32, (departures, row): (&[f32], usize)| {
+    let evaluate = |previous: Option<&KeySegment>, last: u32, (departures, row): (&[f32], usize)| {
         let history = History { layers, slices, last };
         let context = TransitionContext { previous, next: reading, slice: &slices[index], history };
         let chord_transition = transitions[row][opening.chord_id];
@@ -378,13 +380,13 @@ fn predecessors(
         return vec![];
     };
     let mut found = vec![best];
-    let best_reading = exits[best.0].segment.reading;
+    let best_reading = exits[best.0].segment.reading();
     for (rule, group) in exits[best.0].rivals.iter().enumerate() {
         let Some(group) = *group else {
             continue;
         };
         let is_rival = |&&(position, _): &&(usize, f32)| {
-            exits[position].rivals[rule] == Some(group) && exits[position].segment.reading != best_reading
+            exits[position].rivals[rule] == Some(group) && exits[position].segment.reading() != best_reading
         };
         let rival = best_of(&mut scored.iter().filter(is_rival));
         if let Some(rival) = rival.filter(|r| !found.iter().any(|f| f.0 == r.0)) {
@@ -394,15 +396,9 @@ fn predecessors(
     found.into_iter().map(|(position, score)| (Some(position), score)).collect()
 }
 
-fn open_segment(chord: Chord, index: usize, previous: u32, slice: &Slice, rules: &RuleSet) -> ChordSegment {
-    let empty = ChordSegment {
-        chord,
-        start: index as u32,
-        previous,
-        duration: 0.0,
-        members_heard: 0,
-        bass: Bass::default(),
-    };
+fn open_segment(chord: Chord, index: usize, slice: &Slice, rules: &RuleSet) -> ChordSegment {
+    let empty =
+        ChordSegment { chord, start: index as u32, duration: 0.0, members_heard: 0, bass: Bass::default() };
     extend(empty, slice, rules)
 }
 
@@ -436,11 +432,11 @@ fn chord_close_score(
 fn key_close_score(
     slices: &[Slice],
     node: &Hypothesis,
-    segment: &Segment,
+    segment: &KeySegment,
     next_slice: Option<&Slice>,
     rules: &RuleSet,
 ) -> f32 {
-    let span = &slices[segment.start as usize..=node.slice as usize];
+    let span = &slices[segment.chord.start as usize..=node.slice as usize];
     rules.score_close(&CloseContext { segment, slices: span, next_slice })
 }
 
@@ -463,7 +459,7 @@ fn prune(
     let mut dropped = Vec::new();
     let mut kept_hearings: HashSet<u32> = HashSet::new();
     let segment = |hypothesis: &Hypothesis| {
-        Segment::join(&pending.hearings[hypothesis.hearing as usize].segment, hypothesis)
+        KeySegment::of(pending.hearings[hypothesis.hearing as usize].segment, hypothesis)
     };
     for (rank, hypothesis) in ranked.into_iter().enumerate() {
         let cause = if kept.len() == config.beam_width {
@@ -504,7 +500,7 @@ fn is_hearing_beyond_limit(hearings: &HashSet<u32>, hearing: u32, config: &Confi
 
 /// Returns the distinguish hooks' values for a segment and for up to `depth - 1` segments before it,
 /// most recent first.
-fn signature(segment: Segment, layers: &Layers, rules: &RuleSet, depth: usize) -> Vec<u64> {
+fn signature(segment: KeySegment, layers: &Layers, rules: &RuleSet, depth: usize) -> Vec<u64> {
     let mut values = Vec::with_capacity(depth * rules.distinguish_rules.len());
     let mut current = segment;
     for count in 1.. {

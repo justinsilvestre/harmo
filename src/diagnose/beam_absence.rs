@@ -4,7 +4,7 @@
 use super::beam_diversity::segment_label;
 use crate::bench::metrics::is_rn_match;
 use crate::engine::history::segment_at;
-use crate::engine::model::Segment;
+use crate::engine::model::KeySegment;
 use crate::engine::pruning::{PruneCause, Pruned};
 use crate::engine::search::Analysis;
 use crate::score::slicing::Slice;
@@ -52,7 +52,11 @@ pub fn find_pruning(
     })
 }
 
-fn pruned_segment_at(analysis: &Analysis, pruned: &Pruned, at: usize) -> Option<Segment> {
+fn pruned_segment_at(analysis: &Analysis, pruned: &Pruned, at: usize) -> Option<KeySegment> {
     let segment = pruned.segment;
-    if segment.start as usize <= at { Some(segment) } else { segment_at(analysis, segment.previous, at) }
+    if segment.chord.start as usize <= at {
+        Some(segment)
+    } else {
+        segment_at(analysis, segment.previous, at)
+    }
 }

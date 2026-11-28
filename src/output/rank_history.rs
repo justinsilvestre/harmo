@@ -84,7 +84,7 @@ fn rank_change_output(change: &RankChange, context: &HistoryContext) -> RankChan
 /// Returns the reading that the hypothesis ending at `node` gives the followed slice.
 fn held_reading(node: u32, context: &HistoryContext) -> Option<ReadingOutput> {
     let segment = segment_at(context.analysis, node, context.at)?;
-    let reading = segment.reading;
-    let label = Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc());
+    let reading = segment.reading();
+    let label = Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc());
     Some(reading_output(&label, reading.function.category))
 }

@@ -65,12 +65,11 @@ fn is_judged(quality: Quality) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::ChordSegment;
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Chord;
-    use crate::theory::key::Key;
 
     fn slice(names: &[&str]) -> Slice {
         let note = |name: &&str| SliceNote {
@@ -93,18 +92,9 @@ mod tests {
     /// Scores a two-beat segment on the given root and quality in C major.
     fn score(root: &str, quality: Quality, slices: &[Slice]) -> f32 {
         let chord = Chord::new(tpc_from_name(root).unwrap(), quality);
-        let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
-        let segment = Segment {
-            reading,
-            start: 0,
-            previous: NONE,
-            duration: 2.0,
-            members_heard: 0b1111,
-            bass: Bass::default(),
-        };
+        let segment = ChordSegment { duration: 2.0, members_heard: 0b1111, ..chord_segment(chord) };
         seventh_sonority(
-            &ChordCloseContext { segment: &segment.chord_segment(NONE), slices, next_slice: None },
+            &ChordCloseContext { segment: &segment, slices, next_slice: None },
             &RULES[0].default_params(),
         )
     }

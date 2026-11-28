@@ -32,10 +32,11 @@ pub fn trace_segment(
 ) -> Vec<Contribution> {
     let state = analysis.segment(segment.node);
     let layers = &analysis.layers;
-    let hearing = &layers.hearing_of(segment.node).segment;
+    let heard = layers.hearing_of(segment.node);
+    let hearing = &heard.segment;
     let previous = (state.previous != NONE).then(|| analysis.segment(state.previous));
     let previous_hearing =
-        (hearing.previous != NONE).then(|| &layers.hearings[hearing.previous as usize].segment);
+        (heard.previous != NONE).then(|| &layers.hearings[heard.previous as usize].segment);
     let (first, end) = segment.slices;
     let transition = TransitionContext {
         previous: previous.as_ref(),

@@ -1,6 +1,6 @@
 //! Measures how varied the beam is, to show whether near-duplicate hypotheses crowd it.
 
-use crate::engine::model::Segment;
+use crate::engine::model::KeySegment;
 use crate::engine::search::Analysis;
 use crate::theory::label::Label;
 use serde::Serialize;
@@ -35,9 +35,9 @@ impl BeamTally {
 pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
     let mut tally = BeamTally::default();
     for beam in &analysis.snapshots {
-        let segments: Vec<Segment> = beam.iter().map(|&node| analysis.segment(node)).collect();
+        let segments: Vec<KeySegment> = beam.iter().map(|&node| analysis.segment(node)).collect();
         let readings: HashSet<Label> = segments.iter().map(segment_label).collect();
-        let chord_keys: HashSet<_> = segments.iter().map(|s| (s.reading.chord, s.reading.key)).collect();
+        let chord_keys: HashSet<_> = segments.iter().map(|s| (s.reading().chord, s.key)).collect();
         let leading_readings: HashSet<Label> = segments.iter().take(leading).map(segment_label).collect();
         tally.slices += 1;
         tally.hypotheses += beam.len() as u64;
@@ -49,7 +49,7 @@ pub fn tally_beam(analysis: &Analysis, leading: usize) -> BeamTally {
 }
 
 /// Returns the label of a segment, with the inversion given by the lowest chord tone heard so far.
-pub fn segment_label(segment: &Segment) -> Label {
-    let reading = segment.reading;
-    Label::new(reading.key, reading.function.tonicized, reading.chord, segment.bass_tpc())
+pub fn segment_label(segment: &KeySegment) -> Label {
+    let reading = segment.reading();
+    Label::new(reading.key, reading.function.tonicized, reading.chord, segment.chord.bass_tpc())
 }

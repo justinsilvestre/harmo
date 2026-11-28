@@ -2,7 +2,7 @@
 
 use super::bass::{Bass, BassNote};
 use super::layers::{Layers, NO_LAYERS};
-use super::model::{ChordSegment, Function, NONE, Reading, Segment};
+use super::model::{ChordSegment, Function, KeySegment, NONE, Reading};
 use crate::score::slicing::Slice;
 use crate::theory::chord::Chord;
 use crate::theory::key::Key;
@@ -84,7 +84,7 @@ pub type AdmitFn = fn(&TransitionContext) -> bool;
 /// Returns a segment's bass evidence after it hears one more chord tone.
 pub type BassFn = fn(Bass, &BassNote, &[f64]) -> Bass;
 /// Returns an opaque value for a segment; the engine only compares values for equality.
-pub type DistinguishFn = fn(&Segment, &[f64]) -> u64;
+pub type DistinguishFn = fn(&KeySegment, &[f64]) -> u64;
 /// Returns the rival group of a hypothesis's last segment, or `None` if it has no rival reading.
 pub type RivalFn = fn(&RivalContext, &[f64]) -> Option<u64>;
 /// Returns a rival reading of a slice for a candidate reading of it, or `None`.
@@ -201,7 +201,7 @@ pub struct SliceContext<'a> {
 
 pub struct TransitionContext<'a> {
     /// The segment being closed, or `None` at the start of the piece.
-    pub previous: Option<&'a Segment>,
+    pub previous: Option<&'a KeySegment>,
     pub next: &'a Reading,
     pub slice: &'a Slice,
     pub history: History<'a>,
@@ -210,21 +210,21 @@ pub struct TransitionContext<'a> {
 impl<'a> TransitionContext<'a> {
     /// Returns the context for departure hooks if the transition leaves the previous segment's key.
     pub fn departure(&self) -> Option<DepartureContext<'a>> {
-        let previous = self.previous.filter(|p| p.reading.key != self.next.key)?;
+        let previous = self.previous.filter(|p| p.key != self.next.key)?;
         Some(DepartureContext { previous, slice: self.slice, history: self.history })
     }
 }
 
 pub struct DepartureContext<'a> {
     /// The segment being closed.
-    pub previous: &'a Segment,
+    pub previous: &'a KeySegment,
     /// The slice that opens the new segment.
     pub slice: &'a Slice,
     pub history: History<'a>,
 }
 
 pub struct CloseContext<'a> {
-    pub segment: &'a Segment,
+    pub segment: &'a KeySegment,
     /// The slices covered by the segment.
     pub slices: &'a [Slice],
     /// The slice that opens the following segment, if any.
@@ -232,7 +232,7 @@ pub struct CloseContext<'a> {
 }
 
 pub struct RivalContext<'a> {
-    pub segment: &'a Segment,
+    pub segment: &'a KeySegment,
     /// The slices covered by the segment so far.
     pub slices: &'a [Slice],
     /// The slice before the segment, if any.
@@ -251,7 +251,7 @@ pub struct History<'a> {
 }
 
 impl<'a> History<'a> {
-    pub fn segments(self) -> impl Iterator<Item = Segment> + 'a {
+    pub fn segments(self) -> impl Iterator<Item = KeySegment> + 'a {
         let layers = self.layers;
         let at = move |hypothesis: u32| (hypothesis != NONE).then(|| layers.segment(hypothesis));
         std::iter::successors(at(self.last), move |s| at(s.previous))
@@ -263,34 +263,10 @@ impl<'a> History<'a> {
     }
 }
 
-/// Builds the arenas of a chain of segments, for tests: segment i becomes node i, whose `previous`
-/// is taken from the segment.
-#[cfg(test)]
-pub fn arenas_of(segments: &[Segment]) -> Layers {
-    use super::model::{Hearing, Hypothesis};
-    let node = |(i, s): (usize, &Segment)| Hypothesis {
-        parent: s.previous,
-        slice: i as u32,
-        hearing: i as u32,
-        key: s.reading.key,
-        function: s.reading.function,
-        previous: s.previous,
-        score: 0.0,
-    };
-    let chord = |(i, s): (usize, &Segment)| Hearing {
-        parent: s.previous,
-        slice: i as u32,
-        segment: s.chord_segment(s.previous),
-        score: 0.0,
-    };
-    let hypotheses = segments.iter().enumerate().map(node).collect();
-    Layers { hearings: segments.iter().enumerate().map(chord).collect(), hypotheses }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Quality;
     use crate::theory::key::Mode;
@@ -301,11 +277,6 @@ mod tests {
         Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
-    fn segment(tonic: &str) -> Segment {
-        let (start, previous, duration, members_heard) = (0, NONE, 1.0, 0);
-        Segment { reading: reading(tonic), start, previous, duration, members_heard, bass: Bass::default() }
-    }
-
     fn slice() -> Slice {
         let (start, duration, notes, measure, metric_level, phrase) = (0.0, 1.0, vec![], 0, 0, 0);
         Slice { start, duration, notes, measure, metric_level, phrase, key_signature: None }
@@ -313,7 +284,8 @@ mod tests {
 
     /// Reports whether a transition from the given previous key to C major is a departure.
     fn is_departure(previous: Option<&str>) -> bool {
-        let (previous, next, slice) = (previous.map(segment), reading("C"), slice());
+        let (previous, next, slice) =
+            (previous.map(|tonic| key_segment(reading(tonic))), reading("C"), slice());
         let history = History::empty(&[]);
         TransitionContext { previous: previous.as_ref(), next: &next, slice: &slice, history }
             .departure()

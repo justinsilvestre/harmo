@@ -56,11 +56,10 @@ fn is_six_four(segment: &ChordSegment) -> bool {
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::Segment;
-    use crate::engine::model::{Function, NONE, Reading};
+    use crate::engine::model::ChordSegment;
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::theory::chord::Chord;
-    use crate::theory::key::Key;
 
     fn slice(notes: &[(i32, &str)]) -> Slice {
         let note = |&(midi, name): &(i32, &str)| SliceNote {
@@ -83,20 +82,10 @@ mod tests {
     /// Scores a C major tonic six-four over G3 followed by the given slice.
     fn score_before(next: &Slice) -> f32 {
         let chord = Chord::new(tpc_from_name("C").unwrap(), Quality::Major);
-        let key = Key::parse("C", "major").unwrap();
-        let reading = Reading { key, chord, function: Function::DIATONIC };
         let bass = Bass { note: Some((55, tpc_from_name("G").unwrap())), ..Bass::default() };
-        let segment =
-            Segment { reading, start: 0, previous: NONE, duration: 1.0, members_heard: 0b111, bass };
+        let segment = ChordSegment { members_heard: 0b111, bass, ..chord_segment(chord) };
         let slices = [slice(&[(55, "G"), (60, "C"), (64, "E")])];
-        six_four(
-            &ChordCloseContext {
-                segment: &segment.chord_segment(NONE),
-                slices: &slices,
-                next_slice: Some(next),
-            },
-            &[],
-        )
+        six_four(&ChordCloseContext { segment: &segment, slices: &slices, next_slice: Some(next) }, &[])
     }
 
     #[test]

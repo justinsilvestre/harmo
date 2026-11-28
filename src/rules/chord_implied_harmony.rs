@@ -90,8 +90,8 @@ fn line_fit<'a>(line: impl Iterator<Item = (&'a Slice, f64)>, chord: Chord) -> f
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
+    use crate::engine::model::{ChordSegment, Function, Reading};
+    use crate::engine::test_layers::chord_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::SliceNote;
     use crate::theory::chord::Quality;
@@ -126,16 +126,9 @@ mod tests {
     /// Scores a change from C major to G major on the second of the given beats.
     fn change_from_c_to_g(beats: &[&[&str]]) -> f32 {
         let slices = slices(beats);
-        let previous = Segment {
-            reading: reading("C"),
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass: Bass::default(),
-        };
+        let previous = ChordSegment { members_heard: 0b111, ..chord_segment(reading("C").chord) };
         let context = ChordTransitionContext {
-            previous: Some(&previous.chord_segment(NONE)),
+            previous: Some(&previous),
             next: reading("G").chord,
             slice: &slices[1],
             slices: &slices,

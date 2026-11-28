@@ -44,13 +44,13 @@ const ESTABLISHED_AREA: Param = Param {
 
 fn modulation(context: &TransitionContext, _: &[f64]) -> f32 {
     match context.previous {
-        Some(previous) if previous.reading.key != context.next.key => -1.0,
+        Some(previous) if previous.key != context.next.key => -1.0,
         _ => 0.0,
     }
 }
 
 fn area_duration(context: &DepartureContext, params: &[f64]) -> f32 {
-    let key = context.previous.reading.key;
+    let key = context.previous.key;
     let established = ESTABLISHED_AREA.read(params);
     -((1.0 - area_heard(context.history, key, established) / established).max(0.0) as f32)
 }
@@ -59,8 +59,8 @@ fn area_duration(context: &DepartureContext, params: &[f64]) -> f32 {
 /// established, since a longer area costs no more.
 fn area_heard(history: History, key: Key, established: f64) -> f64 {
     let mut area = 0.0;
-    for segment in history.segments().take_while(|s| s.reading.key == key) {
-        area += segment.duration;
+    for segment in history.segments().take_while(|s| s.key == key) {
+        area += segment.chord.duration;
         if area >= established {
             break;
         }
@@ -71,9 +71,9 @@ fn area_heard(history: History, key: Key, established: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::bass::Bass;
-    use crate::engine::model::{Function, NONE, Reading, Segment};
-    use crate::engine::rule::arenas_of;
+    use crate::engine::layers::Layers;
+    use crate::engine::model::{ChordSegment, Function, KeySegment, Reading};
+    use crate::engine::test_layers::{history_after, key_segment, path_of};
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::Slice;
     use crate::theory::chord::{Chord, Quality};
@@ -85,38 +85,22 @@ mod tests {
         Reading { key: Key::new(tpc, Mode::Major), chord, function: Function::DIATONIC }
     }
 
-    /// Chains one tonic triad segment per (tonic, duration), each following the one before.
-    fn arena(segments: &[(&str, f64)]) -> Vec<Segment> {
-        let node = |(index, &(tonic, duration)): (usize, &(&str, f64))| {
-            let previous = if index == 0 { NONE } else { index as u32 - 1 };
-
-            Segment {
-                reading: reading(tonic),
-                start: index as u32,
-                previous,
-                duration,
-                members_heard: 0b111,
-                bass: Bass::default(),
-            }
+    /// Returns the path of one tonic triad segment per (tonic, duration).
+    fn path(segments: &[(&str, f64)]) -> Layers {
+        let segment = |&(tonic, duration): &(&str, f64)| {
+            let segment = key_segment(reading(tonic));
+            KeySegment { chord: ChordSegment { duration, ..segment.chord }, ..segment }
         };
-        segments.iter().enumerate().map(node).collect()
+        path_of(&segments.iter().map(segment).collect::<Vec<_>>())
     }
 
     fn heard(segments: &[(&str, f64)]) -> f64 {
-        let segments = arena(segments);
-        let layers = arenas_of(&segments);
-        area_heard(
-            History { layers: &layers, slices: &[], last: layers.hypotheses.len() as u32 - 1 },
-            reading("C").key,
-            16.0,
-        )
+        area_heard(history_after(&path(segments), &[]), reading("C").key, 16.0)
     }
 
     /// Scores leaving the key of the given segments.
     fn leaving(segments: &[(&str, f64)]) -> f32 {
-        let segments = arena(segments);
-        let layers = arenas_of(&segments);
-        let last = layers.hypotheses.len() as u32 - 1;
+        let path = path(segments);
         let slice = Slice {
             start: 0.0,
             duration: 1.0,
@@ -126,11 +110,8 @@ mod tests {
             phrase: 0,
             key_signature: None,
         };
-        let context = DepartureContext {
-            previous: &segments[last as usize],
-            slice: &slice,
-            history: History { layers: &layers, slices: &[], last },
-        };
+        let history = history_after(&path, &[]);
+        let context = DepartureContext { previous: &path.segment(history.last), slice: &slice, history };
         area_duration(&context, &RULES[1].default_params())
     }
 

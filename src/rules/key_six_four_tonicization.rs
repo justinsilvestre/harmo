@@ -1,7 +1,7 @@
 //! Rules about a cadential six-four as evidence that the music has moved to a new key.
 
 use super::sources::KOSTKA_PAYNE_ALMEN_2023;
-use crate::engine::model::Segment;
+use crate::engine::model::KeySegment;
 use crate::engine::rule::{Citation, Hook, Layer, Param, Rule, TransitionContext};
 use crate::theory::chord::Quality;
 
@@ -40,26 +40,26 @@ const STRONG_BEAT: Param = Param {
 
 fn six_four_tonicization(context: &TransitionContext, params: &[f64]) -> f32 {
     let Some(previous) = context.previous else { return 0.0 };
-    let opening = context.history.slices.get(previous.start as usize).map_or(0, |s| s.metric_level);
+    let opening = context.history.slices.get(previous.chord.start as usize).map_or(0, |s| s.metric_level);
     let is_on_stronger_beat =
         f64::from(opening) >= STRONG_BEAT.read(params) && opening > context.slice.metric_level;
     let tonicizes_six_four =
-        context.next.function.tonicized.is_some_and(|t| t.tonic == previous.reading.chord.root);
+        context.next.function.tonicized.is_some_and(|t| t.tonic == previous.reading().chord.root);
     let is_cadential = is_on_stronger_beat && is_six_four(previous) && is_dominant_on_bass(context, previous);
     if is_cadential && tonicizes_six_four { -1.0 } else { 0.0 }
 }
 
 /// Reports whether the segment is a major or minor triad with its fifth in the bass.
-fn is_six_four(segment: &Segment) -> bool {
-    let chord = segment.reading.chord;
+fn is_six_four(segment: &KeySegment) -> bool {
+    let chord = segment.reading().chord;
     matches!(chord.quality, Quality::Major | Quality::Minor)
-        && chord.member_index(segment.bass_tpc()) == Some(2)
+        && chord.member_index(segment.chord.bass_tpc()) == Some(2)
 }
 
 /// Reports whether the new chord is a major triad or dominant seventh in root position on the bass
 /// of the previous segment.
-fn is_dominant_on_bass(context: &TransitionContext, previous: &Segment) -> bool {
-    let bass = previous.bass_tpc();
+fn is_dominant_on_bass(context: &TransitionContext, previous: &KeySegment) -> bool {
+    let bass = previous.chord.bass_tpc();
     let keeps_bass = context.slice.bass().is_some_and(|note| note.tpc == bass);
     let chord = context.next.chord;
     keeps_bass && chord.root == bass && matches!(chord.quality, Quality::Major | Quality::DominantSeventh)
@@ -69,8 +69,9 @@ fn is_dominant_on_bass(context: &TransitionContext, previous: &Segment) -> bool 
 mod tests {
     use super::*;
     use crate::engine::bass::Bass;
-    use crate::engine::model::{Category, Function, NONE, Reading};
+    use crate::engine::model::{Category, ChordSegment, Function, KeySegment, Reading};
     use crate::engine::rule::History;
+    use crate::engine::test_layers::key_segment;
     use crate::pitch::tpc_from_name;
     use crate::score::slicing::{Slice, SliceNote};
     use crate::theory::chord::Chord;
@@ -110,14 +111,8 @@ mod tests {
         let chord = Chord::new(tpc("G"), Quality::Major);
         let six_four = Reading { key: c_major, chord, function: Function::DIATONIC };
         let bass = Bass { note: Some((50, tpc(setting.six_four_bass))), ..Bass::default() };
-        let previous = Segment {
-            reading: six_four,
-            start: 0,
-            previous: NONE,
-            duration: 1.0,
-            members_heard: 0b111,
-            bass,
-        };
+        let segment = key_segment(six_four);
+        let previous = KeySegment { chord: ChordSegment { bass, ..segment.chord }, ..segment };
         let tonicized = tonicized.map(|t| Key::new(tpc(t), Mode::Major));
         let category = if tonicized.is_some() { Category::Applied } else { Category::Diatonic };
         let chord = Chord::new(tpc("D"), Quality::DominantSeventh);
