@@ -3,6 +3,9 @@
 use super::equivalence::{ExpertEquivalents, ExpertView, FrameSounds};
 use super::frames::{FRAME, frame_labels, frame_slices};
 use super::groundtruth::load_labels;
+use super::hindsight::descendant_bests;
+use super::layer_frames::{hindsight_frames, layer_frames};
+use super::layer_offers::LayerOffers;
 use super::manifest::{Manifest, ManifestPiece};
 use super::metrics::{Accuracy, Agreement, EquivalentMatches};
 use super::offer_delay::{OfferDelays, offer_delays};
@@ -59,6 +62,15 @@ pub struct EvalConfig {
     pub timing_tolerance: f64,
     /// Whether to measure how soon each expert reading is offered (see `offer_delay`).
     pub measure_offer_delays: bool,
+    /// When keys are offered on their own (see `layer_offers`), the most a key's shortfall may be.
+    pub key_offer_margin: f32,
+    /// When chords are offered on their own, the most a chord's shortfall may be.
+    pub chord_offer_margin: f32,
+    /// When numerals are built from the keys and chords offered, the most their combined shortfall
+    /// may be.
+    pub numeral_offer_margin: f32,
+    /// Whether to measure coverage in hindsight (see `hindsight`).
+    pub measure_hindsight: bool,
 }
 
 /// The default timing tolerance of the equivalents measure, an eighth note.
@@ -75,6 +87,10 @@ impl Default for EvalConfig {
             offer_lag: 2.0,
             timing_tolerance: TIMING_TOLERANCE,
             measure_offer_delays: false,
+            key_offer_margin: 4.0,
+            chord_offer_margin: 4.0,
+            numeral_offer_margin: 4.0,
+            measure_hindsight: false,
         }
     }
 }
@@ -90,6 +106,17 @@ pub struct PieceResult {
     /// How soon each expert reading was offered, when measured.
     #[serde(skip)]
     pub offer_delays: Option<OfferDelays>,
+    pub timing: Timing,
+}
+
+/// Seconds spent on one piece in each part of its evaluation.
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+pub struct Timing {
+    pub search: f64,
+    /// Offering keys, chords and numerals one layer at a time.
+    pub layers: f64,
+    /// The backward pass and the readings offered in hindsight.
+    pub hindsight: f64,
 }
 
 /// Loads pieces in parallel, returning the loaded pieces and (piece id, error) pairs for failures.
@@ -143,6 +170,7 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
     let started = Instant::now();
     let engine = Config { record_snapshots: true, ..config.engine.clone() };
     let analysis = analyze(&piece.slices, rules, &engine);
+    let search = started.elapsed().as_secs_f64();
     let top = top_frames(&analysis, piece);
     let offered = offered_frames(&analysis, piece, top.len(), config);
     let now = now_frames(&analysis, piece, top.len(), config);
@@ -155,8 +183,11 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
             accuracy.add_equivalence(credit(&top[frame]), credit(&now[frame]));
         }
     }
-    let agreement =
-        (piece.analyses.len() >= 2).then(|| agreement(piece, (&top, &offered), config.timing_tolerance));
+    let (layers, hindsight, timing) = layered_frames(&analysis, piece, top.len(), config);
+    let timing = Timing { search, ..timing };
+    let layered = (layers.as_slice(), hindsight.as_deref());
+    let agreement = (piece.analyses.len() >= 2)
+        .then(|| agreement(piece, (&top, &offered), layered, config.timing_tolerance));
     let offer_delays = config.measure_offer_delays.then(|| offer_delays(&analysis, piece, config));
     PieceResult {
         id: piece.id.clone(),
@@ -166,7 +197,27 @@ pub fn evaluate_piece(piece: &BenchPiece, rules: &RuleSet, config: &EvalConfig) 
         accuracy,
         agreement,
         offer_delays,
+        timing,
     }
+}
+
+/// Returns the readings offered layer by layer at each frame, those offered in hindsight when
+/// measured, and the time each took.
+fn layered_frames(
+    analysis: &Analysis,
+    piece: &BenchPiece,
+    count: usize,
+    config: &EvalConfig,
+) -> (Vec<LayerOffers>, Option<Vec<LayerOffers>>, Timing) {
+    let started = Instant::now();
+    let layers = layer_frames(analysis, piece, count, config);
+    let layers_seconds = started.elapsed().as_secs_f64();
+    let hindsight = config.measure_hindsight.then(|| {
+        let bests = descendant_bests(analysis);
+        hindsight_frames(analysis, piece, (count, &bests), config)
+    });
+    let hindsight_seconds = started.elapsed().as_secs_f64() - layers_seconds;
+    (layers, hindsight, Timing { search: 0.0, layers: layers_seconds, hindsight: hindsight_seconds })
 }
 
 /// Returns the label of the best final hypothesis at each frame of the piece.
@@ -188,9 +239,11 @@ fn hypothesis_frames(analysis: &Analysis, piece: &BenchPiece, node: u32, count: 
 fn agreement(
     piece: &BenchPiece,
     (top, offered): (&[Option<Label>], &[Vec<Label>]),
+    (layers, hindsight): (&[LayerOffers], Option<&[LayerOffers]>),
     tolerance: f64,
 ) -> Agreement {
-    let mut agreement = Agreement::default();
+    let mut agreement =
+        Agreement { hindsight: hindsight.map(|_| Default::default()), ..Agreement::default() };
     let count = piece.analyses.len();
     for (i, j) in (0..count).flat_map(|i| (i + 1..count).map(move |j| (i, j))) {
         let (first, second) = (piece.expert_view(i, tolerance), piece.expert_view(j, tolerance));
@@ -207,6 +260,10 @@ fn agreement(
                     offers_second: offers(&second),
                 };
                 agreement.add_frame(top, &offered[frame], (a, b), equivalents);
+                agreement.layers.add_frame(&layers[frame], (a, b));
+                if let (Some(coverage), Some(hindsight)) = (agreement.hindsight.as_mut(), hindsight) {
+                    coverage.add_frame(&hindsight[frame], (a, b));
+                }
             }
         }
     }
@@ -241,7 +298,11 @@ pub fn now_frames(
     slice_values_by_frame(slices, count, &per_slice)
 }
 
-fn slice_values_by_frame<T: Clone + Default>(slices: &[Slice], count: usize, per_slice: &[T]) -> Vec<T> {
+pub(super) fn slice_values_by_frame<T: Clone + Default>(
+    slices: &[Slice],
+    count: usize,
+    per_slice: &[T],
+) -> Vec<T> {
     let value_at = |slice: usize| per_slice.get(slice).cloned().unwrap_or_default();
     frame_slices(slices, count).into_iter().map(value_at).collect()
 }
@@ -294,7 +355,7 @@ fn now_at(analysis: &Analysis, slices: &[Slice], at: usize, config: &EvalConfig)
 }
 
 /// Returns the label that the hypothesis `node` gives the slice `at`.
-fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Label> {
+pub(super) fn reading_at(analysis: &Analysis, node: u32, at: usize) -> Option<Label> {
     let segment = segment_at(analysis, node, at)?;
     let reading = segment.reading;
     Some(Label::new(reading.key, reading.tonicized, reading.chord, segment.bass_tpc()))

@@ -19,7 +19,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 const USAGE: &str = "usage:
   harmo analyze <score.mxl|musicxml> [--json]
-  harmo bench [--set NAME]... [--label TEXT] [--compare RUN.json] [--limit N]
+  harmo bench [--set NAME]... [--label TEXT] [--compare RUN.json] [--limit N] [--hindsight]
   harmo diagnose [--set NAME]... [--json] [--limit N]
   harmo results [--out FILE] [--limit N]
   harmo sweep <sweep.json> [--limit N]
@@ -28,6 +28,8 @@ const USAGE: &str = "usage:
   harmo rules
 common options: --data DIR (default: data) --beam N --candidates N --distinct-depth N
   --offer-count N --offer-margin X --offer-lag QUARTERS
+  --key-offer-margin X --chord-offer-margin X --numeral-offer-margin X (the margins of readings
+    offered one layer at a time; each defaults to --offer-margin)
   --timing-tolerance QUARTERS (how far the equivalents RN measure looks for a shifted label)
   --weights FILE, --params FILE: JSON objects of rule weights by rule id and of rule
     parameters by <rule id>.<parameter name> (listed by harmo rules)
@@ -90,9 +92,11 @@ fn bench(args: &Args) -> Result<(), String> {
     if let Some(previous) = &previous {
         println!();
         bootstrap_coverage::print_coverage_intervals(&sets_summary, &results, previous);
+        bootstrap_coverage::print_layer_coverage_intervals(&sets_summary, &results, previous);
     }
     let slices: usize = results.iter().map(|r| r.slices).sum();
     println!("\nanalyzed {} pieces ({slices} slices) in {seconds:.2}s", results.len());
+    report::print_timing(&results);
     let record = RunRecord {
         label: args.value("label").unwrap_or("run").to_string(),
         timestamp: now(),
@@ -129,7 +133,7 @@ fn diagnose(args: &Args) -> Result<(), String> {
 fn results(args: &Args) -> Result<(), String> {
     let started = Instant::now();
     let rules = RuleSet::new(default_rules(), &load_overrides(args)?)?;
-    let config = EvalConfig { measure_offer_delays: true, ..eval_config(args)? };
+    let config = EvalConfig { measure_offer_delays: true, measure_hindsight: true, ..eval_config(args)? };
     let names = |names: &[&str]| names.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let bench_sets = expand_sets(&names(&["test", "agreement", "tune", "agreement-tune"]), &[]);
     let diagnose_sets = expand_sets(&names(&["tune", "agreement-tune"]), &[]);
@@ -255,6 +259,7 @@ fn expand_sets(names: &[String], default: &[&str]) -> Vec<String> {
 fn eval_config(args: &Args) -> Result<EvalConfig, String> {
     let defaults = EvalConfig::default();
     let number = |name: &str, default: f64| args.number(name).map(|n| n.unwrap_or(default));
+    let offer_margin = number("offer-margin", defaults.offer_margin as f64)?;
     Ok(EvalConfig {
         engine: Config {
             beam_width: number("beam", defaults.engine.beam_width as f64)? as usize,
@@ -264,10 +269,14 @@ fn eval_config(args: &Args) -> Result<EvalConfig, String> {
             record_pruning: false,
         },
         offer_count: number("offer-count", defaults.offer_count as f64)? as usize,
-        offer_margin: number("offer-margin", defaults.offer_margin as f64)? as f32,
+        offer_margin: offer_margin as f32,
         offer_lag: number("offer-lag", defaults.offer_lag)?,
         timing_tolerance: number("timing-tolerance", defaults.timing_tolerance)?,
         measure_offer_delays: false,
+        key_offer_margin: number("key-offer-margin", offer_margin)? as f32,
+        chord_offer_margin: number("chord-offer-margin", offer_margin)? as f32,
+        numeral_offer_margin: number("numeral-offer-margin", offer_margin)? as f32,
+        measure_hindsight: args.has("hindsight"),
     })
 }
 
@@ -279,6 +288,9 @@ fn settings_of(config: &EvalConfig) -> std::collections::BTreeMap<String, f64> {
         ("offer_count", config.offer_count as f64),
         ("offer_margin", config.offer_margin as f64),
         ("offer_lag", config.offer_lag),
+        ("key_offer_margin", config.key_offer_margin as f64),
+        ("chord_offer_margin", config.chord_offer_margin as f64),
+        ("numeral_offer_margin", config.numeral_offer_margin as f64),
         ("timing_tolerance", config.timing_tolerance),
     ]
     .into_iter()

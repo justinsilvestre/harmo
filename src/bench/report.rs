@@ -1,6 +1,7 @@
 //! Summarizes evaluation results by benchmark set, prints them, and saves them as run records.
 
 use super::equivalence::EQUIVALENCES;
+use super::layer_coverage::{LAYERS, LayerCoverage, LayerSummary};
 use super::metrics::{Accuracy, Agreement, AgreementSummary, FEATURES, MATCHED_FEATURES};
 use super::offer_delay::{DELAY_LAYERS, DelaySummary, OfferDelays};
 use super::runner::PieceResult;
@@ -65,6 +66,9 @@ pub struct PieceCoverage {
     pub disagreements: Vec<u64>,
     /// Those frames where both analyses' readings are offered.
     pub offered_both: Vec<u64>,
+    /// The same with each layer offered on its own. Older runs lack it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layers: Option<LayerCoverage>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -131,6 +135,7 @@ pub fn piece_records(results: &[PieceResult]) -> Vec<PieceRecord> {
         coverage: r.agreement.as_ref().map(|a| PieceCoverage {
             disagreements: a.disagreements(),
             offered_both: a.offered_both.to_vec(),
+            layers: Some(a.layers.clone()),
         }),
     };
     results.iter().map(record).collect()
@@ -179,7 +184,37 @@ pub fn print_agreement(sets: &[SetRecord]) {
         for (name, values) in rows {
             println!("{name:<40} {}", percentages(values));
         }
+        print_layers("offered by layer, at the moment", summary.layers.as_ref());
+        print_layers("offered by layer, in hindsight", summary.hindsight.as_ref());
     }
+}
+
+/// Prints how often both readings are offered with each layer offered on its own, and the mean
+/// number offered in each layer.
+fn print_layers(title: &str, summary: Option<&LayerSummary>) {
+    let Some(summary) = summary else {
+        return;
+    };
+    let cells: Vec<String> = LAYERS
+        .iter()
+        .enumerate()
+        .map(|(l, name)| {
+            format!("{name} {:.1} (n {:.2})", 100.0 * summary.coverage[l], summary.mean_offered[l])
+        })
+        .collect();
+    println!("{:<40} {}", format!("{title}: both offered"), cells.join("  "));
+}
+
+/// Prints the CPU time summed over pieces for each part of the evaluation.
+pub fn print_timing(results: &[PieceResult]) {
+    let sum = |part: fn(&PieceResult) -> f64| results.iter().map(part).sum::<f64>();
+    println!(
+        "CPU seconds summed over pieces: search {:.2}, offering by layer {:.2}, hindsight {:.2}, whole evaluation {:.2}",
+        sum(|r| r.timing.search),
+        sum(|r| r.timing.layers),
+        sum(|r| r.timing.hindsight),
+        sum(|r| r.seconds)
+    );
 }
 
 /// Prints, for each set, the share of frames that each equivalence credits under the equivalents

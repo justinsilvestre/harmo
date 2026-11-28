@@ -2,6 +2,7 @@
 
 use super::markdown::render;
 use super::record::{ResultsRecord, RunHeader};
+use crate::bench::layer_coverage::LayerSummary;
 use crate::bench::metrics::AgreementSummary;
 use crate::bench::offer_delay::DelaySummary;
 use crate::bench::report::SetRecord;
@@ -59,6 +60,8 @@ fn agreement() -> AgreementSummary {
         disagreement_coverage: rates.clone(),
         disagreement_top_matches_either: rates,
         mean_offered: 3.0,
+        layers: Some(LayerSummary { coverage: vec![0.5, 0.25, 0.125], mean_offered: vec![2.0, 3.0, 4.0] }),
+        hindsight: Some(LayerSummary { coverage: vec![0.0; 3], mean_offered: vec![1.0; 3] }),
     }
 }
 
@@ -133,6 +136,11 @@ fn gives_the_share_of_frames_each_equivalence_credits() {
 #[test]
 fn heads_the_agreement_table_with_the_equivalents_column() {
     assert!(document().contains("| inversion | root | RN | chord | RN eq |"));
+}
+
+#[test]
+fn gives_coverage_by_layer_beside_coverage_in_hindsight() {
+    assert!(document().contains("| chord | 25.0 | 3.00 | 0.0 | 1.00 |"));
 }
 
 #[test]

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 /// Options that take no value.
-const SWITCHES: &[&str] = &["json", "help"];
+const SWITCHES: &[&str] = &["json", "help", "hindsight"];
 
 pub struct Args {
     positional: Vec<String>,

@@ -1,6 +1,7 @@
 //! Frame-level accuracy and expert-agreement counts.
 
 use super::equivalence::{Credit, EQUIVALENCES};
+use super::layer_coverage::{LayerCoverage, LayerSummary};
 use crate::theory::label::Label;
 use serde::{Deserialize, Serialize};
 
@@ -165,6 +166,10 @@ pub struct Agreement {
     pub top_matches_either: AgreementCounts,
     /// Sum over frames of the number of distinct full readings offered.
     pub offered_readings: u64,
+    /// Coverage with keys, chords and numerals offered one layer at a time.
+    pub layers: LayerCoverage,
+    /// Coverage with readings ranked by the final scores they led to, when measured.
+    pub hindsight: Option<LayerCoverage>,
 }
 
 /// How the labels of one frame match under the equivalents measure, for a pair of analysts.
@@ -206,6 +211,10 @@ impl Agreement {
     pub fn merge(&mut self, other: &Agreement) {
         self.frames += other.frames;
         self.offered_readings += other.offered_readings;
+        self.layers.merge(&other.layers);
+        if let Some(theirs) = &other.hindsight {
+            self.hindsight.get_or_insert_with(LayerCoverage::default).merge(theirs);
+        }
         let pairs = [
             (&mut self.analysts_agree, &other.analysts_agree),
             (&mut self.top_matches_consensus, &other.top_matches_consensus),
@@ -236,6 +245,8 @@ impl Agreement {
                 ratio(self.top_matches_either[i], disagreements(i))
             }),
             mean_offered: ratio(self.offered_readings, self.frames),
+            layers: Some(self.layers.summary()),
+            hindsight: self.hindsight.as_ref().map(LayerCoverage::summary),
         }
     }
 }
@@ -250,6 +261,12 @@ pub struct AgreementSummary {
     pub disagreement_coverage: Vec<f64>,
     pub disagreement_top_matches_either: Vec<f64>,
     pub mean_offered: f64,
+    /// Coverage with each layer offered on its own. Older runs lack it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layers: Option<LayerSummary>,
+    /// Coverage in hindsight, when measured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hindsight: Option<LayerSummary>,
 }
 
 fn add_where_counts<const N: usize>(counts: &mut [u64; N], other: &[u64; N]) {

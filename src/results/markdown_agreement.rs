@@ -2,6 +2,7 @@
 
 use super::markdown_table::{percent, table};
 use super::set_names::row_name;
+use crate::bench::layer_coverage::{LAYERS, LayerSummary};
 use crate::bench::metrics::AgreementSummary;
 use crate::bench::report::{SetRecord, agreement_features};
 
@@ -15,6 +16,8 @@ These sets include pieces with two expert analyses. `agreement` holds the 150 Wh
 Each row is a percentage of frames.
 - **Where the analysts agree,** the target is for the top reading to match them as often as a third expert would. If each expert matched an ideal analysis at rate *p*, two experts would agree at about *p*², and a third would match their consensus at about *p*, so the target is the square root of the analysts' agreement rate.
 - **Where they disagree,** the measure is how often both readings are among those the engine offers. How often the top reading matches either analyst is given beside it.
+- **Offered by layer** lists keys and chords offered on their own rather than as parts of whole readings. A key's or chord's **shortfall** is the best score in the beam two quarter notes later minus the best score of a hypothesis holding it. Up to four keys and, separately, up to four chords are offered, those whose shortfall is within the offer margin, smallest first. A chord here is its root, quality and inversion, as in the chord column. The RN row pairs each offered key with each offered chord and offers up to four of these numerals, ranked by the sum of the two shortfalls, each with the tonicization of the best hypothesis holding that key and chord. Both offered is a share of the frames where the analysts differ in that layer, and **per frame** is how many keys, chords or numerals are offered on average.
+- **In hindsight** ranks the same beam's readings by the best final score that a hypothesis holding each one led to, and offers whole readings in the RN row. A reading whose hypotheses all left the beam before the end has no such score and is never offered. This is a report on the finished analysis; no rule and no other figure uses it.
 - **RN eq** counts two labels that are notational equivalents of each other as the same, for the analysts as for the engine. Its rows for where the analysts agree and disagree therefore cover different frames from the RN column's: analysts whose labels are equivalents count as agreeing.
 ";
 
@@ -30,10 +33,35 @@ fn render_set(set: &SetRecord) -> Option<String> {
     let name = row_name(&set.name);
     let title = if name == set.name { format!("`{name}`") } else { format!("`{}` ({name})", set.name) };
     Some(format!(
-        "### {title}\n\n{}\nThe engine offers {:.1} readings per frame on average here.\n",
+        "### {title}\n\n{}\nThe engine offers {:.1} readings per frame on average here.\n{}",
         agreement_table(summary),
-        summary.mean_offered
+        summary.mean_offered,
+        layer_table(summary).map_or(String::new(), |t| format!("\nOffered by layer:\n\n{t}"))
     ))
+}
+
+fn layer_table(summary: &AgreementSummary) -> Option<String> {
+    let now = summary.layers.as_ref()?;
+    let header =
+        ["layer", "both offered", "per frame", "both offered in hindsight", "per frame in hindsight"];
+    let hindsight = |values: fn(&LayerSummary) -> &Vec<f64>, layer: usize, format: fn(f64) -> String| {
+        summary.hindsight.as_ref().map_or("".to_string(), |h| format(values(h)[layer]))
+    };
+    let count = |v: f64| format!("{v:.2}");
+    let rows: Vec<Vec<String>> = LAYERS
+        .iter()
+        .enumerate()
+        .map(|(layer, name)| {
+            vec![
+                if *name == "rn" { "RN".to_string() } else { name.to_string() },
+                percent(now.coverage[layer]),
+                count(now.mean_offered[layer]),
+                hindsight(|h| &h.coverage, layer, percent),
+                hindsight(|h| &h.mean_offered, layer, count),
+            ]
+        })
+        .collect();
+    Some(table(&header, &rows))
 }
 
 fn agreement_table(summary: &AgreementSummary) -> String {

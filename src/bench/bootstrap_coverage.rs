@@ -1,6 +1,7 @@
 //! Bootstrap intervals for the change in how often both analysts' readings are offered.
 
 use super::bootstrap::{PairedPiece, RESAMPLES, bootstrap};
+use super::layer_coverage::{LAYERS, LayerCoverage};
 use super::report::{PieceCoverage, RunRecord, SetRecord};
 use super::runner::PieceResult;
 use std::collections::HashMap;
@@ -46,6 +47,64 @@ pub fn print_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], pre
     }
 }
 
+/// Prints, for each set with two analyses, the change in "both readings offered" with each layer
+/// offered on its own, with a 95% interval as above, and the mean number offered in each layer in
+/// both runs.
+pub fn print_layer_coverage_intervals(sets: &[SetRecord], results: &[PieceResult], previous: &RunRecord) {
+    let old: HashMap<&str, &LayerCoverage> = previous
+        .pieces
+        .iter()
+        .filter_map(|p| Some((p.id.as_str(), p.coverage.as_ref()?.layers.as_ref()?)))
+        .collect();
+    let old_sets: HashMap<&str, &SetRecord> = previous.sets.iter().map(|s| (s.name.as_str(), s)).collect();
+    let means =
+        |s: &SetRecord| s.agreement.as_ref().and_then(|a| a.layers.as_ref()).map(|l| l.mean_offered.clone());
+    for set in sets.iter().filter(|s| s.agreement.is_some()) {
+        let members: Vec<&PieceResult> =
+            results.iter().filter(|r| set.name == "all" || r.sets.contains(&set.name)).collect();
+        let (Some(now), Some(before)) = (means(set), old_sets.get(set.name.as_str()).and_then(|s| means(s)))
+        else {
+            continue;
+        };
+        let cells: Vec<String> = LAYERS
+            .iter()
+            .enumerate()
+            .filter_map(|(layer, name)| {
+                let pieces = paired_layer_pieces(&members, &old, layer);
+                if pieces.is_empty() {
+                    return None;
+                }
+                let interval = bootstrap(&pieces, RESAMPLES, SEED).into_iter().next()?;
+                Some(format!(
+                    "{name} {:+.2} [{:+.2},{:+.2}] at n {:.3} (previous {:.3})",
+                    interval.change, interval.low, interval.high, now[layer], before[layer]
+                ))
+            })
+            .collect();
+        if !cells.is_empty() {
+            println!("by layer, 95% vs previous: {:<22} {}", set.name, cells.join("  "));
+        }
+    }
+}
+
+/// Pairs each piece's coverage of one of `LAYERS` with the previous run's, as `paired_pieces` does.
+pub fn paired_layer_pieces(
+    members: &[&PieceResult],
+    old: &HashMap<&str, &LayerCoverage>,
+    layer: usize,
+) -> Vec<PairedPiece> {
+    let pair = |r: &&PieceResult| {
+        let now = &r.agreement.as_ref()?.layers;
+        let previous = old.get(r.id.as_str())?;
+        let disagreements = now.disagreements[layer];
+        (disagreements > 0).then(|| PairedPiece {
+            frames: disagreements as f64,
+            weighted_changes: vec![now.offered_both[layer] as f64 - previous.offered_both[layer] as f64],
+        })
+    };
+    members.iter().filter_map(pair).collect()
+}
+
 /// Pairs each piece's coverage of `feature` with the previous run's, leaving out pieces missing
 /// from either run, or without the feature in the previous run, or without disagreements on it.
 pub fn paired_pieces(
@@ -81,6 +140,7 @@ mod tests {
             accuracy: Accuracy::default(),
             agreement: Some(agreement),
             offer_delays: None,
+            timing: Default::default(),
         }
     }
 
@@ -88,6 +148,7 @@ mod tests {
         PieceCoverage {
             disagreements: vec![10; MATCHED_FEATURES],
             offered_both: vec![offered_both; MATCHED_FEATURES],
+            layers: None,
         }
     }
 
